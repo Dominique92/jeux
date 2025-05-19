@@ -1,0 +1,24 @@
+{
+  "name": "Vie",
+  "version": "0.0.0.dev",
+  "description": "Simulateur de vie",
+  "author": "Dominique Cavailhez",
+  "homepage": "https://github.com/Dominique92/Jeux#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dominique92/Jeux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Dominique92/Jeux/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "lint": "npx eslint index.html index.css *.js*",
+    "beautify": "js-beautify -s=2 *.html *.css *.js*"
+  },
+  "devDependencies": {
+    "eslint": "latest",
+    "js-beautify": "latest"
+  }
+}

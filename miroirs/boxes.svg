@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128">
+  <style>
+    polygon {
+      stroke-width: 0;
+    }
+
+    path {
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+  </style>
+
+  <!-- Boxes -->
+    <symbol id="down" width="32" height="32" viewBox="0 0 32 32">
+      <polygon points="0,0 0,32 32,32 32,0" style="fill:#888" />
+      <polygon points="0,0 0,32 32,0" style="fill:#777" />
+      <polygon points="1,1 1,31 31,31 31,1" style="fill:#777" />
+    </symbol>
+
+    <symbol id="hight" width="32" height="32" viewBox="0 0 32 32">
+      <polygon points="0,0 0,32 32,32 32,0" style="fill:#666" />
+      <polygon points="0,0 0,32 32,0" style="fill:#fff" />
+      <polygon points="2,2 2,30 30,30 30,2" style="fill:#ccc" />
+    </symbol>
+
+    <symbol id="line" width="256" height="64" viewBox="0 0 256 64">
+      <use href="#down" x="0" y="0" />
+      <use href="#down" x="32" y="0" />
+      <use href="#down" x="64" y="0" />
+      <use href="#down" x="96" y="0" />
+      <use href="#hight" x="128" y="0" />
+      <use href="#down" x="160" y="0" />
+      <use href="#hight" x="192" y="0" />
+      <use href="#hight" x="224" y="0" />
+    </symbol>
+
+    <use href="#line" x="0" y="0" />
+    <use href="#line" x="0" y="32" />
+    <use href="#line" x="0" y="64" />
+    <use href="#line" x="0" y="96" />
+    <use href="#line" x="128" y="96" />
+
+  <!-- Lasers -->
+    <rect x="47" y="0" width="2" height="128" fill="red" />
+    <rect x="79" y="0" width="2" height="128" fill="blue" />
+    <rect x="111" y="0" width="2" height="128" fill="yellow" />
+    <rect x="0" y="47" width="128" height="2" fill="red" />
+    <rect x="0" y="79" width="128" height="2" fill="blue" />
+    <rect x="0" y="111" width="128" height="2" fill="yellow" />
+
+  <!-- Mirrors -->
+    <path d="M133 59 155 37" stroke="black" />
+    <path d="M133 69 155 91" stroke="black" />
+    <path d="M165 59 187 37" stroke="black" stroke-dasharray="1,6" />
+    <path d="M165 69 187 91" stroke="black" stroke-dasharray="1,6" />
+    <path d="M197 59 219 37" stroke="black" />
+    <path d="M198 69 219 91" stroke="black" stroke-dasharray="1,6" />
+    <path d="M229 59 251 37" stroke="black" stroke-dasharray="1,6" />
+    <path d="M229 69 251 91" stroke="black" />
+    <path d="M197 27 219  5" stroke="green" />
+    <path d="M197 91 219 69" stroke="green" />
+    <path d="M229  5 251 27" stroke="green" />
+    <path d="M229 37 251 59" stroke="green" />
+
+  <!-- Final crash -->
+    <path d="M195 124 204 108 212 116 220 100" stroke="green" stroke-dasharray="5,6" />
+    <path d="M252 124 244 108 236 116 228 100" stroke="green" stroke-dasharray="5,6" />
+</svg>

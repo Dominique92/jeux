@@ -1,0 +1,68 @@
+/* Général */
+@page {
+    size:A4 portrait;
+    margin-left: 0px;
+    margin-right: 0px;
+    margin-top: 8px;
+    -webkit-print-color-adjust: exact;
+}
+body {
+	-webkit-print-color-adjust: exact;
+}
+table {
+	margin: auto;
+}
+
+/* Texte*/
+h4 {
+	margin: 1em 0 0 23em;
+}
+p {
+	margin: 0 0 0 24em;
+}
+div {
+	float: right;
+	margin-top: 5px;
+}
+
+/* Dimension des cases */
+.h1, .h3, .h5, .h7 {
+	width: 180px;
+}
+.v1, .v3, .v5, .v7 {
+	height: 180px;
+}
+
+/* Murs */
+.h0, .h2, .h4, .h6, .h8,
+.v0, .v2, .v4, .v6, .v8 {
+	height: 8px;
+	width: 6px;
+	background: #ccc;
+}
+.h0, .h8, .c14, .c24, .c64, .c74 {
+	background-image: url("briquev.jpg");
+}
+.v0, .c83, .c85, .c84, .c86, .c87,
+.c41, .c42, .c46, .c47   {
+	background-image: url("briqueh.jpg");
+}
+
+/* Flèches */
+.c31, .c51 {
+	rotate: 90deg;
+}
+.c13, .c15 {
+	rotate: 180deg;
+}
+.c37, .c57 {
+	rotate: 270deg;
+}
+.c13, .c15, .c31, .c37, .c51, .c57, .c73, .c75,
+/* Images dans les cases */
+.c11, .c17, .c33, .c55, .c71, .c77 {
+	background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><path d="M85 6 90 1 95 6 90 1" style="stroke:black" /></svg>');
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
