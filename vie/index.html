@@ -11,20 +11,8 @@
 </head>
 
 <body>
-  <form action="." method="GET">
-    <input type="range" name="s" min="1" max="12" oninput="displayInputs()" onchange="this.form.submit()" />
-    <p></p>
-    <input type="range" name="d" min="5" max="99" oninput="displayInputs()" onchange="this.form.submit()" />
-    <p></p>
-  </form>
-  <div></div>
-
-  <p>Le but est de détecter au moyen de lasers quelles cases contiennent des miroirs.</p>
-  <p>Cliquez sur les &#10036; pour allumer les lasers.</p>
-  <p>Cliquez sur les cases pour marquer vos suppositions de miroirs.</p>
-  <p>Double cliquez sur les cases qui ne contiennent pas de miroir pour en vérifier le contenu.</p>
-  <p>Si vous double cliquez sur une case qui contient un miroir, vous avez perdu !</p>
-  <p>Vous avez gagné quand vous avez marqué tous les emplacements de miroirs.</p>
+  <input type="button" onclick="action()">
+  <table></table>
 </body>
 
 </html>

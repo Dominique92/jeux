@@ -1,45 +1,26 @@
-body {
-  color: white;
-  background: #222;
-}
-
-/* Tuning */
-form input[type="range"] {
-  width: calc(100% - 4px);
-}
-
-form p {
-  text-align: center;
-}
-
-/* Help */
-body>p {
-  margin: 0.3em;
-  text-indent: 1em;
-}
-
-/* Boxes */
-div {
-  margin: 5vh 0;
-  text-align: center;
-}
-
-div>p {
-  margin: 0;
-}
-
-div span {
-  display: inline-block;
-  line-height: 32px;
-  width: 32px;
-}
-
-div p:not(:first-child):not(:last-child) span,
-div span:not(:first-child):not(:last-child) {
-  background-image: url("boxes.svg");
-  cursor: pointer;
-}
-
-div span::selection {
+*::selection {
   background: transparent;
 }
+
+table {
+  border-collapse: collapse;
+}
+
+td {
+  height: 32px;
+  width: 34px;
+  padding: 0;
+  text-align: center;
+  white-space: nowrap;
+  text-indent: -6px;
+  letter-spacing: -6px;
+  background: #6a8;
+  wborder: 1px solid white;
+}
+
+/*TODO
+td:active {
+  cursor: grabbing;
+  cursor: -moz-grabbing;
+  cursor: -webkit-grabbing;
+}*/
