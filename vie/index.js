@@ -68,6 +68,40 @@ function proches(v, h, deep, searched, cross) {
   return found;
 }
 
+function move(elOrigin, elDestination) {
+  if (elDestination.data.h && // Sauf dans la colonne de gauche
+    decHTML(elDestination) === o.none) { // If empty
+    elDestination.innerHTML = elOrigin.innerHTML;
+
+    // Remove remote symbol & data
+    if (elOrigin.data.h) { // Sauf la colonne de gauche
+      elOrigin.innerHTML = o.none;
+      elOrigin.data = {
+        v: elOrigin.data.v,
+        h: elOrigin.data.h,
+      };
+    }
+  }
+}
+
+function dragstartHandler(evt) {
+  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
+}
+
+function dragoverHandler(evt) {
+  //TODO grab cursor
+  evt.preventDefault();
+}
+
+function dropHandler(evt) {
+  const data = JSON.parse(evt.dataTransfer.getData('data')),
+    elOrigin = tableEl.children[data.v].children[data.h];
+
+  move(elOrigin, evt.target);
+
+  evt.preventDefault();
+}
+
 function action() {
   for (let v = 0; v < sizeV; v++)
     for (let h = 0; h < sizeH; h++) {
@@ -80,47 +114,17 @@ function action() {
               elC.innerHTML = o.water;
             });
             break;
-          case o.water:
+          case o.water: //TODO BUG prend les nouvelles valeurs de l'eau
             const p = proches(v, h, 1, [o.none]);
+            /*DCMM*/console.log(p);
             break;
         }
       }
     }
 }
 
-function dragstartHandler(evt) {
-  evt.dataTransfer.setData('symbol', decHTML(evt.target));
-  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
-}
-
-function dragoverHandler(evt) {
-  //TODO grab cursor
-  evt.preventDefault();
-}
-
-function dropHandler(evt) {
-  evt.preventDefault();
-
-  const symbol = evt.dataTransfer.getData('symbol'),
-    data = JSON.parse(evt.dataTransfer.getData('data'));
-
-  if (evt.target.data.h && // Sauf la colonne de gauche
-    decHTML(evt.target) === o.none) { // If empty
-    evt.target.innerHTML = symbol;
-    if (data.h) { // Sauf la colonne de gauche
-      // Remove remote symbol & data
-      tableEl.children[data.v].children[data.h].innerHTML = o.none;
-      tableEl.children[data.v].children[data.h].data = {
-        v: data.v,
-        h: data.h,
-      };
-    }
-  }
-  //const yy=  proches(evt.target.data.v, evt.target.data.h, 2, [o.none,o.fountain]);
-  //*DCMM*/console.log(yy);
-}
-
 // Build the table
+//TODO data en localstorage
 for (let v = 0; v < sizeV; v++) {
   const pTr = document.createElement('tr');
 
