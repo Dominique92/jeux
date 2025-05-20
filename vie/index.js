@@ -1,7 +1,6 @@
 //TODO favicon
 
 const tableEl = document.getElementsByTagName('table')[0],
-  size = 9,
   catalog = {
     man: '&#129492;',
     woman: '&#128105;',
@@ -25,9 +24,10 @@ const tableEl = document.getElementsByTagName('table')[0],
     sand: '&#9617;',
     lane: '&#9945;',
     house: '&#127968;',
+    none: '&nbsp;',
   },
   spares = {
-    ...o,
+    //...o,
     spares: 'SPARES',
     tree: '&#127795;',
     wheat: '&#127806;',
@@ -37,20 +37,64 @@ const tableEl = document.getElementsByTagName('table')[0],
     baby: '&#128118;',
     potato: '&#129364;',
   },
-  size2 = Object.keys(spares).length,
-  interval = 10000; // Intervale entre 2 actions, en millisecondes
+  sizeH = 12,
+  sizeV = Object.keys(o).length,
+  influence = 5, // Nb searched chars around a position
+  interval = 10000; // Intervale entre 2 actions, en millisecondes //TODO
+
+function decHTML(el) {
+  let out = '';
+  for (const char of el.innerHTML) {
+    const code = char.codePointAt(0);
+    out += code >= 0x80 ? '&#' + code + ';' : char;
+  }
+  return out;
+}
+
+function proches(v, h, deep, searched, cross) {
+  const found = [];
+
+  for (let d = 1; d <= deep && found.length <= influence; d++)
+    for (let vc = v - d; vc <= v + d; vc++)
+      for (let hc = h - d; hc <= h + d; hc++)
+        if (0 <= vc && vc < sizeV && 0 <= hc && hc < sizeH &&
+          (vc === v - d || vc === v + d || hc === h - d || hc === h + d) &&
+          (!cross || (vc !== v && hc !== h))) {
+          const elClose = tableEl.children[vc].children[hc];
+
+          if (searched.includes(decHTML(elClose)))
+            found.push(elClose);
+        }
+  return found;
+}
 
 function action() {
-  /*DCMM*/
-  console.log(99);
+  for (let v = 0; v < sizeV; v++)
+    for (let h = 0; h < sizeH; h++) {
+      const el = tableEl.children[v].children[h];
+      // All boxes populated
+      if (el.data.h && decHTML(el) !== o.none) {
+        switch (decHTML(el)) {
+          case o.fountain:
+            proches(v, h, 1, [o.none], true).forEach(elC => {
+              elC.innerHTML = o.water;
+            });
+            break;
+          case o.water:
+            const p = proches(v, h, 1, [o.none]);
+            break;
+        }
+      }
+    }
 }
 
 function dragstartHandler(evt) {
-  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
+  evt.dataTransfer.setData('symbol', decHTML(evt.target));
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
 }
 
 function dragoverHandler(evt) {
+  //TODO grab cursor
   evt.preventDefault();
 }
 
@@ -61,32 +105,34 @@ function dropHandler(evt) {
     data = JSON.parse(evt.dataTransfer.getData('data'));
 
   if (evt.target.data.h && // Sauf la colonne de gauche
-    evt.target.innerHTML === '&nbsp;') { // If empty
+    decHTML(evt.target) === o.none) { // If empty
     evt.target.innerHTML = symbol;
     if (data.h) { // Sauf la colonne de gauche
       // Remove remote symbol & data
-      tableEl.children[data.v].children[data.h].innerHTML = '&nbsp;';
+      tableEl.children[data.v].children[data.h].innerHTML = o.none;
       tableEl.children[data.v].children[data.h].data = {
+        v: data.v,
         h: data.h,
-        v: data.v
       };
     }
   }
+  //const yy=  proches(evt.target.data.v, evt.target.data.h, 2, [o.none,o.fountain]);
+  //*DCMM*/console.log(yy);
 }
 
 // Build the table
-for (let v = 0; v < size2; v++) {
+for (let v = 0; v < sizeV; v++) {
   const pTr = document.createElement('tr');
 
   tableEl.appendChild(pTr);
 
-  for (let h = 0; h < size; h++) {
+  for (let h = 0; h < sizeH; h++) {
     const tdEl = document.createElement('td');
     pTr.appendChild(tdEl);
-    tdEl.innerHTML = h ? '&nbsp;' : Object.values(spares)[v] || '&nbsp;';
+    tdEl.innerHTML = h ? o.none : Object.values(o)[v] || o.none;
     tdEl.data = {
+      v: v,
       h: h,
-      v: v
     };
 
     if (h) {
@@ -98,6 +144,9 @@ for (let v = 0; v < size2; v++) {
   }
 }
 
+tableEl.insertAdjacentHTML('afterend', Object.values(spares).join(' '));
+
+/*//TODO metronome
 if (!localStorage.date)
   localStorage.date = Date.now();
 let delta;
@@ -106,3 +155,4 @@ do {
   delta = Date.now() - locDate;
   localStorage.date = locDate + Math.max(1, 0.3 * delta);
 } while (delta > interval);
+*/

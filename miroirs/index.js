@@ -21,6 +21,7 @@ if ("serviceWorker" in navigator)
 //TODO film gagné
 //TODO lint css & html
 //TODO max taille suivant fenêtre
+//TODO PWA / update fichiers
 
 // Initialise input fields with parameters
 inputEls[0].value = sPars[1];
