@@ -116,7 +116,8 @@ function action() {
             break;
           case o.water: //TODO BUG prend les nouvelles valeurs de l'eau
             const p = proches(v, h, 1, [o.none]);
-            /*DCMM*/console.log(p);
+            /*DCMM*/
+            console.log(p);
             break;
         }
       }

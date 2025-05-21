@@ -41,12 +41,12 @@
     <use href="#line" x="128" y="96" />
 
   <!-- Lasers -->
-    <rect x="47" y="0" width="2" height="128" fill="red" />
-    <rect x="79" y="0" width="2" height="128" fill="blue" />
-    <rect x="111" y="0" width="2" height="128" fill="yellow" />
-    <rect x="0" y="47" width="128" height="2" fill="red" />
-    <rect x="0" y="79" width="128" height="2" fill="blue" />
-    <rect x="0" y="111" width="128" height="2" fill="yellow" />
+    <rect x="46" y="0" width="4" height="128" fill="red" />
+    <rect x="78" y="0" width="4" height="128" fill="blue" />
+    <rect x="110" y="0" width="4" height="128" fill="yellow" />
+    <rect x="0" y="46" width="128" height="4" fill="red" />
+    <rect x="0" y="78" width="128" height="4" fill="blue" />
+    <rect x="0" y="110" width="128" height="4" fill="yellow" />
 
   <!-- Mirrors -->
     <path d="M133 59 155 37" stroke="black" />

@@ -3,19 +3,19 @@
   "version": "0.0.0.dev",
   "description": "Simulateur de vie",
   "author": "Dominique Cavailhez",
-  "homepage": "https://github.com/Dominique92/Jeux#readme",
+  "homepage": "https://github.com/Dominique92/jeux#readme",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Dominique92/Jeux.git"
+    "url": "git+https://github.com/Dominique92/jeux.git"
   },
   "bugs": {
-    "url": "https://github.com/Dominique92/Jeux/issues"
+    "url": "https://github.com/Dominique92/jeux/issues"
   },
   "type": "module",
   "scripts": {
-    "lint": "npx eslint index.html index.css *.js*",
-    "beautify": "js-beautify -s=2 *.html *.css *.js*"
+    "beautify": "js-beautify -s=2 *.js* */*.js* */*.html */*.css",
+    "lint": "npx eslint *.js* */*.js*"
   },
   "devDependencies": {
     "eslint": "latest",

@@ -1,0 +1,12 @@
+body {
+  background: grey;
+}
+
+*::selection {
+  background: transparent;
+}
+
+div {
+  position: absolute;
+  transition: all 1s ease;
+}
