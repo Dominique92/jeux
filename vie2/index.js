@@ -1,7 +1,6 @@
 //TODO favicon
 
-const divEls = document.getElementsByTagName('div'),
-  catalog = {
+const catalog = {
     man: '&#129492;',
     woman: '&#128105;',
     corn: '&#127805;',
@@ -47,16 +46,19 @@ function helperPoint(x, y, el) {
 
   if (typeof boxes[x][y] === 'undefined' &&
     typeof el === 'object') {
+    // Register in the grid
     boxes[x][y] = el;
+
+    // Reposition the point
     el.style.left = x * boxSize + 'px';
     el.style.top = y * boxSize + 'px';
     el.data = {
       x: x,
       y: y,
     };
-
-    return true;
   }
+
+  return boxes[x][y];
 }
 
 function addPoint(x, y, symbol, data) {
@@ -66,35 +68,48 @@ function addPoint(x, y, symbol, data) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     Object.assign(el.data, data);
-
     el.draggable = true;
     el.ondragstart = dragstart;
   }
 }
 
 function movePoint(x, y, nx, ny) {
-  if (helperPoint(nx, ny, boxes[x][y]))
-    delete boxes[x][y];
+  const el = helperPoint(x, y);
+
+  if (el) {
+    const nEl = helperPoint(nx, ny, el);
+
+    if (nEl)
+      delete boxes[x][y];
+  }
 }
 
 function deletePoint(x, y) {
-  if (typeof boxes[x] !== 'undefined' &&
-    typeof boxes[x][y] === 'object') {
+  if (helperPoint(x, y)) {
     boxes[x][y].remove();
     delete boxes[x][y];
   }
 }
 
+// Init catalog
+Object.entries(catalog).forEach((pair, i) => {
+  addPoint(i * 2, 0, pair[1], {
+    model: true,
+  });
+})
+
 // Déplacements
 function dragstart(evt) {
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
+  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
 }
 
 document.addEventListener('drop', evt => {
-  const data = JSON.parse(evt.dataTransfer.getData('data'));
+  const data = JSON.parse(evt.dataTransfer.getData('data')),
+    symbol = evt.dataTransfer.getData('symbol');
 
   if (data.model)
-    addPoint(parseInt(evt.x / boxSize), parseInt(evt.y / boxSize), boxes[data.x][data.y].innerHTML);
+    addPoint(parseInt(evt.x / boxSize), parseInt(evt.y / boxSize), symbol);
   else
     movePoint(data.x, data.y, parseInt(evt.x / boxSize), parseInt(evt.y / boxSize));
 
@@ -109,16 +124,8 @@ document.addEventListener('dragend', evt => {
   evt.preventDefault();
 });
 
-// Init catalog
-Object.entries(catalog).forEach((pair, i) => {
-  addPoint(i * 2, 0, pair[1], {
-    model: true,
-  });
-})
-
-function action() {
+document.addEventListener('keydown', evt => {
   deletePoint(15, 10);
-  movePoint(10, 5, 15, 10);
-  /*DCMM*/
+  movePoint(10, 5, 15, 10); /*DCMM*/
   console.log(boxes);
-}
+});
