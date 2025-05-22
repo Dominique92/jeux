@@ -38,7 +38,7 @@ const divEls = document.getElementsByTagName('div'),
     potato: '&#129364;',
   },
   boxes = [],
-  boxSize = 10;
+  boxSize = 16;
 
 // Gestion des points
 function helperPoint(x, y, el) {
@@ -93,25 +93,28 @@ function dragstart(evt) {
 document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data'));
 
-  movePoint(data.x, data.y, parseInt(evt.x / boxSize), parseInt(evt.y / boxSize));
+  if (data.model)
+    addPoint(parseInt(evt.x / boxSize), parseInt(evt.y / boxSize), boxes[data.x][data.y].innerHTML);
+  else
+    movePoint(data.x, data.y, parseInt(evt.x / boxSize), parseInt(evt.y / boxSize));
 
   evt.preventDefault();
 });
-
-/*//TODO TBD
 document.addEventListener('dragover', evt => {
-   evt.preventDefault();
-});
-document.addEventListener('dragend', evt => {
   evt.preventDefault();
 });
-*/
 
-addPoint(10, 5, o.water, {
-  toto: '12345',
+document.addEventListener('dragend', evt => {
+  //TODO better animation
+  evt.preventDefault();
 });
-/*DCMM*/
-console.log(boxes);
+
+// Init catalog
+Object.entries(catalog).forEach((pair, i) => {
+  addPoint(i * 2, 0, pair[1], {
+    model: true,
+  });
+})
 
 function action() {
   deletePoint(15, 10);

@@ -12,3 +12,10 @@ div {
   transition: all 1s ease;
   cursor: grab;
 }
+
+#catalog {
+  width: 118px;
+  height: 23px;
+  margin: 0;
+  border: 1px solid white;
+}
