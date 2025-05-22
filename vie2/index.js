@@ -1,8 +1,7 @@
 //TODO favicon
 
 const divEls = document.getElementsByTagName('div'),
-  terrain = document.getElementById('terrain');
-catalog = {
+  catalog = {
     man: '&#129492;',
     woman: '&#128105;',
     corn: '&#127805;',
@@ -51,6 +50,11 @@ function helperPoint(x, y, el) {
     boxes[x][y] = el;
     el.style.left = x * boxSize + 'px';
     el.style.top = y * boxSize + 'px';
+    el.data = {
+      x: x,
+      y: y,
+    };
+
     return true;
   }
 }
@@ -61,7 +65,7 @@ function addPoint(x, y, symbol, data) {
   if (helperPoint(x, y, el)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
-    el.data = data;
+    Object.assign(el.data, data);
 
     el.draggable = true;
     el.ondragstart = dragstart;
@@ -83,26 +87,28 @@ function deletePoint(x, y) {
 
 // Déplacements
 function dragstart(evt) {
-  /*DCMM*/console.log('dragstart');
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
 }
 
-terrain.ondragover = evt => {
-  /*DCMM*/console.log('dragover', evt);
+document.addEventListener('drop', evt => {
+  const data = JSON.parse(evt.dataTransfer.getData('data'));
 
-  //document.body.style.cursor = 'move';
-
-  evt.preventDefault();
-};
-
-terrain.ondrop = evt => {
-  /*DCMM*/console.log('drop', evt);
+  movePoint(data.x, data.y, parseInt(evt.x / boxSize), parseInt(evt.y / boxSize));
 
   evt.preventDefault();
-};
+});
+
+/*//TODO TBD
+document.addEventListener('dragover', evt => {
+   evt.preventDefault();
+});
+document.addEventListener('dragend', evt => {
+  evt.preventDefault();
+});
+*/
 
 addPoint(10, 5, o.water, {
-  toto: 10
+  toto: '12345',
 });
 /*DCMM*/
 console.log(boxes);
