@@ -1,7 +1,8 @@
 //TODO favicon
 
 const divEls = document.getElementsByTagName('div'),
-  catalog = {
+  terrain = document.getElementById('terrain');
+catalog = {
     man: '&#129492;',
     woman: '&#128105;',
     corn: '&#127805;',
@@ -40,7 +41,8 @@ const divEls = document.getElementsByTagName('div'),
   boxes = [],
   boxSize = 10;
 
-function commonPoint(x, y, el) {
+// Gestion des points
+function helperPoint(x, y, el) {
   if (typeof boxes[x] === 'undefined')
     boxes[x] = [];
 
@@ -56,15 +58,18 @@ function commonPoint(x, y, el) {
 function addPoint(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (commonPoint(x, y, el)) {
+  if (helperPoint(x, y, el)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.data = data;
+
+    el.draggable = true;
+    el.ondragstart = dragstart;
   }
 }
 
 function movePoint(x, y, nx, ny) {
-  if (commonPoint(nx, ny, boxes[x][y]))
+  if (helperPoint(nx, ny, boxes[x][y]))
     delete boxes[x][y];
 }
 
@@ -75,6 +80,26 @@ function deletePoint(x, y) {
     delete boxes[x][y];
   }
 }
+
+// Déplacements
+function dragstart(evt) {
+  /*DCMM*/console.log('dragstart');
+  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
+}
+
+terrain.ondragover = evt => {
+  /*DCMM*/console.log('dragover', evt);
+
+  //document.body.style.cursor = 'move';
+
+  evt.preventDefault();
+};
+
+terrain.ondrop = evt => {
+  /*DCMM*/console.log('drop', evt);
+
+  evt.preventDefault();
+};
 
 addPoint(10, 5, o.water, {
   toto: 10

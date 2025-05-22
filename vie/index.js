@@ -89,7 +89,7 @@ function dragstartHandler(evt) {
 }
 
 function dragoverHandler(evt) {
-  //TODO grab cursor
+  //TODO drag cursor
   evt.preventDefault();
 }
 
