@@ -155,7 +155,6 @@ function decHTML(el, ascii) {
 }
 
 function pointsProches(x, y, deep, limit, searched) {
-  //TODO limite de la fenetre
   const p = [];
 
   // Randomize points order
@@ -167,11 +166,15 @@ function pointsProches(x, y, deep, limit, searched) {
       for (i = 0; i < d; i++) {
         const nx = x + d * delta[0] + i * delta[2],
           ny = y + d * delta[1] + i * delta[3],
-          el = box(nx, ny);
+          el = box(nx, ny),
+          pnx = (nx - ny / 2) * boxSize,
+          pny = ny * 0.866 * boxSize;
 
-        if ((!searched && !el) ||
-          (searched && el && decHTML(el, searched)))
-          p.push([nx, ny, ...delta]);
+        if (0 < pnx && pnx < window.innerWidth &&
+          0 < pny && pny < window.innerHeight)
+          if ((!searched && !el) ||
+            (searched && el && decHTML(el, searched)))
+            p.push([nx, ny, ...delta]);
       }
     });
   }
@@ -180,12 +183,16 @@ function pointsProches(x, y, deep, limit, searched) {
 }
 
 function action(el) {
-  // Fontaine émet une goute
   const pl = pointsProches(el.data.x, el.data.y, 1, 1);
 
+  // Fontaine émet une goute
   if (pl.length && decHTML(el, o.fountain))
     addPoint(pl[0][0], pl[0][1], o.water);
+  // Goutes se déplacent
   if (pl.length && decHTML(el, o.water))
+    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+  // Mais se déplacent
+  if (pl.length && decHTML(el, o.corn))
     movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   // Homme se rapproche
