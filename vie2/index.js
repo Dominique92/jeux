@@ -114,11 +114,11 @@ function dragstart(evt) {
 
 const sommetsProches = [
   [-1, 0, 0, -1],
-  [-1, -1, 1, 0],
-  [0, -1, 1, 1],
   [1, 0, 0, 1],
-  [1, 1, -1, 0],
   [0, 1, -1, -1],
+  [0, -1, 1, 1],
+  [1, 1, -1, 0],
+  [-1, -1, 1, 0],
 ];
 
 document.addEventListener('drop', evt => {
@@ -145,17 +145,20 @@ document.addEventListener('dragend', evt => {
 });
 
 // Actions
-function decHTML(el) {
+function decHTML(el, ascii) {
   let out = '';
   for (const char of el.innerHTML) {
     const code = char.codePointAt(0);
     out += code >= 0x80 ? '&#' + code + ';' : char;
   }
-  return out;
+  return ascii ? out === ascii : out;
 }
 
 function proches(x, y, deep, limit, searched) {
   const p = [];
+
+  // Randomize points order
+  sommetsProches.push(sommetsProches.shift());
 
   for (d = 1; d < deep + 1 && p.length < limit; d++) {
     sommetsProches.forEach(delta => {
@@ -164,10 +167,10 @@ function proches(x, y, deep, limit, searched) {
           ny = y + d * delta[1] + i * delta[3],
           el = box(nx, ny);
 
-        if (!el && !searched)
+        if (!searched && !el)
           p.push([nx, ny]);
 
-        if (el && decHTML(el) === searched)
+        if (searched && el && decHTML(el, searched))
           p.push(el);
       }
     });
@@ -177,11 +180,15 @@ function proches(x, y, deep, limit, searched) {
 }
 
 function action(el) {
-  const p = proches(el.data.x, el.data.y, 4, 9999);
+  const p = proches(el.data.x, el.data.y, 1, 1);
 
-  p.forEach(xy => {
-    addPoint(xy[0], xy[1], o.fountain);
-  });
+  if (p.length && decHTML(el, o.fountain))
+    addPoint(p[0][0], p[0][1], o.water);
+  /*
+    p.forEach(xy => {
+      addPoint(xy[0], xy[1], o.fountain);
+    });
+  */
 }
 
 // Actions
