@@ -112,7 +112,7 @@ function dragstart(evt) {
   evt.dataTransfer.setData('symbol', evt.target.innerHTML);
 }
 
-const sommetsProches = [
+const deltasProches = [
   [-1, 0, 0, -1],
   [1, 0, 0, 1],
   [0, 1, -1, -1],
@@ -154,24 +154,24 @@ function decHTML(el, ascii) {
   return ascii ? out === ascii : out;
 }
 
-function proches(x, y, deep, limit, searched) {
+function pointsProches(x, y, deep, limit, searched) {
+  //TODO limite de la fenetre
   const p = [];
 
   // Randomize points order
-  sommetsProches.push(sommetsProches.shift());
+  for (let i = Math.random() * 4; i > 0; i--)
+    deltasProches.push(deltasProches.shift());
 
   for (d = 1; d < deep + 1 && p.length < limit; d++) {
-    sommetsProches.forEach(delta => {
+    deltasProches.forEach(delta => {
       for (i = 0; i < d; i++) {
         const nx = x + d * delta[0] + i * delta[2],
           ny = y + d * delta[1] + i * delta[3],
           el = box(nx, ny);
 
-        if (!searched && !el)
-          p.push([nx, ny]);
-
-        if (searched && el && decHTML(el, searched))
-          p.push(el);
+        if ((!searched && !el) ||
+          (searched && el && decHTML(el, searched)))
+          p.push([nx, ny, ...delta]);
       }
     });
   }
@@ -180,15 +180,18 @@ function proches(x, y, deep, limit, searched) {
 }
 
 function action(el) {
-  const p = proches(el.data.x, el.data.y, 1, 1);
+  // Fontaine émet une goute
+  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
 
-  if (p.length && decHTML(el, o.fountain))
-    addPoint(p[0][0], p[0][1], o.water);
-  /*
-    p.forEach(xy => {
-      addPoint(xy[0], xy[1], o.fountain);
-    });
-  */
+  if (pl.length && decHTML(el, o.fountain))
+    addPoint(pl[0][0], pl[0][1], o.water);
+  if (pl.length && decHTML(el, o.water))
+    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+
+  // Homme se rapproche
+  const pm = pointsProches(el.data.x, el.data.y, 5, 1, o.woman);
+  if (pm.length && decHTML(el, o.man))
+    movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 }
 
 // Actions
@@ -197,7 +200,6 @@ document.addEventListener('keydown', evt => {
   boxes.forEach(ligne => {
     ligne.forEach(el => {
       if (!el.data.model && el.data.iteration < iteration) {
-        // Action
         action(el);
       }
     });
