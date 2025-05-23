@@ -11,10 +11,11 @@ div {
   position: absolute;
   transition: all 1s ease;
   cursor: grab;
+  z-index: 10;
 }
 
 #catalog {
-  width: 118px;
+  width: 94px;
   height: 23px;
   margin: 0;
   border: 1px solid white;

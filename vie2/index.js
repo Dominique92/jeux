@@ -37,7 +37,7 @@ const catalog = {
     potato: '&#129364;',
   },
   boxes = [],
-  boxSize = 16;
+  boxSize = 24;
 
 // Gestion des points
 function helperPoint(x, y, el) {
@@ -50,12 +50,13 @@ function helperPoint(x, y, el) {
     boxes[x][y] = el;
 
     // Reposition the point
-    el.style.left = x * boxSize + 'px';
-    el.style.top = y * boxSize + 'px';
+    el.style.left = (x - y / 2) * boxSize + 'px';
+    el.style.top = y * 0.866 * boxSize + 'px';
     el.data = {
       x: x,
       y: y,
     };
+    el.setAttribute('title', [el.data.x, el.data.y, el.style.left, el.style.top].join(' '));
   }
 
   return boxes[x][y];
@@ -67,7 +68,8 @@ function addPoint(x, y, symbol, data) {
   if (helperPoint(x, y, el)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
-    Object.assign(el.data, data);
+    if (data)
+      Object.assign(el.data, data);
     el.draggable = true;
     el.ondragstart = dragstart;
   }
@@ -93,7 +95,7 @@ function deletePoint(x, y) {
 
 // Init catalog
 Object.entries(catalog).forEach((pair, i) => {
-  addPoint(i * 2, 0, pair[1], {
+  addPoint(i, 0, pair[1], {
     model: true,
   });
 })
@@ -106,12 +108,15 @@ function dragstart(evt) {
 
 document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data')),
-    symbol = evt.dataTransfer.getData('symbol');
+    symbol = evt.dataTransfer.getData('symbol'),
+    nx = parseInt((evt.x + evt.y / 2) / boxSize),
+    ny = parseInt(evt.y / boxSize / 0.866);
+  //TODO smooth end of move
 
   if (data.model)
-    addPoint(parseInt(evt.x / boxSize), parseInt(evt.y / boxSize), symbol);
+    addPoint(nx, ny, symbol);
   else
-    movePoint(data.x, data.y, parseInt(evt.x / boxSize), parseInt(evt.y / boxSize));
+    movePoint(data.x, data.y, nx, ny);
 
   evt.preventDefault();
 });
