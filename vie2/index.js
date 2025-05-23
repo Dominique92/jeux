@@ -40,11 +40,16 @@ const catalog = {
   boxSize = 24;
 
 // Gestion des points
-function helperPoint(x, y, el) {
+function box(x, y) {
   if (typeof boxes[x] === 'undefined')
     boxes[x] = [];
 
-  if (typeof boxes[x][y] === 'undefined' &&
+  return boxes[x][y];
+}
+
+// Move el to the x/y position if it's free
+function helperPoint(el, x, y) {
+  if (typeof box(x, y) === 'undefined' &&
     typeof el === 'object') {
     // Register in the grid
     boxes[x][y] = el;
@@ -57,29 +62,31 @@ function helperPoint(x, y, el) {
       y: y,
     };
     el.setAttribute('title', [el.data.x, el.data.y, el.style.left, el.style.top].join(' '));
-  }
 
-  return boxes[x][y];
+    return boxes[x][y];
+  }
 }
 
 function addPoint(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (helperPoint(x, y, el)) {
+  if (helperPoint(el, x, y)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
-    if (data)
-      Object.assign(el.data, data);
+    el.data = {
+      ...el.data,
+      ...data
+    };
     el.draggable = true;
     el.ondragstart = dragstart;
   }
 }
 
 function movePoint(x, y, nx, ny) {
-  const el = helperPoint(x, y);
+  const el = box(x, y);
 
   if (el) {
-    const nEl = helperPoint(nx, ny, el);
+    const nEl = helperPoint(el, nx, ny);
 
     if (nEl)
       delete boxes[x][y];
@@ -87,7 +94,7 @@ function movePoint(x, y, nx, ny) {
 }
 
 function deletePoint(x, y) {
-  if (helperPoint(x, y)) {
+  if (box(x, y)) {
     boxes[x][y].remove();
     delete boxes[x][y];
   }
