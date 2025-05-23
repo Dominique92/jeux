@@ -35,8 +35,9 @@ const catalog = {
     baby: '&#128118;',
     potato: '&#129364;',
   },
-  boxes = [],
-  boxSize = 24;
+  boxSize = 24,
+  boxes = [];
+let iteration = 0;
 
 // Gestion des points
 function box(x, y) {
@@ -47,19 +48,22 @@ function box(x, y) {
 }
 
 // Move el to the x/y position if it's free
-function helperPoint(el, x, y) {
+function helperPoint(el, x, y, data) {
   if (typeof box(x, y) === 'undefined' &&
     typeof el === 'object') {
     // Register in the grid
     boxes[x][y] = el;
 
     // Reposition the point
-    el.style.left = (x - y / 2) * boxSize + 'px';
-    el.style.top = y * 0.866 * boxSize + 'px';
+    el.style.left = (x - y / 2 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
+    el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.data = {
+      iteration: iteration,
       x: x,
       y: y,
+      ...data
     };
+    // Debug 
     el.setAttribute('title', [el.data.x, el.data.y, el.style.left, el.style.top].join(' '));
 
     return boxes[x][y];
@@ -69,13 +73,9 @@ function helperPoint(el, x, y) {
 function addPoint(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (helperPoint(el, x, y)) {
+  if (helperPoint(el, x, y, data)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
-    el.data = {
-      ...el.data,
-      ...data
-    };
     el.draggable = true;
     el.ondragstart = dragstart;
   }
@@ -125,7 +125,7 @@ document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data')),
     symbol = evt.dataTransfer.getData('symbol'),
     nx = parseInt((evt.x + evt.y / 2) / boxSize),
-    ny = parseInt(evt.y / boxSize / 0.866);
+    ny = parseInt(evt.y / 0.866 / boxSize);
   //TODO smooth end of move
 
   if (data.model)
@@ -177,18 +177,19 @@ function proches(x, y, deep, limit, searched) {
 }
 
 function action(el) {
-  const p = proches(el.data.x, el.data.y, 2, 6);
+  const p = proches(el.data.x, el.data.y, 4, 9999);
 
   p.forEach(xy => {
-    addPoint(xy[0], xy[1], o.man);
+    addPoint(xy[0], xy[1], o.fountain);
   });
 }
 
 // Actions
 document.addEventListener('keydown', evt => {
+  iteration++;
   boxes.forEach(ligne => {
     ligne.forEach(el => {
-      if (!el.data.model) {
+      if (!el.data.model && el.data.iteration < iteration) {
         // Action
         action(el);
       }
