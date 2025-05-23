@@ -121,46 +121,6 @@ const sommetsProches = [
   [0, 1, -1, -1],
 ];
 
-// Actions
-function decHTML(el) {
-  let out = '';
-  for (const char of el.innerHTML) {
-    const code = char.codePointAt(0);
-    out += code >= 0x80 ? '&#' + code + ';' : char;
-  }
-  return out;
-}
-
-function proches(x, y, deep, searched) {
-  const p = [];
-
-  for (d = 1; d < deep + 1; d++) {
-    sommetsProches.forEach(delta => {
-      for (i = 0; i < d; i++) {
-        const nx = x + d * delta[0] + i * delta[2],
-          ny = y + d * delta[1] + i * delta[3],
-          el = box(nx, ny);
-
-        if (!el && !searched)
-          p.push([nx, ny]);
-
-        if (el && decHTML(el) === searched)
-          p.push(el);
-      }
-    });
-  }
-
-  return p;
-}
-
-function action(el) {
-  const p = proches(el.data.x, el.data.y, 2);
-
-  p.forEach(xy => {
-    addPoint(xy[0], xy[1], o.man);
-  });
-}
-
 document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data')),
     symbol = evt.dataTransfer.getData('symbol'),
@@ -183,6 +143,46 @@ document.addEventListener('dragend', evt => {
   //TODO better animation
   evt.preventDefault();
 });
+
+// Actions
+function decHTML(el) {
+  let out = '';
+  for (const char of el.innerHTML) {
+    const code = char.codePointAt(0);
+    out += code >= 0x80 ? '&#' + code + ';' : char;
+  }
+  return out;
+}
+
+function proches(x, y, deep, limit, searched) {
+  const p = [];
+
+  for (d = 1; d < deep + 1 && p.length < limit; d++) {
+    sommetsProches.forEach(delta => {
+      for (i = 0; i < d; i++) {
+        const nx = x + d * delta[0] + i * delta[2],
+          ny = y + d * delta[1] + i * delta[3],
+          el = box(nx, ny);
+
+        if (!el && !searched)
+          p.push([nx, ny]);
+
+        if (el && decHTML(el) === searched)
+          p.push(el);
+      }
+    });
+  }
+
+  return p;
+}
+
+function action(el) {
+  const p = proches(el.data.x, el.data.y, 2, 6);
+
+  p.forEach(xy => {
+    addPoint(xy[0], xy[1], o.man);
+  });
+}
 
 // Actions
 document.addEventListener('keydown', evt => {
