@@ -1,39 +1,37 @@
 //TODO favicon
 
 const catalog = {
-    man: '&#129492;',
-    woman: '&#128105;',
-    corn: '&#127805;',
-    fountain: '&#9970;',
+    homme: '&#129492;',
+    femme: '&#128105;',
+    mais: '&#127805;',
+    fontaine: '&#9970;',
   },
   o = {
     ...catalog,
-    catalog: 'CATALOG',
-    couple: '&#128107;',
-    family: '&#128106;',
-    child: '&#129485;',
-    dead: '&#9760;',
-    bone: '&#129460;',
-    cowoman: catalog.man + catalog.woman,
-    water: '&#128167;',
     pousse: '&#127793;',
-    herb: '&#127807;',
-    barrier: '&#128679;',
+    couple: '&#128107;',
+    famille: '&#128106;',
+    enfant: '&#129485;',
+    mort: '&#9760;', //TODO BAD !
+    os: '&#129460;',
+    amoureux: catalog.homme + catalog.femme,
+    eau: '&#128167;',
+    herbe: '&#127807;',
+    barriere: '&#128679;',
     brick: '&#129521;',
-    sand: '&#9617;',
-    lane: '&#9945;',
-    house: '&#127968;',
+    sable: '&#9617;',
+    route: '&#9945;',
+    maison: '&#127968;',
   },
   spares = {
     //...o,
-    spares: 'SPARES',
-    tree: '&#127795;',
-    wheat: '&#127806;',
-    rabbit: '&#128007;',
+    arbre: '&#127795;',
+    riz: '&#127806;',
+    lapin: '&#128007;',
     rat: '&#128000;',
-    young: '&#129490;',
-    baby: '&#128118;',
-    potato: '&#129364;',
+    jeune: '&#129490;',
+    bebe: '&#128118;',
+    patate: '&#129364;',
   },
   boxSize = 16,
   actions = [];
@@ -80,6 +78,7 @@ function addPoint(x, y, symbol, data) {
     el.innerHTML = symbol;
     el.draggable = true;
     el.ondragstart = dragstart;
+    return true;
   }
 }
 
@@ -89,8 +88,10 @@ function movePoint(x, y, nx, ny) {
   if (el) {
     const nEl = helperPoint(el, nx, ny);
 
-    if (nEl)
+    if (nEl) {
       delete boxes[x][y];
+      return true;
+    }
   }
 }
 
@@ -98,11 +99,12 @@ function deletePoint(x, y) {
   if (box(x, y)) {
     boxes[x][y].remove();
     delete boxes[x][y];
+    return true;
   }
 }
 
 // Init catalog
-Object.entries(catalog).forEach((pair, i) => {
+Object.entries(o).forEach((pair, i) => {
   addPoint(1.5 * i, 0, pair[1], {
     model: true,
   });
@@ -165,7 +167,7 @@ function pointsProches(el, deep, limit, searched) {
 
   for (d = 1; d < deep + 1 && p.length < limit; d++) {
     deltasProches.forEach(delta => {
-      for (i = 0; i < d; i++) {
+      for (i = 0; i < d && p.length < limit; i++) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
           ny = el.data.y + d * delta[1] + i * delta[3],
           eln = box(nx, ny),
@@ -180,7 +182,6 @@ function pointsProches(el, deep, limit, searched) {
       }
     });
   }
-
   return p;
 }
 
@@ -188,33 +189,47 @@ function action(el) {
   //TODO DELETE
   /*
    const p = pointsProches(el, 1, 1);
-    if (p.length && decHTML(el, o.fountain))
-      addPoint(p[0][0], p[0][1], o.water);
+    if (p.length && decHTML(el, o.fontaine))
+      addPoint(p[0][0], p[0][1], o.eau);
        p.forEach(xy => {
-        addPoint(xy[0], xy[1], o.fountain);
+        addPoint(xy[0], xy[1], o.fontaine);
       });
   */
 }
 
-actions['fountain'] = el => {
-  // Fontaine émet une goute
+function erre(el) {
   const pl = pointsProches(el, 1, 1);
   if (pl.length)
-    addPoint(pl[0][0], pl[0][1], o.water);
-};
+    return movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+}
 
-actions['water'] = el => {
-  // Goutes se déplacent
+function semme(el, nom) {
   const pl = pointsProches(el, 1, 1);
   if (pl.length)
-    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
-};
+    addPoint(pl[0][0], pl[0][1], o[nom]);
+}
 
-actions['man'] = el => {
-  // Homme se rapproche
-  const pm = pointsProches(el, 5, 1, o.woman);
+function rapproche(el, nom) {
+  const pm = pointsProches(el, 5, 1, o[nom]);
+
   if (pm.length)
-    movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+    return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+}
+
+actions['mais'] = el => {
+  semme(el, 'pousse');
+};
+
+actions['fontaine'] = el => {
+  semme(el, 'eau');
+};
+
+actions['eau'] = el => {
+  erre(el);
+};
+
+actions['homme'] = el => {
+  rapproche(el, 'femme');
 };
 
 // Actions
