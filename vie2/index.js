@@ -156,7 +156,7 @@ function decHTML(el, ascii) {
   return ascii ? out === ascii : out;
 }
 
-function pointsProches(x, y, deep, limit, searched) {
+function pointsProches(el, deep, limit, searched) {
   const p = [];
 
   // Randomize points order
@@ -166,16 +166,16 @@ function pointsProches(x, y, deep, limit, searched) {
   for (d = 1; d < deep + 1 && p.length < limit; d++) {
     deltasProches.forEach(delta => {
       for (i = 0; i < d; i++) {
-        const nx = x + d * delta[0] + i * delta[2],
-          ny = y + d * delta[1] + i * delta[3],
-          el = box(nx, ny),
+        const nx = el.data.x + d * delta[0] + i * delta[2],
+          ny = el.data.y + d * delta[1] + i * delta[3],
+          eln = box(nx, ny),
           pnx = (nx - ny / 2) * boxSize,
           pny = ny * 0.866 * boxSize;
 
         if (0 <= pnx && pnx < window.innerWidth - boxSize &&
           0 <= pny && pny < window.innerHeight - boxSize)
-          if ((!searched && !el) ||
-            (searched && el && decHTML(el, searched)))
+          if ((!searched && !eln) ||
+            (searched && eln && decHTML(eln, searched)))
             p.push([nx, ny, ...delta]);
       }
     });
@@ -187,7 +187,7 @@ function pointsProches(x, y, deep, limit, searched) {
 function action(el) {
   //TODO DELETE
   /*
-   const p = pointsProches(el.data.x, el.data.y, 1, 1);
+   const p = pointsProches(el, 1, 1);
     if (p.length && decHTML(el, o.fountain))
       addPoint(p[0][0], p[0][1], o.water);
        p.forEach(xy => {
@@ -198,21 +198,21 @@ function action(el) {
 
 actions['fountain'] = el => {
   // Fontaine émet une goute
-  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
+  const pl = pointsProches(el, 1, 1);
   if (pl.length)
     addPoint(pl[0][0], pl[0][1], o.water);
 };
 
 actions['water'] = el => {
   // Goutes se déplacent
-  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
+  const pl = pointsProches(el, 1, 1);
   if (pl.length)
     movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 };
 
 actions['man'] = el => {
   // Homme se rapproche
-  const pm = pointsProches(el.data.x, el.data.y, 5, 1, o.woman);
+  const pm = pointsProches(el, 5, 1, o.woman);
   if (pm.length)
     movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 };
