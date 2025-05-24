@@ -9,14 +9,14 @@ const catalog = {
   o = {
     ...catalog,
     pousse: '&#127793;',
+    plante: '&#127807;',
     couple: '&#128107;',
     famille: '&#128106;',
     enfant: '&#129485;',
-    mort: '&#9760;', //TODO BAD !
+    mort: '&#128128;',
     os: '&#129460;',
-    amoureux: catalog.homme + catalog.femme,
+    //amoureux: catalog.homme + catalog.femme,
     eau: '&#128167;',
-    herbe: '&#127807;',
     barriere: '&#128679;',
     brick: '&#129521;',
     sable: '&#9617;',
@@ -34,8 +34,10 @@ const catalog = {
     patate: '&#129364;',
   },
   boxSize = 16,
+  boxes = [],
+  zones = [],
   actions = [];
-boxes = [];
+
 let iteration = 0;
 
 
@@ -182,20 +184,23 @@ function pointsProches(el, deep, limit, searched) {
       }
     });
   }
+
+  // Recherche éloignés
+  /*DCMM*/
+  console.log(zones);
+
   return p;
 }
 
-function action(el) {
-  //TODO DELETE
-  /*
-   const p = pointsProches(el, 1, 1);
-    if (p.length && decHTML(el, o.fontaine))
-      addPoint(p[0][0], p[0][1], o.eau);
-       p.forEach(xy => {
-        addPoint(xy[0], xy[1], o.fontaine);
-      });
-  */
-}
+//TODO DELETE
+/*
+ const p = pointsProches(el, 1, 1);
+  if (p.length && decHTML(el, o.fontaine))
+    addPoint(p[0][0], p[0][1], o.eau);
+     p.forEach(xy => {
+      addPoint(xy[0], xy[1], o.fontaine);
+    });
+*/
 
 function erre(el) {
   const pl = pointsProches(el, 1, 1);
@@ -234,6 +239,26 @@ actions['homme'] = el => {
 
 // Actions
 document.addEventListener('keydown', evt => {
+  // Reconstruction de la table des éloignés
+  zones.splice(0, zones.length);
+  boxes.forEach((a, b) => {
+    a.forEach((c, d) => {
+      if (!c.data.model) {
+        const bz = Math.round(b / 5),
+          dz = Math.round(d / 5)
+
+        if (typeof zones[c.innerHTML] === 'undefined')
+          zones[c.innerHTML] = [];
+        if (typeof zones[c.innerHTML][bz] === 'undefined')
+          zones[c.innerHTML][bz] = [];
+        if (typeof zones[c.innerHTML][bz][dz] === 'undefined')
+          zones[c.innerHTML][bz][dz] = 0;
+        zones[c.innerHTML][bz][dz]++;
+      }
+    });
+  });
+
+  // Exécution des actions
   iteration++;
   boxes.forEach(ligne => {
     ligne.forEach(el => {
