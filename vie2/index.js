@@ -36,8 +36,10 @@ const catalog = {
     potato: '&#129364;',
   },
   boxSize = 16,
-  boxes = [];
+  actions = [];
+boxes = [];
 let iteration = 0;
+
 
 // Gestion des points
 function box(x, y) {
@@ -101,7 +103,7 @@ function deletePoint(x, y) {
 
 // Init catalog
 Object.entries(catalog).forEach((pair, i) => {
-  addPoint(i, 0, pair[1], {
+  addPoint(1.5 * i, 0, pair[1], {
     model: true,
   });
 })
@@ -183,23 +185,7 @@ function pointsProches(x, y, deep, limit, searched) {
 }
 
 function action(el) {
-  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
-
-  // Fontaine émet une goute
-  if (pl.length && decHTML(el, o.fountain))
-    addPoint(pl[0][0], pl[0][1], o.water);
-  // Goutes se déplacent
-  if (pl.length && decHTML(el, o.water))
-    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
-  // Mais se déplacent
-  if (pl.length && decHTML(el, o.corn))
-    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
-
-  // Homme se rapproche
-  const pm = pointsProches(el.data.x, el.data.y, 5, 1, o.woman);
-  if (pm.length && decHTML(el, o.man))
-    movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
-
+  //TODO DELETE
   /*
    const p = pointsProches(el.data.x, el.data.y, 1, 1);
     if (p.length && decHTML(el, o.fountain))
@@ -210,13 +196,37 @@ function action(el) {
   */
 }
 
+actions['fountain'] = el => {
+  // Fontaine émet une goute
+  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
+  if (pl.length)
+    addPoint(pl[0][0], pl[0][1], o.water);
+};
+
+actions['water'] = el => {
+  // Goutes se déplacent
+  const pl = pointsProches(el.data.x, el.data.y, 1, 1);
+  if (pl.length)
+    movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+};
+
+actions['man'] = el => {
+  // Homme se rapproche
+  const pm = pointsProches(el.data.x, el.data.y, 5, 1, o.woman);
+  if (pm.length)
+    movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+};
+
 // Actions
 document.addEventListener('keydown', evt => {
   iteration++;
   boxes.forEach(ligne => {
     ligne.forEach(el => {
       if (!el.data.model && el.data.iteration < iteration) {
-        action(el);
+        const nomAction = Object.keys(o).find(k => o[k] === decHTML(el));
+
+        if (typeof actions[nomAction] === 'function')
+          actions[nomAction](el);
       }
     });
   });
