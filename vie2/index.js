@@ -227,17 +227,28 @@ function rapproche(el, nomObjet) {
     return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 }
 
-function bois(el) {
-  const pl = pointsProches(el, 1, 1, o.eau);
+function consomme(el, element, force) {
+  const pl = pointsProches(el, 1, 1, o[element]);
 
-  if (typeof el.data.eau !== 'number')
-    el.data.eau = 10;
-  if (pl.length) {
-    el.data.eau += 10;
-    deletePoint(pl[0][0], pl[0][1]);
-  }
+  // Init
+  if (typeof el.data[force] !== 'number')
+    el.data[force] = 30;
 
-  if (el.data.eau-- < 0) {
+  // Consomme
+  if (el.data[force] < 20)
+    if (pl.length) {
+      el.data[force] += 10;
+      deletePoint(pl[0][0], pl[0][1]);
+      return true;
+    }
+
+  // Cherche
+  if (el.data[force] < 10 &&
+    rapproche(el, element))
+    return true;
+
+  // Meurt
+  if (el.data[force]-- < 0) {
     el.innerHTML = o.mort;
     return true;
   }
@@ -259,6 +270,19 @@ function fusionne(el, nomObjet, nomFinal) {
   }
 }
 
+function journee(el, autre, fusion) {
+  if (consomme(el, 'eau', 'eau')) return true;
+  if (consomme(el, 'mais', 'force')) return true;
+  if (consomme(el, 'plante', 'force')) return true;
+  if (consomme(el, 'pousse', 'force')) return true;
+
+  if (autre) {
+    if (fusionne(el, autre, fusion)) return true;
+    if (rapproche(el, autre)) return true;
+  }
+  erre(el);
+}
+
 //ACTIONS
 /* eslint-disable-next-line one-var */
 const actions = {
@@ -272,24 +296,20 @@ const actions = {
     semme(el, 'pousse');
   },
   homme: el => {
-    if (bois(el)) return;
-    if (fusionne(el, 'femme', 'couple')) return;
-    if (rapproche(el, 'femme')) return;
-    if (rapproche(el, 'eau')) return;
-    erre(el);
+    if (journee(el, 'femme', 'couple')) return;
   },
   femme: el => {
-    if (fusionne(el, 'homme', 'couple')) return;
-    if (rapproche(el, 'homme')) return;
-    if (rapproche(el, 'eau')) return;
-    erre(el);
+    if (journee(el, 'homme', 'couple')) return;
   },
   couple: el => {
-    erre(el);
+    if (journee(el)) return;
   },
 };
 
 document.addEventListener('keydown', () => {
+  const debut = Date.now(),
+    statsEl = document.getElementById('stats');
+
   // Reconstruction de la table des éloignés
   zones = [];
   boxes.forEach((col, noCol) => {
@@ -324,6 +344,8 @@ document.addEventListener('keydown', () => {
       }
     });
   });
+
+  statsEl.innerHTML = (Date.now() - debut) + ' ms';
 });
 
 // INIT CATALOG
