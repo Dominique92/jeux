@@ -39,8 +39,7 @@ const catalog = {
     [-1, -1, 1, 0],
   ],
   boxSize = 16,
-  boxes = [],
-  action = [];
+  boxes = [];
 
 let iteration = 0,
   zones = [];
@@ -50,10 +49,10 @@ let iteration = 0,
 function decHTML(el, ascii) {
   let out = '';
 
-  for (let char of el.innerHTML) {
-    const code = char.codePointAt(0);
+  for (const chr of el.innerHTML) {
+    const code = chr.codePointAt(0);
 
-    out += code >= 0x80 ? '&#' + code + ';' : char;
+    out += code >= 0x80 ? '&#' + code + ';' : chr;
   }
   return ascii ? out === ascii : out;
 }
@@ -96,6 +95,7 @@ function addPoint(x, y, symbol, data) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.draggable = true;
+    /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
     return true;
   }
@@ -163,6 +163,7 @@ function pointsProches(el, deep, limit, searched, extended) {
     deltasProches.push(deltasProches.shift());
 
   for (let d = 1; d < deep + 1 && listeProches.length < limit; d++) {
+    /* eslint-disable-next-line no-loop-func */
     deltasProches.forEach(delta => {
       for (let i = 0; i < d && listeProches.length < limit; i++) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
@@ -244,37 +245,35 @@ function fusionne(el, nomObjet, nomFinal) {
 }
 
 //ACTIONS
-action['fontaine'] = el => {
-  semme(el, 'eau');
+/* eslint-disable-next-line one-var */
+const actions = {
+  fontaine: el => {
+    semme(el, 'eau');
+  },
+  eau: el => {
+    erre(el);
+  },
+  mais: el => {
+    semme(el, 'pousse');
+  },
+  homme: el => {
+    if (fusionne(el, 'femme', 'couple')) return;
+    if (rapproche(el, 'femme')) return;
+    if (rapproche(el, 'eau')) return;
+    erre(el);
+  },
+  femme: el => {
+    if (fusionne(el, 'homme', 'couple')) return;
+    if (rapproche(el, 'homme')) return;
+    if (rapproche(el, 'eau')) return;
+    erre(el);
+  },
+  couple: el => {
+    erre(el);
+  },
 };
 
-action['eau'] = el => {
-  erre(el);
-};
-
-action['mais'] = el => {
-  semme(el, 'pousse');
-};
-
-action['homme'] = el => {
-  if (fusionne(el, 'femme', 'couple')) return;
-  if (rapproche(el, 'femme')) return;
-  if (rapproche(el, 'eau')) return;
-  erre(el);
-};
-
-action['femme'] = el => {
-  if (fusionne(el, 'homme', 'couple')) return;
-  if (rapproche(el, 'homme')) return;
-  if (rapproche(el, 'eau')) return;
-  erre(el);
-};
-
-action['couple'] = el => {
-  erre(el);
-};
-
-document.addEventListener('keydown', evt => {
+document.addEventListener('keydown', () => {
   // Reconstruction de la table des éloignés
   zones = [];
   boxes.forEach((col, noCol) => {
@@ -295,15 +294,15 @@ document.addEventListener('keydown', evt => {
     });
   });
 
-  // Exécution des action
+  // Exécution des actions
   iteration++;
   boxes.forEach(ligne => {
     ligne.forEach(el => {
       if (!el.data.model && el.data.iteration < iteration) {
         const nomAction = Object.keys(o).find(k => o[k] === decHTML(el));
 
-        if (typeof action[nomAction] === 'function')
-          action[nomAction](el);
+        if (typeof actions[nomAction] === 'function')
+          actions[nomAction](el);
       }
     });
   });
