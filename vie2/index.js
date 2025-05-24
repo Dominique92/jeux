@@ -10,6 +10,7 @@ const catalog = {
     ...catalog,
     pousse: '&#127793;',
     plante: '&#127807;',
+    sable: '&#9618;',
     couple: '&#128107;',
     famille: '&#128106;',
     enfant: '&#129485;',
@@ -19,7 +20,6 @@ const catalog = {
     eau: '&#128167;',
     barriere: '&#128679;',
     brick: '&#129521;',
-    sable: '&#9617;',
     route: '&#9945;',
     maison: '&#127968;',
     arbre: '&#127795;',
@@ -76,13 +76,12 @@ function helperPoint(el, x, y, data) {
     el.style.left = (x - y / 2 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.data = {
+      ...el.data,
       iteration: iteration,
       x: x,
       y: y,
-      ...data
+      ...data,
     };
-    // Debug 
-    el.setAttribute('title', [el.data.x, el.data.y, el.style.left, el.style.top].join(' '));
 
     return boxes[x][y];
   }
@@ -228,6 +227,22 @@ function rapproche(el, nomObjet) {
     return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 }
 
+function bois(el) {
+  const pl = pointsProches(el, 1, 1, o.eau);
+
+  if (typeof el.data.eau !== 'number')
+    el.data.eau = 10;
+  if (pl.length) {
+    el.data.eau += 10;
+    deletePoint(pl[0][0], pl[0][1]);
+  }
+
+  if (el.data.eau-- < 0) {
+    el.innerHTML = o.mort;
+    return true;
+  }
+}
+
 function fusionne(el, nomObjet, nomFinal) {
   const pl = pointsProches(el, 1, 1, o[nomObjet]);
 
@@ -257,6 +272,7 @@ const actions = {
     semme(el, 'pousse');
   },
   homme: el => {
+    if (bois(el)) return;
     if (fusionne(el, 'femme', 'couple')) return;
     if (rapproche(el, 'femme')) return;
     if (rapproche(el, 'eau')) return;
@@ -303,6 +319,8 @@ document.addEventListener('keydown', () => {
 
         if (typeof actions[nomAction] === 'function')
           actions[nomAction](el);
+        // Debug 
+        el.setAttribute('title', JSON.stringify(el.data));
       }
     });
   });
