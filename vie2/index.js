@@ -33,13 +33,31 @@ const catalog = {
     bebe: '&#128118;',
     patate: '&#129364;',
   },
+  deltasProches = [
+    [-1, 0, 0, -1],
+    [1, 0, 0, 1],
+    [0, 1, -1, -1],
+    [0, -1, 1, 1],
+    [1, 1, -1, 0],
+    [-1, -1, 1, 0],
+  ],
   boxSize = 16,
   boxes = [],
-  zones = [],
   actions = [];
 
-let iteration = 0;
+let iteration = 0,
+  zones = [];
 
+// Helpers
+// Traduit un caractère unicode en ascii décimal
+function decHTML(el, ascii) {
+  let out = '';
+  for (const char of el.innerHTML) {
+    const code = char.codePointAt(0);
+    out += code >= 0x80 ? '&#' + code + ';' : char;
+  }
+  return ascii ? out === ascii : out;
+}
 
 // Gestion des points
 function box(x, y) {
@@ -118,15 +136,6 @@ function dragstart(evt) {
   evt.dataTransfer.setData('symbol', evt.target.innerHTML);
 }
 
-const deltasProches = [
-  [-1, 0, 0, -1],
-  [1, 0, 0, 1],
-  [0, 1, -1, -1],
-  [0, -1, 1, 1],
-  [1, 1, -1, 0],
-  [-1, -1, 1, 0],
-];
-
 document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data')),
     symbol = evt.dataTransfer.getData('symbol'),
@@ -151,25 +160,17 @@ document.addEventListener('dragend', evt => {
 });
 
 // Actions
-function decHTML(el, ascii) {
-  let out = '';
-  for (const char of el.innerHTML) {
-    const code = char.codePointAt(0);
-    out += code >= 0x80 ? '&#' + code + ';' : char;
-  }
-  return ascii ? out === ascii : out;
-}
-
 function pointsProches(el, deep, limit, searched) {
-  const p = [];
+  let listeProches = [],
+    dMin = 999999;
 
   // Randomize points order
   for (let i = Math.random() * 4; i > 0; i--)
     deltasProches.push(deltasProches.shift());
 
-  for (d = 1; d < deep + 1 && p.length < limit; d++) {
+  for (d = 1; d < deep + 1 && listeProches.length < limit; d++) {
     deltasProches.forEach(delta => {
-      for (i = 0; i < d && p.length < limit; i++) {
+      for (i = 0; i < d && listeProches.length < limit; i++) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
           ny = el.data.y + d * delta[1] + i * delta[3],
           eln = box(nx, ny),
@@ -180,16 +181,36 @@ function pointsProches(el, deep, limit, searched) {
           0 <= pny && pny < window.innerHeight - boxSize)
           if ((!searched && !eln) ||
             (searched && eln && decHTML(eln, searched)))
-            p.push([nx, ny, ...delta]);
+            listeProches.push([nx, ny, ...delta]);
       }
     });
   }
 
   // Recherche éloignés
-  /*DCMM*/
-  console.log(zones);
+  if (!listeProches.length &&
+    typeof zones[searched] === 'object')
+    zones[searched].forEach((col, noCol) => {
+      col.forEach((ligne, noLigne) => {
 
-  return p;
+        const deltaCol = noCol - Math.round(el.data.x / 5),
+          deltaLigne = noLigne - Math.round(el.data.y / 5),
+          dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
+
+        if (dMin > dist) {
+          dMin = dist;
+          listeProches = [
+            [0, 0,
+              Math.sign(deltaCol),
+              Math.sign(deltaLigne),
+              deltaCol,
+              deltaLigne,
+            ]
+          ];
+        }
+      });
+    });
+
+  return listeProches;
 }
 
 //TODO DELETE
@@ -215,7 +236,7 @@ function semme(el, nom) {
 }
 
 function rapproche(el, nom) {
-  const pm = pointsProches(el, 5, 1, o[nom]);
+  const pm = pointsProches(el, 6, 1, o[nom]);
 
   if (pm.length)
     return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
@@ -236,24 +257,28 @@ actions['eau'] = el => {
 actions['homme'] = el => {
   rapproche(el, 'femme');
 };
+actions['femme'] = el => {
+  rapproche(el, 'homme');
+};
 
 // Actions
 document.addEventListener('keydown', evt => {
   // Reconstruction de la table des éloignés
-  zones.splice(0, zones.length);
-  boxes.forEach((a, b) => {
-    a.forEach((c, d) => {
-      if (!c.data.model) {
-        const bz = Math.round(b / 5),
-          dz = Math.round(d / 5)
+  zones = [];
+  boxes.forEach((col, noCol) => {
+    col.forEach((ligne, noLigne) => {
+      if (!ligne.data.model) {
+        const noColRound = Math.round(noCol / 5),
+          noLigneRound = Math.round(noLigne / 5),
+          car = decHTML(ligne);
 
-        if (typeof zones[c.innerHTML] === 'undefined')
-          zones[c.innerHTML] = [];
-        if (typeof zones[c.innerHTML][bz] === 'undefined')
-          zones[c.innerHTML][bz] = [];
-        if (typeof zones[c.innerHTML][bz][dz] === 'undefined')
-          zones[c.innerHTML][bz][dz] = 0;
-        zones[c.innerHTML][bz][dz]++;
+        if (typeof zones[car] === 'undefined')
+          zones[car] = [];
+        if (typeof zones[car][noColRound] === 'undefined')
+          zones[car][noColRound] = [];
+        if (typeof zones[car][noColRound][noLigneRound] === 'undefined')
+          zones[car][noColRound][noLigneRound] = 0;
+        zones[car][noColRound][noLigneRound]++;
       }
     });
   });
