@@ -35,7 +35,7 @@ const catalog = {
     baby: '&#128118;',
     potato: '&#129364;',
   },
-  boxSize = 24,
+  boxSize = 16,
   boxes = [];
 let iteration = 0;
 
@@ -170,8 +170,8 @@ function pointsProches(x, y, deep, limit, searched) {
           pnx = (nx - ny / 2) * boxSize,
           pny = ny * 0.866 * boxSize;
 
-        if (0 < pnx && pnx < window.innerWidth &&
-          0 < pny && pny < window.innerHeight)
+        if (0 <= pnx && pnx < window.innerWidth - boxSize &&
+          0 <= pny && pny < window.innerHeight - boxSize)
           if ((!searched && !el) ||
             (searched && el && decHTML(el, searched)))
             p.push([nx, ny, ...delta]);
@@ -199,6 +199,15 @@ function action(el) {
   const pm = pointsProches(el.data.x, el.data.y, 5, 1, o.woman);
   if (pm.length && decHTML(el, o.man))
     movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+
+  /*
+   const p = pointsProches(el.data.x, el.data.y, 1, 1);
+    if (p.length && decHTML(el, o.fountain))
+      addPoint(p[0][0], p[0][1], o.water);
+       p.forEach(xy => {
+        addPoint(xy[0], xy[1], o.fountain);
+      });
+  */
 }
 
 // Actions
