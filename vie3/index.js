@@ -123,7 +123,8 @@ function addPoint(x, y, symbol, data) {
     el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
     //TODO el.ondragstart = dragstart;
-    //return true;
+
+    //TODO ??? return true;
   }
 }
 
@@ -135,12 +136,14 @@ function movePoint(x, y, nx, ny) {
 
     if (nEl) {
       delete boxes[x][y];
-      return true;
+      return false;
     }
   }
+  return true;
 }
 
 function deletePoint(x, y) {
+  //TODO TEST
   if (box(x, y)) {
     boxes[x][y].remove();
     delete boxes[x][y];
@@ -150,26 +153,40 @@ function deletePoint(x, y) {
 
 // Fonctions unitaires
 function erre(el) {
+  return true; /*DCMM*/ //Debug consomme
   const pl = pointsProches(el, 1, 1);
+
   if (pl.length)
     return movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+
+  return true;
 }
 
 function semme(el, nomObjet) {
   const pl = pointsProches(el, 1, 1);
-  if (pl.length)
-    addPoint(pl[0][0], pl[0][1], o[nomObjet]);
+
+  if (pl.length && Math.random() < 0.3) {
+    addPoint(pl[0][0], pl[0][1], nomObjet);
+    return false;
+  }
+  return true;
 }
 
 function rapproche(el, nomObjet) {
-  const pm = pointsProches(el, 5, 1, o[nomObjet], true);
+  //TODO TEST
+  const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length)
     return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+
+  return true;
 }
 
 function consomme(el, element, force, fin, tempo) {
-  const pl = pointsProches(el, 1, 1, o[element]);
+  //TODO TEST
+  const pl = pointsProches(el, 1, 1, element);
+  /*DCMM*/
+  console.log(pl);
 
   // Init
   if (typeof el.data[force] === 'undefined')
@@ -181,23 +198,24 @@ function consomme(el, element, force, fin, tempo) {
     pl.length) {
     el.data[force] += 10; //TODO ERROR AJOUTE 10 à la MORT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     deletePoint(pl[0][0], pl[0][1]);
-    return true;
+    return false;
   }
 
   // Cherche
   if (el.data[force] < 10 &&
     typeof element !== 'undefined' &&
-    rapproche(el, element)) {
-    return true;
-  }
+    rapproche(el, element))
+    return false;
 
   // Meurt
-  if (el.data[force]-- < 0) { //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
-    return true;
-  }
+  if (el.data[force]-- < 0) //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
+    return false;
+
+  return true;
 }
 
 function fusionne(el, nomObjet, nomFinal) {
+  //TODO TEST
   const pl = pointsProches(el, 1, 1, o[nomObjet]);
 
   if (pl.length) {
@@ -209,13 +227,18 @@ function fusionne(el, nomObjet, nomFinal) {
       el.innerHTML = o[nomFinal];
       el.data.amour = 0;
     }
-    return true;
+    return false;
   }
+  return true;
 }
 
-function vie(el, a, b, c) {
-  console.log(el, a, b, c);
-  //return true;
+function developper(el, acteur) {
+  if (typeof o[acteur] === 'object')
+    return o[acteur].every(action =>
+      action[0](el, ...action.slice(1)) // Stop when one action is completed
+    );
+
+  return true; // Return continue (true / false)
 }
 
 // Scénarios
@@ -229,35 +252,24 @@ const o = {
     [consomme, '🌿', 'force', '💀', 20],
     [consomme, '🌱', 'force', '💀', 10],
     /*
-  if (consomme(el, 'eau', 'eau', 'mort')) return true;
-  if (consomme(el, 'mais', 'force', 'mort')) return true;
-  if (consomme(el, 'plante', 'force', 'mort')) return true;
-  if (consomme(el, 'pousse', 'force', 'mort')) return true;
-*/
+      if (consomme(el, 'eau', 'eau', 'mort')) return true;
+      if (consomme(el, 'mais', 'force', 'mort')) return true;
+      if (consomme(el, 'plante', 'force', 'mort')) return true;
+      if (consomme(el, 'pousse', 'force', 'mort')) return true;
+    */
   ],
   '🧔': [
-    [developper, 'vivant', 3],
+    [developper, 'vivant'],
     [erre],
   ],
   '👩': [
-    [developper, 'vivant', 3],
+    [developper, 'vivant'],
     [erre],
   ],
-  '👫': [
-    [vie, '🌿', 5, {
-      a: 0,
-      b: '🐇',
-      c: 2,
-    }],
+  '⛲': [
+    [semme, '💧'],
   ],
 };
-
-function developper(el, acteur) {
-  if (typeof o[acteur] === 'object')
-    return !o[acteur].every(action =>
-      !action[0](el, ...action.slice(1)) // Stop when one action is completed
-    );
-}
 
 function unJour() {
   const debut = Date.now(),
@@ -319,6 +331,7 @@ addPoint(0, 6, '🌽', {
 
 // Tests
 addPoint(11, 5, '🧔', {});
+addPoint(12, 5, '💧', {});
 addPoint(13, 9, '👩', {});
 addPoint(15, 5, '⛲', {});
 addPoint(17, 9, '🌽', {});
