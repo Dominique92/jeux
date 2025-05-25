@@ -74,32 +74,50 @@ function addPoint(x, y, symbol, data) {
 }
 
 function vie(el, a, b, c) {
-  /*DCMM*/
   console.log(el, a, b, c);
-  return true;
+  //return true;
 }
 
 // Scénarios
 /* eslint-disable-next-line one-var */
 const o = {
+  vivant: [
+    [vie, '🌿', 1],
+    [vie, '🌿', 2],
+  ],
   '🧔': [
-    [vie, '🌿', 3, {
+    [developper, 'vivant', 3],
+    [vie, '🌿', 4],
+  ],
+  '👫': [
+    [vie, '🌿', 5, {
       a: 0,
       b: '🐇',
       c: 2,
     }],
-    [vie, '🌿', 3, {
-      a: 0,
-      b: '🐇',
-      c: 2,
-    }]
   ],
 };
 
-// Actions récurrentes
-document.addEventListener('keydown', () => {
+function developper(el, acteur) {
+  if (typeof o[acteur] === 'object')
+    return !o[acteur].every(action =>
+      !action[0](el, ...action.slice(1)) // Stop when one action is completed
+    );
+}
+
+function unJour() {
   const debut = Date.now(),
     statsEl = document.getElementById('stats');
+
+  // Exécution des actions
+  iteration++;
+  boxes.forEach(ligne => {
+    ligne.forEach(el => {
+      if (!el.data.model && el.data.iteration < iteration)
+        developper(el, el.innerHTML);
+    });
+  });
+
   /*
     // Reconstruction de la table des éloignés
     zones = [];
@@ -122,27 +140,19 @@ document.addEventListener('keydown', () => {
     });
   */
 
-  // Exécution des actions
-  iteration++;
-  boxes.forEach(ligne => {
-    ligne.forEach(el => {
-      if (!el.data.model && el.data.iteration < iteration) {
-        if (typeof o[el.innerHTML] === 'object')
-          o[el.innerHTML].every(action =>
-            !action[0](statsEl, ...action.slice(1)) // Stop when one action is completed
-          );
-
-        // Debug 
-        boxes.forEach(col => {
-          col.forEach(ligneEl => {
-            ligneEl.setAttribute('title', JSON.stringify(ligneEl.data));
-          });
-        });
-      }
+  // Debug 
+  boxes.forEach(col => {
+    col.forEach(ligneEl => {
+      ligneEl.setAttribute('title', JSON.stringify(ligneEl.data));
     });
   });
+
   statsEl.innerHTML = (Date.now() - debut) + ' ms';
-});
+}
+
+// Actions récurrentes
+document.addEventListener('keydown', unJour);
+window.onload = unJour;
 
 // Models
 addPoint(0, 0, '🧔', {
