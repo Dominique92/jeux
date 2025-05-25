@@ -9,8 +9,10 @@ const deltasProches = [
   boxSize = 16,
   boxes = [];
 
-let iteration = 0,
+let o = {},
+  iteration = 0,
   zones = [];
+// TODO revoir nommages / français
 
 // HELPERS
 function box(x, y) {
@@ -259,11 +261,13 @@ function fusionne(el, nomObjet, nomFinal) {
 }
 
 // Debug
+/* eslint-disable-next-line no-unused-vars */
 function trace(el, t) {
   console.log('trace ' + t);
   return true;
 }
 
+/* eslint-disable-next-line no-unused-vars */
 function stop() {
   return false;
 }
@@ -274,14 +278,13 @@ function developper(el, acteur) {
       action[0](el, ...action.slice(1)) // Stop when one action is completed
     );
 
-  return true; // Return continue (true / false)
+  return true; // Return = continue (true / false)
 }
 
 // Scénarios
 //🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 
-/* eslint-disable-next-line one-var */
-const o = {
+o = {
   vivant: [
     [
       [consomme, '💧', 'eau', '💀', 10],
@@ -293,6 +296,7 @@ const o = {
   '🧔': [
     [
       [developper, 'vivant'],
+      //TODO absorbe 👩
       [erre],
     ], {
       eau: 20,
@@ -302,15 +306,48 @@ const o = {
   '👩': [
     [
       [developper, 'vivant'],
+      //TODO absorbe 🧔
       [erre],
     ], {
       eau: 20,
       force: 20,
     },
   ],
+  '👫': [
+    [
+      [developper, 'vivant'],
+      [erre],
+    ],
+  ],
+  '💀': [
+    [
+      //TODO transforme ▒
+    ],
+  ],
   '⛲': [
     [
       [semme, '💧'],
+    ],
+  ],
+  '💧': [
+    [
+      //TODO évaporer
+      [erre],
+    ],
+  ],
+  '🌽': [
+    [
+      [semme, '🌱'],
+    ],
+  ],
+  '🌱': [
+    [
+      //TODO transforme 🌿
+    ],
+  ],
+  '🌿': [
+    [
+      //TODO transforme 🌽
     ],
   ],
 };
@@ -375,14 +412,12 @@ addPoint(0, 6, '🌽', {
 
 // Tests
 //addPoint(13, 14, '🧔');
-addPoint(14, 14, '⛲');
-/*
+//addPoint(14, 14, '⛲');
 addPoint(11, 5, '🧔');
 addPoint(14, 5, '🌽');
 addPoint(14, 7, '🌿');
 addPoint(13, 14, '👩');
 addPoint(14, 14, '💧');
 addPoint(12, 14, '💧');
-addPoint(22, 14, '🌽');//addPoint(13, 13, '💧');
-//addPoint(13, 5, '⛲');
-*/
+addPoint(22, 14, '🌽'); //addPoint(13, 13, '💧');
+addPoint(13, 5, '⛲');
