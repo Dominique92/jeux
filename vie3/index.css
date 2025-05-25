@@ -7,3 +7,13 @@ body {
 *::selection {
   background: transparent;
 }
+
+div {
+  position: absolute;
+  transition: all 1s ease;
+  cursor: grab;
+}
+
+#stats {
+  margin: 0 30px;
+}

@@ -1,5 +1,4 @@
-const statsEl = document.getElementById('stats'),
-  deltasProches = [
+const deltasProches = [
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -40,13 +39,14 @@ function decHTML(el, ascii) {
 
 // Move el to the x/y position if it's free
 function helperPoint(el, x, y, data) {
+
   if (typeof box(x, y) === 'undefined' &&
     typeof el === 'object') {
     // Register in the grid
     box(x, y, el);
 
     // Reposition the point
-    el.style.left = (x - y / 2 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
+    el.style.left = (x + (data && data.model ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize + 'px';
     el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.data = {
       ...el.data,
@@ -68,40 +68,98 @@ function addPoint(x, y, symbol, data) {
     el.innerHTML = symbol;
     el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
-    //el.ondragstart = dragstart;
-    return true;
+    //TODO el.ondragstart = dragstart;
+    //return true;
   }
 }
 
 function vie(el, a, b, c) {
   /*DCMM*/
   console.log(el, a, b, c);
+  return true;
 }
 
 // Scénarios
+/* eslint-disable-next-line one-var */
 const o = {
-  '🧔': [vie, '🌿', 3, {
-    a: 0,
-    b: '🐇',
-    c: 2,
-  }],
+  '🧔': [
+    [vie, '🌿', 3, {
+      a: 0,
+      b: '🐇',
+      c: 2,
+    }],
+    [vie, '🌿', 3, {
+      a: 0,
+      b: '🐇',
+      c: 2,
+    }]
+  ],
 };
 
-const args = o['🧔'].slice(1);
-o['🧔'][0](statsEl, ...args);
+// Actions récurrentes
+document.addEventListener('keydown', () => {
+  const debut = Date.now(),
+    statsEl = document.getElementById('stats');
+  /*
+    // Reconstruction de la table des éloignés
+    zones = [];
+    boxes.forEach((col, noCol) => {
+      col.forEach((ligne, noLigne) => {
+        if (!ligne.data.model) {
+          const noColRound = Math.round(noCol / 4),
+            noLigneRound = Math.round(noLigne / 4),
+            car = decHTML(ligne);
 
+          if (typeof zones[car] === 'undefined')
+            zones[car] = [];
+          if (typeof zones[car][noColRound] === 'undefined')
+            zones[car][noColRound] = [];
+          if (typeof zones[car][noColRound][noLigneRound] === 'undefined')
+            zones[car][noColRound][noLigneRound] = 0;
+          zones[car][noColRound][noLigneRound]++;
+        }
+      });
+    });
+  */
 
+  // Exécution des actions
+  iteration++;
+  boxes.forEach(ligne => {
+    ligne.forEach(el => {
+      if (!el.data.model && el.data.iteration < iteration) {
+        if (typeof o[el.innerHTML] === 'object')
+          o[el.innerHTML].every(action =>
+            !action[0](statsEl, ...action.slice(1)) // Stop when one action is completed
+          );
 
-// Add models
+        // Debug 
+        boxes.forEach(col => {
+          col.forEach(ligneEl => {
+            ligneEl.setAttribute('title', JSON.stringify(ligneEl.data));
+          });
+        });
+      }
+    });
+  });
+  statsEl.innerHTML = (Date.now() - debut) + ' ms';
+});
+
+// Models
 addPoint(0, 0, '🧔', {
   model: true,
 });
-addPoint(0, 1, '👩', {
+addPoint(0, 2, '👩', {
   model: true,
 });
-addPoint(0, 2, '⛲', {
+addPoint(0, 4, '⛲', {
   model: true,
 });
-addPoint(0, 3, '🌽', {
+addPoint(0, 6, '🌽', {
   model: true,
 });
+
+// Tests
+addPoint(11, 5, '🧔', {});
+addPoint(13, 9, '👩', {});
+addPoint(15, 5, '⛲', {});
+addPoint(17, 9, '🌽', {});
