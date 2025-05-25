@@ -13,18 +13,15 @@ let iteration = 0,
   zones = [];
 
 // HELPERS
-function box(x, y, v) {
+function box(x, y) {
   if (typeof boxes[x] === 'undefined')
     boxes[x] = [];
-
-  if (typeof v !== 'undefined')
-    boxes[x][y] = v;
 
   return boxes[x][y];
 }
 
 // Traduit un caractère unicode en ascii décimal
-function decHTML(el, ascii) {
+function decHTML(el) {
   let out = '';
 
   for (const chr of el.innerHTML) {
@@ -32,11 +29,11 @@ function decHTML(el, ascii) {
 
     out += code >= 0x80 ? '&#' + code + ';' : chr;
   }
-  return ascii ? out === ascii : out;
+  return out;
 }
 
 // Move el to the x/y position if it's free
-function helperPoint(el, x, y, data) {
+function helperPoint(el, x, y, data, dataInit) {
 
   if (typeof box(x, y) === 'undefined' &&
     typeof el === 'object') {
@@ -47,6 +44,7 @@ function helperPoint(el, x, y, data) {
     el.style.left = (x + (data && data.model ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize + 'px';
     el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.data = {
+      ...dataInit,
       ...el.data,
       iteration: iteration,
       x: x,
@@ -63,7 +61,7 @@ function pointsProches(el, deep, limit, searched, extended) {
   let listeProches = [],
     dMin = 999999;
 
-  // Randomize points order
+  // Randomize points order array
   for (let i = Math.random() * 4; i > 0; i--)
     deltasProches.push(deltasProches.shift());
 
@@ -79,8 +77,8 @@ function pointsProches(el, deep, limit, searched, extended) {
 
         if (0 <= pnx && pnx < window.innerWidth - boxSize &&
           0 <= pny && pny < window.innerHeight - boxSize)
-          if ((!searched && !eln) ||
-            (searched && eln && decHTML(eln, searched)))
+          if (!searched && !eln ||
+            searched && eln && decHTML(eln))
             listeProches.push([nx, ny, ...delta]);
       }
     });
@@ -117,14 +115,12 @@ function pointsProches(el, deep, limit, searched, extended) {
 function addPoint(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (helperPoint(el, x, y, data)) {
+  if (helperPoint(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
-    //TODO el.ondragstart = dragstart;
-
-    //TODO ??? return true;
+    el.ondragstart = dragstart;
   }
 }
 
@@ -151,9 +147,38 @@ function deletePoint(x, y) {
   }
 }
 
+// DÉPLACEMENTS
+function dragstart(evt) {
+  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
+  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
+}
+
+document.addEventListener('dragover', evt => {
+  evt.preventDefault();
+});
+
+document.addEventListener('dragend', evt => {
+  //TODO better animation
+  evt.preventDefault();
+});
+
+document.addEventListener('drop', evt => {
+  const data = JSON.parse(evt.dataTransfer.getData('data')),
+    symbol = evt.dataTransfer.getData('symbol'),
+    nx = parseInt((evt.x + evt.y / 2) / boxSize, 10),
+    ny = parseInt(evt.y / 0.866 / boxSize, 10);
+  //TODO smooth end of move
+
+  if (data.model)
+    addPoint(nx, ny, symbol);
+  else
+    movePoint(data.x, data.y, nx, ny);
+
+  evt.preventDefault();
+});
+
 // Fonctions unitaires
 function erre(el) {
-  return true; /*DCMM*/ //Debug consomme
   const pl = pointsProches(el, 1, 1);
 
   if (pl.length)
@@ -163,6 +188,7 @@ function erre(el) {
 }
 
 function semme(el, nomObjet) {
+  //TODO KO
   const pl = pointsProches(el, 1, 1);
 
   if (pl.length && Math.random() < 0.3) {
@@ -182,41 +208,39 @@ function rapproche(el, nomObjet) {
   return true;
 }
 
-function consomme(el, element, force, fin, tempo) {
-  //TODO TEST
-  const pl = pointsProches(el, 1, 1, element);
-  /*DCMM*/
-  console.log(pl);
-
-  // Init
-  if (typeof el.data[force] === 'undefined')
-    el.data[force] = tempo || 30;
+function consomme(el, typeObjet, force, fin /*, tempo*/ ) {
+  const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
   if (el.data[force] < 20 &&
-    typeof element !== 'undefined' &&
+    typeof typeObjet !== 'undefined' &&
     pl.length) {
-    el.data[force] += 10; //TODO ERROR AJOUTE 10 à la MORT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    el.data[force] += 10;
     deletePoint(pl[0][0], pl[0][1]);
+
     return false;
   }
 
   // Cherche
   if (el.data[force] < 10 &&
-    typeof element !== 'undefined' &&
-    rapproche(el, element))
-    return false;
+    typeof typeObjet !== 'undefined') {
+    if (!rapproche(el, typeObjet))
+
+      return false;
+  }
 
   // Meurt
-  if (el.data[force]-- < 0) //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
-    return false;
+  if (el.data[force]-- < 0) { //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
+    el.innerHTML = fin;
 
+    return false;
+  }
   return true;
 }
 
 function fusionne(el, nomObjet, nomFinal) {
   //TODO TEST
-  const pl = pointsProches(el, 1, 1, o[nomObjet]);
+  const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
     if (typeof el.data.amour !== 'number')
@@ -224,7 +248,7 @@ function fusionne(el, nomObjet, nomFinal) {
 
     if (el.data.amour++ > 3) {
       deletePoint(pl[0][0], pl[0][1]);
-      el.innerHTML = o[nomFinal];
+      el.innerHTML = nomFinal;
       el.data.amour = 0;
     }
     return false;
@@ -232,9 +256,19 @@ function fusionne(el, nomObjet, nomFinal) {
   return true;
 }
 
+// Debug
+function trace(el, t) {
+  console.log('trace ' + t);
+  return true;
+}
+
+function stop() {
+  return false;
+}
+
 function developper(el, acteur) {
   if (typeof o[acteur] === 'object')
-    return o[acteur].every(action =>
+    return o[acteur][0].every(action =>
       action[0](el, ...action.slice(1)) // Stop when one action is completed
     );
 
@@ -242,32 +276,40 @@ function developper(el, acteur) {
 }
 
 // Scénarios
-// 🧔 👩 👫 👪 🧍 💀 ⛲ 💧 🌱 🌿 🌽 ▒ 🧱 🏠 - 🦴 🚧 🌳 🌾 🐇 🐀 🥔 🧒 👶 👷
+//🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 
 /* eslint-disable-next-line one-var */
 const o = {
   vivant: [
-    [consomme, '💧', 'eau', '💀', 10],
-    [consomme, '🌽', 'force', '💀', 50],
-    [consomme, '🌿', 'force', '💀', 20],
-    [consomme, '🌱', 'force', '💀', 10],
-    /*
-      if (consomme(el, 'eau', 'eau', 'mort')) return true;
-      if (consomme(el, 'mais', 'force', 'mort')) return true;
-      if (consomme(el, 'plante', 'force', 'mort')) return true;
-      if (consomme(el, 'pousse', 'force', 'mort')) return true;
-    */
+    [
+      [consomme, '💧', 'eau', '💀', 10],
+      [consomme, '🌽', 'force', '💀', 50],
+      [consomme, '🌿', 'force', '💀', 20],
+      [consomme, '🌱', 'force', '💀', 10],
+    ]
   ],
   '🧔': [
-    [developper, 'vivant'],
-    [erre],
+    [
+      [developper, 'vivant'],
+      [erre],
+    ], {
+      eau: 20,
+      force: 20,
+    }
   ],
   '👩': [
-    [developper, 'vivant'],
-    [erre],
+    [
+      [developper, 'vivant'],
+      [erre],
+    ], {
+      eau: 20,
+      force: 20,
+    }
   ],
   '⛲': [
-    [semme, '💧'],
+    [
+      [semme, '💧'],
+    ], {}
   ],
 };
 
@@ -331,7 +373,11 @@ addPoint(0, 6, '🌽', {
 
 // Tests
 addPoint(11, 5, '🧔', {});
-addPoint(12, 5, '💧', {});
-addPoint(13, 9, '👩', {});
-addPoint(15, 5, '⛲', {});
-addPoint(17, 9, '🌽', {});
+addPoint(14, 5, '🌽', {});
+addPoint(14, 7, '🌿', {});
+addPoint(13, 14, '👩', {});
+addPoint(14, 14, '💧', {});
+addPoint(12, 14, '💧', {});
+//addPoint(13, 13, '💧', {});
+//addPoint(13, 5, '⛲', {});
+addPoint(22, 14, '🌽', {});

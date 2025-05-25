@@ -35,7 +35,7 @@ export default [{
     //"max-lines-per-function": "warn",
     "max-nested-callbacks": "warn",
     //"max-params": "warn",
-    "max-statements": "warn",
+    //"max-statements": "warn",
     "new-cap": "warn",
     "no-alert": "warn",
     "no-array-constructor": "warn",
