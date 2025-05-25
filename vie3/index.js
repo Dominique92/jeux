@@ -76,10 +76,13 @@ function pointsProches(el, deep, limit, searched, extended) {
           pny = ny * 0.866 * boxSize;
 
         if (0 <= pnx && pnx < window.innerWidth - boxSize &&
-          0 <= pny && pny < window.innerHeight - boxSize)
-          if (!searched && !eln ||
-            searched && eln && decHTML(eln))
-            listeProches.push([nx, ny, ...delta]);
+          0 <= pny && pny < window.innerHeight - boxSize &&
+          (
+            (!searched && !eln) || // Cases libres
+            (searched && eln && searched === eln.innerHTML) // objets identiques
+          )
+        )
+          listeProches.push([nx, ny, ...delta]);
       }
     });
   }
@@ -188,7 +191,6 @@ function erre(el) {
 }
 
 function semme(el, nomObjet) {
-  //TODO KO
   const pl = pointsProches(el, 1, 1);
 
   if (pl.length && Math.random() < 0.3) {
@@ -286,7 +288,7 @@ const o = {
       [consomme, '🌽', 'force', '💀', 50],
       [consomme, '🌿', 'force', '💀', 20],
       [consomme, '🌱', 'force', '💀', 10],
-    ]
+    ],
   ],
   '🧔': [
     [
@@ -295,7 +297,7 @@ const o = {
     ], {
       eau: 20,
       force: 20,
-    }
+    },
   ],
   '👩': [
     [
@@ -304,12 +306,12 @@ const o = {
     ], {
       eau: 20,
       force: 20,
-    }
+    },
   ],
   '⛲': [
     [
       [semme, '💧'],
-    ], {}
+    ],
   ],
 };
 
@@ -372,12 +374,15 @@ addPoint(0, 6, '🌽', {
 });
 
 // Tests
-addPoint(11, 5, '🧔', {});
-addPoint(14, 5, '🌽', {});
-addPoint(14, 7, '🌿', {});
-addPoint(13, 14, '👩', {});
-addPoint(14, 14, '💧', {});
-addPoint(12, 14, '💧', {});
-//addPoint(13, 13, '💧', {});
-//addPoint(13, 5, '⛲', {});
-addPoint(22, 14, '🌽', {});
+//addPoint(13, 14, '🧔');
+addPoint(14, 14, '⛲');
+/*
+addPoint(11, 5, '🧔');
+addPoint(14, 5, '🌽');
+addPoint(14, 7, '🌿');
+addPoint(13, 14, '👩');
+addPoint(14, 14, '💧');
+addPoint(12, 14, '💧');
+addPoint(22, 14, '🌽');//addPoint(13, 13, '💧');
+//addPoint(13, 5, '⛲');
+*/
