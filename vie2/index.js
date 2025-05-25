@@ -227,29 +227,31 @@ function rapproche(el, nomObjet) {
     return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 }
 
-function consomme(el, element, force) {
+function consomme(el, element, force, fin, tempo) {
   const pl = pointsProches(el, 1, 1, o[element]);
 
   // Init
-  if (typeof el.data[force] !== 'number')
-    el.data[force] = 30;
+  if (typeof el.data[force] === 'undefined')
+    el.data[force] = tempo || 30;
 
   // Consomme
-  if (el.data[force] < 20)
-    if (pl.length) {
-      el.data[force] += 10;
-      deletePoint(pl[0][0], pl[0][1]);
-      return true;
-    }
+  if (el.data[force] < 20 &&
+    typeof element !== 'undefined' &&
+    pl.length) {
+    el.data[force] += 10; //TODO ERROR AJOUTE 10 à la MORT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    deletePoint(pl[0][0], pl[0][1]);
+    return true;
+  }
 
   // Cherche
   if (el.data[force] < 10 &&
-    rapproche(el, element))
+    typeof element !== 'undefined' &&
+    rapproche(el, element)) {
     return true;
+  }
 
   // Meurt
-  if (el.data[force]-- < 0) {
-    el.innerHTML = o.mort;
+  if (el.data[force]-- < 0) { //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
     return true;
   }
 }
@@ -271,16 +273,15 @@ function fusionne(el, nomObjet, nomFinal) {
 }
 
 function journee(el, autre, fusion) {
-  if (consomme(el, 'eau', 'eau')) return true;
-  if (consomme(el, 'mais', 'force')) return true;
-  if (consomme(el, 'plante', 'force')) return true;
-  if (consomme(el, 'pousse', 'force')) return true;
+  if (consomme(el, 'eau', 'eau', 'mort')) return true;
+  if (consomme(el, 'mais', 'force', 'mort')) return true;
+  if (consomme(el, 'plante', 'force', 'mort')) return true;
+  if (consomme(el, 'pousse', 'force', 'mort')) return true;
 
   if (autre) {
     if (fusionne(el, autre, fusion)) return true;
     if (rapproche(el, autre)) return true;
   }
-  erre(el);
 }
 
 //ACTIONS
@@ -295,14 +296,20 @@ const actions = {
   mais: el => {
     semme(el, 'pousse');
   },
+  mort: el => {
+    consomme(el, null, 'temps', 'sable', 5);
+  },
   homme: el => {
     if (journee(el, 'femme', 'couple')) return;
+    erre(el);
   },
   femme: el => {
     if (journee(el, 'homme', 'couple')) return;
+    erre(el);
   },
   couple: el => {
     if (journee(el)) return;
+    erre(el);
   },
 };
 
