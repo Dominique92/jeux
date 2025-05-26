@@ -50,7 +50,7 @@ function commun(el, x, y, data, dataInit) {
     el.data = {
       ...dataInit,
       ...el.data,
-      nbIteration: nbIteration,
+      nbIteration: nbIteration, //TODO BUG ne marquer que quand il y a un changement
       x: x,
       y: y,
       ...data,
@@ -156,11 +156,20 @@ function supprimerObjet(x, y) {
 }
 
 // VERBES
-function errer(el, evaporer) {
+function errer(el, fin) {
   const pl = pointsProches(el, 1, 1);
 
-  if (evaporer && Math.random() < evaporer)
+  if (typeof fin === 'number' &&
+    Math.random() < fin) {
     return supprimerObjet(el.data.x, el.data.y)
+  }
+  if (typeof fin === 'string' &&
+    (el.data.eau-- < 0 || el.data.force-- < 0)
+  ) {
+    el.innerHTML = fin;
+
+    return false;
+  }
 
   if (pl.length)
     return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
@@ -170,7 +179,6 @@ function errer(el, evaporer) {
 
 function semmer(el, probabilite, nomNouveau, nomRemplace) {
   const pp = pointsProches(el, 1, 1, nomRemplace);
-  //pl = pointsProches(el, 1, 1),
 
   if (pp.length && Math.random() < probabilite) {
     const elN = caseEl(pp[0][0], pp[0][1]);
@@ -195,7 +203,7 @@ function rapprocher(el, nomObjet) {
   return true;
 }
 
-function consommer(el, typeObjet, force, fin /*, tempo*/ ) {
+function consommer(el, typeObjet, force) {
   const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
@@ -215,18 +223,11 @@ function consommer(el, typeObjet, force, fin /*, tempo*/ ) {
 
       return false;
   }
-
-  // Meurt
-  if (el.data[force]-- < 0) { //TODO BUG consommer 3 fois si appelé 3 fois => utiliser intervalle
-    el.innerHTML = fin;
-
-    return false;
-  }
   return true;
 }
 
 function fusionner(el, nomObjet, nomFinal) {
-  //TODO TEST
+  //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -269,17 +270,18 @@ function developper(el, acteur) {
 o = {
   animer: [
     [
-      [consommer, '💧', 'eau', '💀', 10],
-      [consommer, '🌽', 'force', '💀', 50],
-      [consommer, '🌿', 'force', '💀', 20],
-      [consommer, '🌱', 'force', '💀', 10],
+      [consommer, '💧'],
+      [consommer, '🌽'],
+      [consommer, '🌿'],
+      [consommer, '🌱'],
     ],
   ],
   '🧔': [
     [
       [developper, 'animer'],
-      //TODO absorbe 👩
-      [errer],
+      // [rapprocher, '👩' ],
+      //TODO [fusionner, '👩','👫'],
+      [errer, '💀'],
     ], {
       eau: 20,
       force: 20,
@@ -289,7 +291,7 @@ o = {
     [
       [developper, 'animer'],
       //TODO absorbe 🧔
-      [errer],
+      [errer, '💀'],
     ], {
       eau: 20,
       force: 20,
@@ -298,7 +300,7 @@ o = {
   '👫': [
     [
       [developper, 'animer'],
-      [errer],
+      [errer, '💀'],
     ],
   ],
   '💀': [
@@ -431,16 +433,16 @@ document.addEventListener('drop', evt => {
 });
 
 // TESTS
+ajouterObjet(13, 14, '🧔');
+ajouterObjet(14, 12, '🌿');
+/*
+ajouterObjet(20, 14, '👩');
 ajouterObjet(15, 7, '🌽');
 ajouterObjet(14, 5, '⛲');
 ajouterObjet(14, 7, '💧');
-ajouterObjet(13, 14, '🧔');
 ajouterObjet(14, 14, '⛲');
 ajouterObjet(11, 5, '🧔');
 ajouterObjet(14, 5, '🌽');
-ajouterObjet(14, 7, '🌿');
-ajouterObjet(13, 14, '👩');
 ajouterObjet(12, 14, '💧');
 ajouterObjet(13, 13, '💧');
-/*
  */
