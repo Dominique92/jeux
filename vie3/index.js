@@ -10,7 +10,7 @@ const deltasProches = [
   cases = [];
 
 let o = {},
-  iteration = 0,
+  nbIteration = 0,
   zones = [];
 
 /*********************
@@ -22,7 +22,7 @@ let o = {},
  *
  * scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
  *   La première ayant abouti interrompt la liste
- * action : fonction à exécuter qui réalise une action sur un objet
+ * verbe : fonction à exécuter qui réalise une action sur un objet
  * routine : fonction qui manipule les données du programme
  */
 
@@ -48,7 +48,7 @@ function commun(el, x, y, data, dataInit) {
     el.data = {
       ...dataInit,
       ...el.data,
-      iteration: iteration,
+      nbIteration: nbIteration,
       x: x,
       y: y,
       ...data,
@@ -116,7 +116,7 @@ function pointsProches(el, deep, limit, searched, extended) {
   return listeProches;
 }
 
-function addPoint(x, y, symbol, data) {
+function ajouterObjet(x, y, symbol, data) {
   const el = document.createElement('div');
 
   if (commun(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
@@ -125,10 +125,12 @@ function addPoint(x, y, symbol, data) {
     el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
+    /* eslint-disable-next-line no-use-before-define */
+    el.onclick = click;
   }
 }
 
-function movePoint(x, y, nx, ny) {
+function bougerObjet(x, y, nx, ny) {
   const el = caseEl(x, y);
 
   if (el) {
@@ -142,7 +144,7 @@ function movePoint(x, y, nx, ny) {
   return true;
 }
 
-function deletePoint(x, y) {
+function supprimerObjet(x, y) {
   //TODO TEST
   if (caseEl(x, y)) {
     cases[x][y].remove();
@@ -151,37 +153,37 @@ function deletePoint(x, y) {
   }
 }
 
-// ACTIONS
-function erre(el) {
+// VERBES
+function errer(el) {
   const pl = pointsProches(el, 1, 1);
 
   if (pl.length)
-    return movePoint(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+    return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   return true;
 }
 
-function semme(el, nomObjet) {
+function semmer(el, nomObjet) {
   const pl = pointsProches(el, 1, 1);
 
   if (pl.length && Math.random() < 0.3) {
-    addPoint(pl[0][0], pl[0][1], nomObjet);
+    ajouterObjet(pl[0][0], pl[0][1], nomObjet);
     return false;
   }
   return true;
 }
 
-function rapproche(el, nomObjet) {
+function rapprocher(el, nomObjet) {
   //TODO TEST
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length)
-    return movePoint(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+    return bougerObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 
   return true;
 }
 
-function consomme(el, typeObjet, force, fin /*, tempo*/ ) {
+function consommer(el, typeObjet, force, fin /*, tempo*/ ) {
   const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
@@ -189,7 +191,7 @@ function consomme(el, typeObjet, force, fin /*, tempo*/ ) {
     typeof typeObjet !== 'undefined' &&
     pl.length) {
     el.data[force] += 10;
-    deletePoint(pl[0][0], pl[0][1]);
+    supprimerObjet(pl[0][0], pl[0][1]);
 
     return false;
   }
@@ -197,13 +199,13 @@ function consomme(el, typeObjet, force, fin /*, tempo*/ ) {
   // Cherche
   if (el.data[force] < 10 &&
     typeof typeObjet !== 'undefined') {
-    if (!rapproche(el, typeObjet))
+    if (!rapprocher(el, typeObjet))
 
       return false;
   }
 
   // Meurt
-  if (el.data[force]-- < 0) { //TODO BUG consomme 3 fois si appelé 3 fois => utiliser intervalle
+  if (el.data[force]-- < 0) { //TODO BUG consommer 3 fois si appelé 3 fois => utiliser intervalle
     el.innerHTML = fin;
 
     return false;
@@ -211,7 +213,7 @@ function consomme(el, typeObjet, force, fin /*, tempo*/ ) {
   return true;
 }
 
-function fusionne(el, nomObjet, nomFinal) {
+function fusionner(el, nomObjet, nomFinal) {
   //TODO TEST
   const pl = pointsProches(el, 1, 1, nomObjet);
 
@@ -220,7 +222,7 @@ function fusionne(el, nomObjet, nomFinal) {
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      deletePoint(pl[0][0], pl[0][1]);
+      supprimerObjet(pl[0][0], pl[0][1]);
       el.innerHTML = nomFinal;
       el.data.amour = 0;
     }
@@ -231,13 +233,13 @@ function fusionne(el, nomObjet, nomFinal) {
 
 // Debug
 /* eslint-disable-next-line no-unused-vars */
-function trace(el, t) {
+function tracer(el, t) {
   console.log('trace ' + t);
   return true;
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function stop() {
+function stopper() {
   return false;
 }
 
@@ -247,25 +249,25 @@ function developper(el, acteur) {
       action[0](el, ...action.slice(1)) // Stop when one action is completed
     );
 
-  return true; // Return = continue (true / false)
+  return true; // continue
 }
 
 // SCÉNARIOS
 //🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 o = {
-  vivant: [
+  animer: [
     [
-      [consomme, '💧', 'eau', '💀', 10],
-      [consomme, '🌽', 'force', '💀', 50],
-      [consomme, '🌿', 'force', '💀', 20],
-      [consomme, '🌱', 'force', '💀', 10],
+      [consommer, '💧', 'eau', '💀', 10],
+      [consommer, '🌽', 'force', '💀', 50],
+      [consommer, '🌿', 'force', '💀', 20],
+      [consommer, '🌱', 'force', '💀', 10],
     ],
   ],
   '🧔': [
     [
-      [developper, 'vivant'],
+      [developper, 'animer'],
       //TODO absorbe 👩
-      [erre],
+      [errer],
     ], {
       eau: 20,
       force: 20,
@@ -273,9 +275,9 @@ o = {
   ],
   '👩': [
     [
-      [developper, 'vivant'],
+      [developper, 'animer'],
       //TODO absorbe 🧔
-      [erre],
+      [errer],
     ], {
       eau: 20,
       force: 20,
@@ -283,8 +285,8 @@ o = {
   ],
   '👫': [
     [
-      [developper, 'vivant'],
-      [erre],
+      [developper, 'animer'],
+      [errer],
     ],
   ],
   '💀': [
@@ -294,18 +296,18 @@ o = {
   ],
   '⛲': [
     [
-      [semme, '💧'],
+      [semmer, '💧'],
     ],
   ],
   '💧': [
     [
       //TODO évaporer
-      [erre],
+      [errer],
     ],
   ],
   '🌽': [
     [
-      [semme, '🌱'],
+      [semmer, '🌱'],
     ],
   ],
   '🌱': [
@@ -320,15 +322,15 @@ o = {
   ],
 };
 
-function unJour() {
+function iterer() {
   const debut = Date.now(),
     statsEl = document.getElementById('stats');
 
   // Exécution des actions
-  iteration++;
+  nbIteration++;
   cases.forEach(col => {
     col.forEach(ligneEl => {
-      if (!ligneEl.data.model && ligneEl.data.iteration < iteration)
+      if (!ligneEl.data.model && ligneEl.data.nbIteration < nbIteration)
         developper(ligneEl, ligneEl.innerHTML);
     });
   });
@@ -362,25 +364,32 @@ function unJour() {
 
 // INITIALISATIONS
 //TODO help au début
-
-addPoint(0, 0, '🧔', {
+ajouterObjet(0, 0, '🧔', {
   model: true,
 });
-addPoint(0, 2, '👩', {
+ajouterObjet(0, 2, '👩', {
   model: true,
 });
-addPoint(0, 4, '⛲', {
+ajouterObjet(0, 4, '⛲', {
   model: true,
 });
-addPoint(0, 6, '🌽', {
+ajouterObjet(0, 6, '🌽', {
   model: true,
 });
 
 // RÉPONSES SOURIS / CLAVIER
 //TODO save/restaure
+document.addEventListener('keydown', iterer);
+window.onload = iterer;
 
-document.addEventListener('keydown', unJour);
-window.onload = unJour;
+function click(evt) {
+  if (!evt.target.data.model) {
+    if (JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
+      errer(evt.target);
+    else
+      supprimerObjet(evt.target.data.x, evt.target.data.y);
+  }
+}
 
 function dragstart(evt) {
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
@@ -404,23 +413,23 @@ document.addEventListener('drop', evt => {
   //TODO smooth end of move
 
   if (data.model)
-    addPoint(nx, ny, symbol);
+    ajouterObjet(nx, ny, symbol);
   else
-    movePoint(data.x, data.y, nx, ny);
+    bougerObjet(data.x, data.y, nx, ny);
 
   evt.preventDefault();
 });
 
 // TESTS
-addPoint(13, 5, '⛲');
+ajouterObjet(13, 5, '⛲');
 /*
-addPoint(13, 14, '🧔');
-addPoint(14, 14, '⛲');
-addPoint(11, 5, '🧔');
-addPoint(14, 5, '🌽');
-addPoint(14, 7, '🌿');
-addPoint(13, 14, '👩');
-addPoint(14, 14, '💧');
-addPoint(12, 14, '💧');
-addPoint(22, 14, '🌽'); //addPoint(13, 13, '💧');
+ajouterObjet(13, 14, '🧔');
+ajouterObjet(14, 14, '⛲');
+ajouterObjet(11, 5, '🧔');
+ajouterObjet(14, 5, '🌽');
+ajouterObjet(14, 7, '🌿');
+ajouterObjet(13, 14, '👩');
+ajouterObjet(14, 14, '💧');
+ajouterObjet(12, 14, '💧');
+ajouterObjet(22, 14, '🌽'); //ajouterObjet(13, 13, '💧');
 */
