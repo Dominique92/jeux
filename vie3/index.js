@@ -12,7 +12,7 @@ const statsEl = document.getElementById('stats'),
   cases = [];
 
 let o = {},
-  nbIteration = 0,
+  noIt = 0,
   zones = [];
 
 /*********************
@@ -50,7 +50,7 @@ function commun(el, x, y, data, dataInit) {
     el.data = {
       ...dataInit,
       ...el.data,
-      nbIteration: nbIteration, //TODO BUG ne marquer que quand il y a un changement
+      noIt: noIt, // Pour éviter d'être repris pendant cette itération
       x: x,
       y: y,
       ...data,
@@ -125,6 +125,18 @@ function ajouterObjet(x, y, symbol, data) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.draggable = true;
+
+    // Hold moves when hover
+    el.onmouseover = () => {
+      el.data.hovered = true;
+      el.style.top = window.getComputedStyle(el).top;
+      el.style.left = window.getComputedStyle(el).left;
+    };
+    el.onmouseout = () => {
+      el.data.hovered = false;
+    };
+
+    // Mouse actions
     /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
@@ -339,10 +351,10 @@ function iterer() {
   const debut = Date.now();
 
   // Exécution des actions
-  nbIteration++;
+  noIt++;
   cases.forEach(col => {
     col.forEach(ligneEl => {
-      if (!ligneEl.data.model && ligneEl.data.nbIteration < nbIteration)
+      if (!ligneEl.data.model && ligneEl.data.noIt < noIt && !ligneEl.data.hovered)
         developper(ligneEl, ligneEl.innerHTML);
     });
   });
@@ -367,7 +379,14 @@ function iterer() {
       }
 
       // Debug 
-      ligneEl.setAttribute('title', JSON.stringify(ligneEl.data));
+      const data = {
+        ...ligneEl.data
+      };
+      delete data.x;
+      delete data.y;
+      delete data.noIt;
+      delete data.hovered;
+      ligneEl.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
     });
   });
 
@@ -390,8 +409,9 @@ ajouterObjet(0, 6, '🌽', {
 
 // RÉPONSES SOURIS / CLAVIER
 //TODO save/restaure
+
+self.setInterval(iterer, 1000);
 document.addEventListener('keydown', iterer);
-window.onload = iterer;
 
 function click(evt) {
   if (!evt.target.data.model) {
@@ -433,16 +453,16 @@ document.addEventListener('drop', evt => {
 });
 
 // TESTS
+ajouterObjet(14, 6, '⛲');
+ajouterObjet(14, 7, '🌽');
+ajouterObjet(14, 8, '⛲');
+ajouterObjet(14, 7, '💧');
 ajouterObjet(13, 14, '🧔');
 ajouterObjet(14, 12, '🌿');
-/*
 ajouterObjet(20, 14, '👩');
-ajouterObjet(15, 7, '🌽');
-ajouterObjet(14, 5, '⛲');
-ajouterObjet(14, 7, '💧');
-ajouterObjet(14, 14, '⛲');
 ajouterObjet(11, 5, '🧔');
 ajouterObjet(14, 5, '🌽');
 ajouterObjet(12, 14, '💧');
 ajouterObjet(13, 13, '💧');
+/*
  */
