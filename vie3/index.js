@@ -170,9 +170,8 @@ function supprimerObjet(x, y) {
 
 // VERBES
 function transformer(el, nomObjet, age) {
-  if (el.data.age++ > age) {
+  if (el.data.age > age) {
     el.innerHTML = nomObjet;
-    el.data.age = 0;
 
     return false;
   }
@@ -188,7 +187,7 @@ function errer(el, fin) {
     return supprimerObjet(el.data.x, el.data.y)
   }
   if (typeof fin === 'string' &&
-    (el.data.eau-- < 0 || el.data.force-- < 0)
+    (el.data.eau < 0 || el.data.energie < 0)
   ) {
     el.innerHTML = fin;
 
@@ -228,23 +227,23 @@ function rapprocher(el, nomObjet) {
   return true;
 }
 
-function consommer(el, typeObjet, force) {
+function consommer(el, typeObjet, typeRessource, quantiteRessource) {
   const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
-  if (el.data[force] < 20 &&
+  if (el.data[typeRessource] < 20 &&
     typeof typeObjet !== 'undefined' &&
     pl.length) {
-    el.data[force] += 10;
+    el.data[typeRessource] += quantiteRessource;
     supprimerObjet(pl[0][0], pl[0][1]);
 
     return false;
   }
 
   // Cherche
-  if (el.data[force] < 10 &&
+  if (el.data[typeRessource] < 10 &&
     typeof typeObjet !== 'undefined') {
-    if (!rapprocher(el, typeObjet))
+    if (!rapprocher(el, typeObjet)) //TODO TEST
 
       return false;
   }
@@ -295,21 +294,22 @@ function developper(el, acteur) {
 o = {
   animer: [
     [
-      [consommer, '💧'], //TODO TEST //TODO génère quelle force ?
-      [consommer, '🌽'], //TODO TEST
-      [consommer, '🌿'], //TODO TEST
-      [consommer, '🌱'], //TODO TEST
+      [consommer, '💧', 'eau', 10],
+      [consommer, '🌽', 'energie', 20],
+      [consommer, '🌿', 'energie', 10],
+      [consommer, '🌱', 'energie', 5],
+      [consommer, '🐇', 'energie', 50],
     ],
   ],
-  '🧔': [
+  '🧔': [ //TODO BUG ne viellit pas quand se déplace !
     [
       [developper, 'animer'], //TODO TEST
       // [rapprocher, '👩' ],//TODO TEST
       //TODO [fusionner, '👩','👫'],//TODO TEST
-      [errer, '💀'], //TODO TEST
+      //[errer, '💀'], //TODO TEST
     ], {
       eau: 20,
-      force: 20,
+      energie: 20,
     },
   ],
   '👩': [
@@ -319,7 +319,7 @@ o = {
       [errer, '💀'], //TODO TEST
     ], {
       eau: 20,
-      force: 20,
+      energie: 20,
     },
   ],
   '👫': [
@@ -330,7 +330,7 @@ o = {
   ],
   '💀': [
     [
-      //TODO transforme ▒
+      [transformer, '▒', 15], //TODO passer aussi au dessus de sable
     ],
   ],
   '⛲': [
@@ -371,9 +371,13 @@ function iterer() {
       if (!ligneEl.data.model && // Pas pour les modèles
         ligneEl.data.noIt < noIt && // Sauf s'il a été traité à partir d'un autre objet pendant la même itération
         !ligneEl.data.hovered && // Pas si le curseur est au dessus
-        developper(ligneEl, ligneEl.innerHTML) // Pas si une action a eu lieu
-      )
+        developper(ligneEl, ligneEl.innerHTML) // Si aucune une action n'a eu lieu
+      ) {
         ligneEl.data.age++;
+        ligneEl.data.eau--;
+        ligneEl.data.energie--;
+      } else
+        ligneEl.data.age = 0;
     });
   });
 
@@ -412,17 +416,10 @@ function iterer() {
 }
 
 // INITIALISATIONS
-ajouterObjet(0, 0, '🧔', {
-  model: true,
-});
-ajouterObjet(0, 2, '👩', {
-  model: true,
-});
-ajouterObjet(0, 4, '⛲', {
-  model: true,
-});
-ajouterObjet(0, 6, '🌽', {
-  model: true,
+['🧔', '👩', '⛲', '🌽'].forEach((nomSymbole, i) => {
+  ajouterObjet(0, i * 2, nomSymbole, {
+    model: true,
+  });
 });
 
 // RÉPONSES SOURIS / CLAVIER
@@ -471,16 +468,18 @@ document.addEventListener('drop', evt => {
 });
 
 // TESTS
+//🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
+ajouterObjet(11, 14, '🧔');
+ajouterObjet(11, 13, '🌽');
+/*
+ajouterObjet(13, 14, '👩');
+ajouterObjet(12, 14, '💧');
+ajouterObjet(14, 16, '🌿');
+ajouterObjet(14, 6, '💀');
 ajouterObjet(14, 6, '⛲');
-ajouterObjet(14, 7, '🌽');
 ajouterObjet(14, 8, '⛲');
 ajouterObjet(14, 7, '💧');
 ajouterObjet(13, 14, '🧔');
 ajouterObjet(14, 12, '🌿');
-ajouterObjet(20, 14, '👩');
-ajouterObjet(11, 5, '🧔');
-ajouterObjet(14, 5, '🌽');
-ajouterObjet(12, 14, '💧');
 ajouterObjet(13, 13, '💧');
-/*
  */
