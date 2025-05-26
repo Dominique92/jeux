@@ -147,33 +147,39 @@ function bougerObjet(x, y, nx, ny) {
 }
 
 function supprimerObjet(x, y) {
-   if (caseEl(x, y)) {
+  if (caseEl(x, y)) {
     cases[x][y].remove();
     delete cases[x][y];
     return false;
   }
-    return true;
+  return true;
 }
 
 // VERBES
 function errer(el, evaporer) {
   const pl = pointsProches(el, 1, 1);
-f
 
-	if(evaporer&&Math.random()<evaporer)
-		return supprimerObjet(el.data.x, el.data.y)
-		
+  if (evaporer && Math.random() < evaporer)
+    return supprimerObjet(el.data.x, el.data.y)
+
   if (pl.length)
     return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   return true;
 }
 
-function semmer(el, nomObjet) {
-  const pl = pointsProches(el, 1, 1);
+function semmer(el, probabilite, nomNouveau, nomRemplace) {
+  const pp = pointsProches(el, 1, 1, nomRemplace);
+  //pl = pointsProches(el, 1, 1),
 
-  if (pl.length && Math.random() < 0.3) {
-    ajouterObjet(pl[0][0], pl[0][1], nomObjet);
+  if (pp.length && Math.random() < probabilite) {
+    const elN = caseEl(pp[0][0], pp[0][1]);
+
+    if (nomRemplace && elN)
+      elN.innerHTML = nomNouveau;
+    else
+      ajouterObjet(pp[0][0], pp[0][1], nomNouveau);
+
     return false;
   }
   return true;
@@ -302,17 +308,17 @@ o = {
   ],
   '⛲': [
     [
-      [semmer, '💧'],
+      [semmer, 0.3, '💧'],
     ],
   ],
   '💧': [
     [
-       [errer,0.05],
+      [errer, 0.05],
     ],
   ],
   '🌽': [
     [
-      [semmer, '🌱'],
+      [semmer, 0.3, '🌱', '💧'],
     ],
   ],
   '🌱': [
@@ -425,15 +431,16 @@ document.addEventListener('drop', evt => {
 });
 
 // TESTS
-ajouterObjet(13, 5, '⛲');
-/*
+ajouterObjet(15, 7, '🌽');
+ajouterObjet(14, 5, '⛲');
+ajouterObjet(14, 7, '💧');
 ajouterObjet(13, 14, '🧔');
 ajouterObjet(14, 14, '⛲');
 ajouterObjet(11, 5, '🧔');
 ajouterObjet(14, 5, '🌽');
 ajouterObjet(14, 7, '🌿');
 ajouterObjet(13, 14, '👩');
-ajouterObjet(14, 14, '💧');
 ajouterObjet(12, 14, '💧');
-ajouterObjet(22, 14, '🌽'); //ajouterObjet(13, 13, '💧');
-*/
+ajouterObjet(13, 13, '💧');
+/*
+ */
