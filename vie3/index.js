@@ -7,40 +7,40 @@ const deltasProches = [
     [-1, -1, 1, 0],
   ],
   boxSize = 16,
-  boxes = [];
+  cases = [];
 
 let o = {},
   iteration = 0,
   zones = [];
-// TODO revoir nommages / français
 
-// HELPERS
-function box(x, y) {
-  if (typeof boxes[x] === 'undefined')
-    boxes[x] = [];
+/*********************
+ * terrain : toute la fenêtre <body>
+ * objet : <div>unicode</div> rattaché au <body> déplaçable
+ * typeObjet : Le caractère unicode
+ * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 objet max
+ * zones : un tableau à 2 dimensions par type d'objet représentant leur nombre dans chaque carré de n * n cases
+ *
+ * scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
+ *   La première ayant abouti interrompt la liste
+ * action : fonction à exécuter qui réalise une action sur un objet
+ * routine : fonction qui manipule les données du programme
+ */
 
-  return boxes[x][y];
-}
+// ROUTINES
+function caseEl(x, y) {
+  if (typeof cases[x] === 'undefined')
+    cases[x] = [];
 
-// Traduit un caractère unicode en ascii décimal
-function decHTML(el) {
-  let out = '';
-
-  for (const chr of el.innerHTML) {
-    const code = chr.codePointAt(0);
-
-    out += code >= 0x80 ? '&#' + code + ';' : chr;
-  }
-  return out;
+  return cases[x][y];
 }
 
 // Move el to the x/y position if it's free
-function helperPoint(el, x, y, data, dataInit) {
+function commun(el, x, y, data, dataInit) {
 
-  if (typeof box(x, y) === 'undefined' &&
+  if (typeof caseEl(x, y) === 'undefined' &&
     typeof el === 'object') {
     // Register in the grid
-    boxes[x][y] = el;
+    cases[x][y] = el;
 
     // Reposition the point
     el.style.left = (x + (data && data.model ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize + 'px';
@@ -54,11 +54,10 @@ function helperPoint(el, x, y, data, dataInit) {
       ...data,
     };
 
-    return boxes[x][y];
+    return cases[x][y];
   }
 }
 
-// ROUTINES
 function pointsProches(el, deep, limit, searched, extended) {
   let listeProches = [],
     dMin = 999999;
@@ -73,7 +72,7 @@ function pointsProches(el, deep, limit, searched, extended) {
       for (let i = 0; i < d && listeProches.length < limit; i++) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
           ny = el.data.y + d * delta[1] + i * delta[3],
-          eln = box(nx, ny),
+          eln = caseEl(nx, ny),
           pnx = (nx - ny / 2) * boxSize,
           pny = ny * 0.866 * boxSize;
 
@@ -120,7 +119,7 @@ function pointsProches(el, deep, limit, searched, extended) {
 function addPoint(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (helperPoint(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
+  if (commun(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.draggable = true;
@@ -130,13 +129,13 @@ function addPoint(x, y, symbol, data) {
 }
 
 function movePoint(x, y, nx, ny) {
-  const el = box(x, y);
+  const el = caseEl(x, y);
 
   if (el) {
-    const nEl = helperPoint(el, nx, ny);
+    const nEl = commun(el, nx, ny);
 
     if (nEl) {
-      delete boxes[x][y];
+      delete cases[x][y];
       return false;
     }
   }
@@ -145,44 +144,14 @@ function movePoint(x, y, nx, ny) {
 
 function deletePoint(x, y) {
   //TODO TEST
-  if (box(x, y)) {
-    boxes[x][y].remove();
-    delete boxes[x][y];
+  if (caseEl(x, y)) {
+    cases[x][y].remove();
+    delete cases[x][y];
     return true;
   }
 }
 
-// DÉPLACEMENTS
-function dragstart(evt) {
-  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
-  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
-}
-
-document.addEventListener('dragover', evt => {
-  evt.preventDefault();
-});
-
-document.addEventListener('dragend', evt => {
-  //TODO better animation
-  evt.preventDefault();
-});
-
-document.addEventListener('drop', evt => {
-  const data = JSON.parse(evt.dataTransfer.getData('data')),
-    symbol = evt.dataTransfer.getData('symbol'),
-    nx = parseInt((evt.x + evt.y / 2) / boxSize, 10),
-    ny = parseInt(evt.y / 0.866 / boxSize, 10);
-  //TODO smooth end of move
-
-  if (data.model)
-    addPoint(nx, ny, symbol);
-  else
-    movePoint(data.x, data.y, nx, ny);
-
-  evt.preventDefault();
-});
-
-// Fonctions unitaires
+// ACTIONS
 function erre(el) {
   const pl = pointsProches(el, 1, 1);
 
@@ -281,9 +250,8 @@ function developper(el, acteur) {
   return true; // Return = continue (true / false)
 }
 
-// Scénarios
+// SCÉNARIOS
 //🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
-
 o = {
   vivant: [
     [
@@ -358,7 +326,7 @@ function unJour() {
 
   // Exécution des actions
   iteration++;
-  boxes.forEach(col => {
+  cases.forEach(col => {
     col.forEach(ligneEl => {
       if (!ligneEl.data.model && ligneEl.data.iteration < iteration)
         developper(ligneEl, ligneEl.innerHTML);
@@ -366,14 +334,14 @@ function unJour() {
   });
 
   zones = [];
-  boxes.forEach((col, noCol) => {
+  cases.forEach((col, noCol) => {
     col.forEach((ligneEl, noLigne) => {
 
       // Reconstruction de la table des éloignés
       if (!ligneEl.data.model) {
         const noColRound = Math.round(noCol / 4),
           noLigneRound = Math.round(noLigne / 4),
-          car = decHTML(ligneEl);
+          car = ligneEl.innerHTML;
 
         if (typeof zones[car] === 'undefined')
           zones[car] = [];
@@ -392,11 +360,9 @@ function unJour() {
   statsEl.innerHTML = (Date.now() - debut) + ' ms';
 }
 
-// Actions récurrentes
-document.addEventListener('keydown', unJour);
-window.onload = unJour;
+// INITIALISATIONS
+//TODO help au début
 
-// Models
 addPoint(0, 0, '🧔', {
   model: true,
 });
@@ -410,9 +376,46 @@ addPoint(0, 6, '🌽', {
   model: true,
 });
 
-// Tests
-//addPoint(13, 14, '🧔');
-//addPoint(14, 14, '⛲');
+// RÉPONSES SOURIS / CLAVIER
+//TODO save/restaure
+
+document.addEventListener('keydown', unJour);
+window.onload = unJour;
+
+function dragstart(evt) {
+  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
+  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
+}
+
+document.addEventListener('dragover', evt => {
+  evt.preventDefault();
+});
+
+document.addEventListener('dragend', evt => {
+  //TODO better animation
+  evt.preventDefault();
+});
+
+document.addEventListener('drop', evt => {
+  const data = JSON.parse(evt.dataTransfer.getData('data')),
+    symbol = evt.dataTransfer.getData('symbol'),
+    nx = parseInt((evt.x + evt.y / 2) / boxSize, 10),
+    ny = parseInt(evt.y / 0.866 / boxSize, 10);
+  //TODO smooth end of move
+
+  if (data.model)
+    addPoint(nx, ny, symbol);
+  else
+    movePoint(data.x, data.y, nx, ny);
+
+  evt.preventDefault();
+});
+
+// TESTS
+addPoint(13, 5, '⛲');
+/*
+addPoint(13, 14, '🧔');
+addPoint(14, 14, '⛲');
 addPoint(11, 5, '🧔');
 addPoint(14, 5, '🌽');
 addPoint(14, 7, '🌿');
@@ -420,4 +423,4 @@ addPoint(13, 14, '👩');
 addPoint(14, 14, '💧');
 addPoint(12, 14, '💧');
 addPoint(22, 14, '🌽'); //addPoint(13, 13, '💧');
-addPoint(13, 5, '⛲');
+*/
