@@ -118,14 +118,24 @@ function pointsProches(el, deep, limit, searched, extended) {
   return listeProches;
 }
 
+function transformerObjet(el, nomObjet) {
+  if (el) {
+    el.innerHTML = nomObjet;
+    el.data.age = 0;
+    el.data.eau = 20;
+    el.data.energie = 20;
+
+    return true;
+  }
+  return false;
+}
+
 function ajouterObjet(x, y, symbol, data) {
   const el = document.createElement('div');
 
   if (commun(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
     document.body.appendChild(el);
-    el.innerHTML = symbol;
-    el.draggable = true;
-    el.data.age = 0;
+    transformerObjet(el, symbol);
 
     // Hold moves when hover
     el.onmouseover = () => {
@@ -138,6 +148,7 @@ function ajouterObjet(x, y, symbol, data) {
     };
 
     // Mouse actions
+    el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
@@ -170,11 +181,8 @@ function supprimerObjet(x, y) {
 
 // VERBES
 function transformer(el, nomObjet, age) {
-  if (el.data.age > age) {
-    el.innerHTML = nomObjet;
-
-    return false;
-  }
+  if (el.data.age > age)
+    return !transformerObjet(el, nomObjet);
 
   return true;
 }
@@ -182,10 +190,13 @@ function transformer(el, nomObjet, age) {
 function errer(el, fin) {
   const pl = pointsProches(el, 1, 1);
 
+  // Evaporer
   if (typeof fin === 'number' &&
     Math.random() < fin) {
     return supprimerObjet(el.data.x, el.data.y)
   }
+
+  // Mort
   if (typeof fin === 'string' &&
     (el.data.eau < 0 || el.data.energie < 0)
   ) {
@@ -194,6 +205,7 @@ function errer(el, fin) {
     return false;
   }
 
+  // Erre
   if (pl.length)
     return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
@@ -217,8 +229,7 @@ function semmer(el, probabilite, nomNouveau, nomRemplace) {
   return true;
 }
 
-function rapprocher(el, nomObjet) {
-  //TODO TEST
+function rapprocher(el, nomObjet) { //TODO TEST
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length)
@@ -250,8 +261,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) {
   return true;
 }
 
-function fusionner(el, nomObjet, nomFinal) {
-  //TODO TEST KO (manque rapprocher)
+function fusionner(el, nomObjet, nomFinal) { //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -303,24 +313,17 @@ o = {
   ],
   '🧔': [ //TODO BUG ne viellit pas quand se déplace !
     [
+      [fusionner, '👩', '👫'], //TODO TEST
       [developper, 'animer'], //TODO TEST
-      // [rapprocher, '👩' ],//TODO TEST
-      //TODO [fusionner, '👩','👫'],//TODO TEST
-      //[errer, '💀'], //TODO TEST
-    ], {
-      eau: 20,
-      energie: 20,
-    },
+      [errer, '💀'], //TODO TEST
+    ],
   ],
   '👩': [
     [
+      [fusionner, '🧔', '👫'], //TODO TEST
       [developper, 'animer'], //TODO TEST
-      //TODO absorbe 🧔
       [errer, '💀'], //TODO TEST
-    ], {
-      eau: 20,
-      energie: 20,
-    },
+    ],
   ],
   '👫': [
     [
@@ -340,7 +343,7 @@ o = {
   ],
   '💧': [
     [
-      [errer, 0.05],
+      [errer, 0.05], //TODO smooth evanescence (transparency)
     ],
   ],
   '🌽': [
@@ -351,12 +354,12 @@ o = {
   ],
   '🌱': [
     [
-      [transformer, '🌿', 15],
+      [transformer, '🌿', 15], // Si eau
     ],
   ],
   '🌿': [
     [
-      [transformer, '🌽', 15],
+      [transformer, '🌽', 15], // Si eau
     ],
   ],
 };
@@ -376,8 +379,7 @@ function iterer() {
         ligneEl.data.age++;
         ligneEl.data.eau--;
         ligneEl.data.energie--;
-      } else
-        ligneEl.data.age = 0;
+      }
     });
   });
 
@@ -416,7 +418,8 @@ function iterer() {
 }
 
 // INITIALISATIONS
-['🧔', '👩', '⛲', '🌽'].forEach((nomSymbole, i) => {
+// Modèles
+Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
   ajouterObjet(0, i * 2, nomSymbole, {
     model: true,
   });
@@ -468,18 +471,12 @@ document.addEventListener('drop', evt => {
 });
 
 // TESTS
-//🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
-ajouterObjet(11, 14, '🧔');
-ajouterObjet(11, 13, '🌽');
-/*
-ajouterObjet(13, 14, '👩');
-ajouterObjet(12, 14, '💧');
-ajouterObjet(14, 16, '🌿');
-ajouterObjet(14, 6, '💀');
-ajouterObjet(14, 6, '⛲');
-ajouterObjet(14, 8, '⛲');
-ajouterObjet(14, 7, '💧');
-ajouterObjet(13, 14, '🧔');
-ajouterObjet(14, 12, '🌿');
-ajouterObjet(13, 13, '💧');
- */
+Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
+  ajouterObjet(8 + i * 3, 12, nomSymbole);
+});
+Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
+  ajouterObjet(11 + i * 3, 17, nomSymbole);
+});
+Array.from('🦴🚧🌳🌾🐇🐀🥔🧒👶👷').forEach((nomSymbole, i) => {
+  ajouterObjet(5 + i * 2, 0, nomSymbole);
+});
