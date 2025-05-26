@@ -14,6 +14,11 @@ div {
   cursor: grab;
 }
 
+#help {
+  margin-top: 50%;
+  text-align: center;
+}
+
 #stats {
   margin: 0 30px;
 }

@@ -363,7 +363,6 @@ function iterer() {
 }
 
 // INITIALISATIONS
-//TODO help au début
 ajouterObjet(0, 0, '🧔', {
   model: true,
 });
