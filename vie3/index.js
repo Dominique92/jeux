@@ -1,4 +1,6 @@
-const deltasProches = [
+const statsEl = document.getElementById('stats'),
+  helpEl = document.getElementById('help'),
+  deltasProches = [
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -145,18 +147,22 @@ function bougerObjet(x, y, nx, ny) {
 }
 
 function supprimerObjet(x, y) {
-  //TODO TEST
-  if (caseEl(x, y)) {
+   if (caseEl(x, y)) {
     cases[x][y].remove();
     delete cases[x][y];
-    return true;
+    return false;
   }
+    return true;
 }
 
 // VERBES
-function errer(el) {
+function errer(el, evaporer) {
   const pl = pointsProches(el, 1, 1);
+f
 
+	if(evaporer&&Math.random()<evaporer)
+		return supprimerObjet(el.data.x, el.data.y)
+		
   if (pl.length)
     return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
@@ -301,8 +307,7 @@ o = {
   ],
   '💧': [
     [
-      //TODO évaporer
-      [errer],
+       [errer,0.05],
     ],
   ],
   '🌽': [
@@ -323,8 +328,7 @@ o = {
 };
 
 function iterer() {
-  const debut = Date.now(),
-    statsEl = document.getElementById('stats');
+  const debut = Date.now();
 
   // Exécution des actions
   nbIteration++;
@@ -393,6 +397,7 @@ function click(evt) {
 function dragstart(evt) {
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
   evt.dataTransfer.setData('symbol', evt.target.innerHTML);
+  helpEl.style.display = 'none';
 }
 
 document.addEventListener('dragover', evt => {
