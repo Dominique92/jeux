@@ -125,6 +125,7 @@ function ajouterObjet(x, y, symbol, data) {
     document.body.appendChild(el);
     el.innerHTML = symbol;
     el.draggable = true;
+    el.data.age = 0;
 
     // Hold moves when hover
     el.onmouseover = () => {
@@ -160,7 +161,7 @@ function bougerObjet(x, y, nx, ny) {
 
 function supprimerObjet(x, y) {
   if (caseEl(x, y)) {
-    cases[x][y].remove();
+    cases[x][y].remove(); //TODO smooth desaparence
     delete cases[x][y];
     return false;
   }
@@ -168,6 +169,17 @@ function supprimerObjet(x, y) {
 }
 
 // VERBES
+function transformer(el, nomObjet, age) {
+  if (el.data.age++ > age) {
+    el.innerHTML = nomObjet;
+    el.data.age = 0;
+
+    return false;
+  }
+
+  return true;
+}
+
 function errer(el, fin) {
   const pl = pointsProches(el, 1, 1);
 
@@ -190,6 +202,7 @@ function errer(el, fin) {
 }
 
 function semmer(el, probabilite, nomNouveau, nomRemplace) {
+  // Si nomRemplace undefined, dans une case vide
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
   if (pp.length && Math.random() < probabilite) {
@@ -282,18 +295,18 @@ function developper(el, acteur) {
 o = {
   animer: [
     [
-      [consommer, '💧'],
-      [consommer, '🌽'],
-      [consommer, '🌿'],
-      [consommer, '🌱'],
+      [consommer, '💧'], //TODO TEST //TODO génère quelle force ?
+      [consommer, '🌽'], //TODO TEST
+      [consommer, '🌿'], //TODO TEST
+      [consommer, '🌱'], //TODO TEST
     ],
   ],
   '🧔': [
     [
-      [developper, 'animer'],
-      // [rapprocher, '👩' ],
-      //TODO [fusionner, '👩','👫'],
-      [errer, '💀'],
+      [developper, 'animer'], //TODO TEST
+      // [rapprocher, '👩' ],//TODO TEST
+      //TODO [fusionner, '👩','👫'],//TODO TEST
+      [errer, '💀'], //TODO TEST
     ], {
       eau: 20,
       force: 20,
@@ -301,9 +314,9 @@ o = {
   ],
   '👩': [
     [
-      [developper, 'animer'],
+      [developper, 'animer'], //TODO TEST
       //TODO absorbe 🧔
-      [errer, '💀'],
+      [errer, '💀'], //TODO TEST
     ], {
       eau: 20,
       force: 20,
@@ -311,8 +324,8 @@ o = {
   ],
   '👫': [
     [
-      [developper, 'animer'],
-      [errer, '💀'],
+      [developper, 'animer'], //TODO TEST
+      [errer, '💀'], //TODO TEST
     ],
   ],
   '💀': [
@@ -333,16 +346,17 @@ o = {
   '🌽': [
     [
       [semmer, 0.3, '🌱', '💧'],
+      //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
     ],
   ],
   '🌱': [
     [
-      //TODO transforme 🌿
+      [transformer, '🌿', 15],
     ],
   ],
   '🌿': [
     [
-      //TODO transforme 🌽
+      [transformer, '🌽', 15],
     ],
   ],
 };
@@ -354,8 +368,12 @@ function iterer() {
   noIt++;
   cases.forEach(col => {
     col.forEach(ligneEl => {
-      if (!ligneEl.data.model && ligneEl.data.noIt < noIt && !ligneEl.data.hovered)
-        developper(ligneEl, ligneEl.innerHTML);
+      if (!ligneEl.data.model && // Pas pour les modèles
+        ligneEl.data.noIt < noIt && // Sauf s'il a été traité à partir d'un autre objet pendant la même itération
+        !ligneEl.data.hovered && // Pas si le curseur est au dessus
+        developper(ligneEl, ligneEl.innerHTML) // Pas si une action a eu lieu
+      )
+        ligneEl.data.age++;
     });
   });
 
