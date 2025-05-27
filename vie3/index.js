@@ -12,7 +12,7 @@ const statsEl = document.getElementById('stats'),
   cases = [];
 
 let o = {},
-  noIt = 0,
+  noIteration = 0,
   zones = [];
 
 /*********************
@@ -36,27 +36,59 @@ function caseEl(x, y) {
   return cases[x][y];
 }
 
+function casePX(x, y, gigue) {
+  return [
+    (x + (gigue ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize,
+    (y * 0.866 + (gigue ? 0 : Math.random() / 4 - 0.125)) * boxSize,
+  ];
+}
+
 // Move el to the x/y position if it's free
-function commun(el, x, y, data) {
+function commun(el, x, y, data, xDepart, yDepart) {
+  const positionxDepart = casePX(xDepart || x, yDepart || y, data && data.model),
+    positionPixels = casePX(x, y, data && data.model);
 
   if (typeof caseEl(x, y) === 'undefined' &&
     typeof el === 'object') {
     // Register in the grid
     cases[x][y] = el;
 
-    // Reposition the point
-    el.style.left = (x + (data && data.model ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize + 'px';
-    el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
+    // Update the data
     el.data = {
       ...el.data,
-      noIt: noIt, // Pour éviter d'être repris pendant cette itération
+      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
       x: x,
       y: y,
       ...data,
     };
 
+    // Starting position
+    el.style.left = positionxDepart[0] + 'px';
+    el.style.top = positionxDepart[1] + 'px';
+
+    // Timeout ensures styles are applied before scrolling
+    if (typeof xDepart === 'number' && typeof yDepart === 'number')
+      setTimeout(() => {
+        // Destination position (after transition)
+        el.style.left = positionPixels[0] + 'px';
+        el.style.top = positionPixels[1] + 'px';
+      }, 0);
+
     return cases[x][y];
   }
+}
+
+function transformerObjet(el, nomObjet) {
+  if (el) {
+    el.innerHTML = nomObjet;
+    el.data.age = 0;
+    el.data.eau = 20;
+    el.data.energie = 20;
+    el.data.amour = 0;
+
+    return true;
+  }
+  return false;
 }
 
 function pointsProches(el, deep, limit, searched, extended) {
@@ -115,19 +147,6 @@ function pointsProches(el, deep, limit, searched, extended) {
     });
 
   return listeProches;
-}
-
-function transformerObjet(el, nomObjet) {
-  if (el) {
-    el.innerHTML = nomObjet;
-    el.data.age = 0;
-    el.data.eau = 20;
-    el.data.energie = 20;
-    el.data.amour = 0;
-
-    return true;
-  }
-  return false;
 }
 
 function ajouterObjet(x, y, symbol, data) {
@@ -303,12 +322,12 @@ function iterer() {
   const debut = Date.now();
 
   // Exécution des actions
-  noIt++;
+  noIteration++;
   cases.forEach(col => {
     col.forEach(ligneEl => {
       if (!ligneEl.data.model && // Pas les modèles
         !ligneEl.data.hovered && // Pas si le curseur est au dessus
-        ligneEl.data.noIt < noIt) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
+        ligneEl.data.noIteration < noIteration) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
         developper(ligneEl, ligneEl.innerHTML);
 
         // Tout le monde viellit
@@ -345,7 +364,7 @@ function iterer() {
       };
       delete data.x;
       delete data.y;
-      delete data.noIt;
+      delete data.noIteration;
       delete data.hovered;
       ligneEl.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
     });
@@ -459,10 +478,12 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-//ajouterObjet(13, 14, '👩');
+//ajouterObjet(6, 14, '🧍');
+/*
 Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
   ajouterObjet(8 + i * 3, 12, nomSymbole);
 });
 Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
   ajouterObjet(11 + i * 3, 17, nomSymbole);
 });
+*/
