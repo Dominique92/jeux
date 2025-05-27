@@ -113,7 +113,8 @@ function pointsProches(el, deep, limit, searched, extended) {
           0 <= pny && pny < window.innerHeight - boxSize &&
           (
             (!searched && !eln) || // Cases libres
-            (searched && eln && searched === eln.innerHTML) // objets identiques
+            (!searched && eln && '▒' === eln.innerHTML) || // Sable
+            (searched && eln && searched === eln.innerHTML) // Objet trouvé
           )
         )
           listeProches.push([nx, ny, ...delta]);
@@ -231,7 +232,7 @@ function errer(el, fin) {
   return true;
 }
 
-function semmer(el, probabilite, nomNouveau, nomRemplace) {
+function essaimer(el, probabilite, nomNouveau, nomRemplace) {
   // Si nomRemplace undefined, dans une case vide
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
@@ -453,13 +454,13 @@ o = {
     [transformer, '▒', 15], //TODO passer aussi au dessus du sable
   ],
   '⛲': [
-    [semmer, 0.3, '💧'],
+    [essaimer, 0.3, '💧'],
   ],
   '💧': [
     [errer, 0.05], //TODO smooth evanescence (transparency)
   ],
   '🌽': [
-    [semmer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
+    [essaimer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
   ],
   '🌱': [
     [transformer, '🌿', 15], // Si eau
@@ -478,12 +479,20 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-//ajouterObjet(6, 14, '🧍');
-/*
-Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
-  ajouterObjet(8 + i * 3, 12, nomSymbole);
-});
-Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
-  ajouterObjet(11 + i * 3, 17, nomSymbole);
-});
-*/
+ajouterObjet(14, 8, '⛲');
+ajouterObjet(14, 9, '▒');
+ajouterObjet(15, 9, '▒');
+ajouterObjet(13, 8, '▒');
+ajouterObjet(13, 7, '▒');
+ajouterObjet(14, 7, '▒');
+ajouterObjet(15, 8, '▒');
+
+/* eslint-disable-next-line no-constant-condition */
+if (1) {
+  Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
+    ajouterObjet(8 + i * 3, 12, nomSymbole);
+  });
+  Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
+    ajouterObjet(11 + i * 3, 17, nomSymbole);
+  });
+}
