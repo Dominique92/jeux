@@ -49,45 +49,6 @@ function casePixels(x, y, gigue) {
   ];
 }
 
-// Move el to the x/y position if it's free
-function commun(el, x, y, data, nomObjet, xDepart, yDepart) {
-  const positionxDepart = casePixels(xDepart || x, yDepart || y, data && data.model),
-    positionPixels = casePixels(x, y, data && data.model);
-
-  if (typeof caseEl(x, y) === 'undefined' &&
-    typeof el === 'object') {
-    // Register in the grid
-    cases[x][y] = el;
-
-    // Update the data
-    if (nomObjet)
-      el.innerHTML = nomObjet;
-
-    el.data = {
-      ...el.data,
-      x: x,
-      y: y,
-      ...data,
-      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
-    };
-
-    // Starting position
-    el.style.left = positionxDepart[0] + 'px';
-    el.style.top = positionxDepart[1] + 'px';
-
-    // Timeout ensures styles are applied before scrolling
-    if (typeof xDepart === 'number' && typeof yDepart === 'number')
-      setTimeout(() => {
-        // Destination position (after transition)
-        el.style.left = positionPixels[0] + 'px';
-        el.style.top = positionPixels[1] + 'px';
-      }, 0);
-
-    return cases[x][y];
-  }
-  return false;
-}
-
 function pointsProches(el, deep, limit, searched, extended) {
   let listeProches = [],
     dMin = 999999;
@@ -147,14 +108,51 @@ function pointsProches(el, deep, limit, searched, extended) {
   return listeProches;
 }
 
-function ajouterObjet(x, y, symbol, data) {
-  const el = document.createElement('div'),
-    newData = {
+// Move el to the x/y position if it's free
+function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
+  const positionxDepart = casePixels(xDepart || nx, yDepart || ny, data && data.model),
+    positionPixels = casePixels(nx, ny, data && data.model);
+
+  if (typeof caseEl(nx, ny) === 'undefined' && //TODO Ou sable
+    typeof el === 'object') {
+    // Register in the grid
+    cases[nx][ny] = el;
+
+    // Update the data
+    if (nomObjet)
+      el.innerHTML = nomObjet;
+
+    el.data = {
+      ...el.data,
+      x: nx,
+      y: ny,
       ...data,
-      ...initData,
+      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
     };
 
-  if (commun(el, x, y, newData, symbol)) {
+    // Starting position
+    el.style.left = positionxDepart[0] + 'px';
+    el.style.top = positionxDepart[1] + 'px';
+
+    // Timeout ensures styles are applied before scrolling
+    if (typeof xDepart === 'number' && typeof yDepart === 'number')
+      setTimeout(() => {
+        // Destination position (after transition)
+        el.style.left = positionPixels[0] + 'px';
+        el.style.top = positionPixels[1] + 'px';
+      }, 0);
+
+    return cases[nx][ny];
+  }
+}
+
+function ajouteObjet(x, y, symbol, data) {
+  const el = document.createElement('div');
+
+  if (communObjet(el, symbol, x, y, { // ajouteObjet
+      ...data,
+      ...initData,
+    })) {
     document.body.appendChild(el);
 
     // Hold moves when hover
@@ -173,50 +171,53 @@ function ajouterObjet(x, y, symbol, data) {
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
     el.onclick = click;
+    return true; // Succes
   }
 }
 
-function bougerObjet(x, y, nx, ny) {
+function deplaceObjet(x, y, nx, ny) {
   const el = caseEl(x, y);
 
   if (el) {
-    const nEl = commun(el, nx, ny);
+    const nEl = communObjet(el, null, nx, ny); // deplaceObjet
 
     if (nEl) {
       delete cases[x][y];
-      return false;
+      return true; // Succes
     }
   }
-  return true;
 }
 
-function supprimerObjet(x, y) {
+function supprimeObjet(x, y) {
   if (caseEl(x, y)) {
     cases[x][y].remove(); //TODO smooth desaparence
     delete cases[x][y];
-    return false;
+    return true; // Succes
   }
-  return true;
 }
 
 // VERBES
-function muer(el, nomObjet, age) {
-  if (el.data.age > age)
-    return !commun(el, el.data.x, el.data.y, nomObjet);
+function muer(el, nomObjet, age) { // Verbe
+  if (nomObjet &&
+    el.data.age > age) {
+    el.innerHTML = nomObjet;
+    el.data.age = 0;
+    return false;
+  }
 
   return true;
 }
 
-function errer(el, fin) {
+function errer(el, fin) { // Verbe
   const pl = pointsProches(el, 1, 1);
 
-  // Evaporer
+  // Evaporer //TODO TEST
   if (typeof fin === 'number' &&
     Math.random() < fin) {
-    return supprimerObjet(el.data.x, el.data.y)
+    return !supprimeObjet(el.data.x, el.data.y)
   }
 
-  // Mort
+  // Mort //TODO TEST
   if (typeof fin === 'string' &&
     (el.data.eau < 0 || el.data.energie < 0)
   ) {
@@ -227,12 +228,12 @@ function errer(el, fin) {
 
   // Erre
   if (pl.length)
-    return bougerObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+    return !deplaceObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   return true;
 }
 
-function essaimer(el, probabilite, nomNouveau, nomRemplace) {
+function essaimer(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TEST
   // Si nomRemplace undefined, dans une case vide
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
@@ -242,23 +243,23 @@ function essaimer(el, probabilite, nomNouveau, nomRemplace) {
     if (nomRemplace && elN)
       elN.innerHTML = nomNouveau;
     else
-      ajouterObjet(pp[0][0], pp[0][1], nomNouveau);
+      ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
 
     return false;
   }
   return true;
 }
 
-function rapprocher(el, nomObjet) { //TODO TEST
+function rapprocher(el, nomObjet) { // Verbe //TODO TEST
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length)
-    return bougerObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
+    return !deplaceObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
 
   return true;
 }
 
-function consommer(el, typeObjet, typeRessource, quantiteRessource) {
+function consommer(el, typeObjet, typeRessource, quantiteRessource) { // Verbe //TODO TEST
   const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
@@ -266,7 +267,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) {
     typeof typeObjet !== 'undefined' &&
     pl.length) {
     el.data[typeRessource] += quantiteRessource;
-    supprimerObjet(pl[0][0], pl[0][1]);
+    supprimeObjet(pl[0][0], pl[0][1]);
 
     return false;
   }
@@ -281,7 +282,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) {
   return true;
 }
 
-function fusionner(el, nomObjet, nomFinal) { //TODO TEST KO (manque rapprocher)
+function fusionner(el, nomObjet, nomFinal) { // Verbe //TODO factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -289,7 +290,7 @@ function fusionner(el, nomObjet, nomFinal) { //TODO TEST KO (manque rapprocher)
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      supprimerObjet(pl[0][0], pl[0][1]);
+      supprimeObjet(pl[0][0], pl[0][1]);
       el.innerHTML = nomFinal;
       el.data.amour = 0;
     }
@@ -300,17 +301,17 @@ function fusionner(el, nomObjet, nomFinal) { //TODO TEST KO (manque rapprocher)
 
 // Debug
 /* eslint-disable-next-line no-unused-vars */
-function tracer(el, t) {
+function tracer(el, t) { // Verbe
   console.log('trace ' + t);
   return true;
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function stopper() {
+function stopper() { // Verbe
   return false;
 }
 
-function developper(el, acteur) {
+function developper(el, acteur) { // Verbe
   if (typeof o[acteur] === 'object')
     return o[acteur].every(action =>
       action[0](el, ...action.slice(1)) // Stop when one action is completed
@@ -384,7 +385,7 @@ function click(evt) {
     if (JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
       errer(evt.target);
     else
-      supprimerObjet(evt.target.data.x, evt.target.data.y);
+      supprimeObjet(evt.target.data.x, evt.target.data.y);
   }
 }
 
@@ -411,9 +412,9 @@ document.addEventListener('drop', evt => {
   //TODO smooth end of move
 
   if (data.model)
-    ajouterObjet(nx, ny, symbol);
+    ajouteObjet(nx, ny, symbol);
   else
-    bougerObjet(data.x, data.y, nx, ny);
+    deplaceObjet(data.x, data.y, nx, ny);
 
   evt.preventDefault();
 });
@@ -473,26 +474,29 @@ o = {
 // INITIALISATIONS
 // Modèles
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  ajouterObjet(0, i * 2, nomSymbole, {
+  ajouteObjet(0, i * 2, nomSymbole, {
     model: true,
   });
 });
 
 // Tests
-ajouterObjet(14, 8, '⛲');
-ajouterObjet(14, 9, '▒');
-ajouterObjet(15, 9, '▒');
-ajouterObjet(13, 8, '▒');
-ajouterObjet(13, 7, '▒');
-ajouterObjet(14, 7, '▒');
-ajouterObjet(15, 8, '▒');
+ajouteObjet(14, 8, '🌱');
+/*
+ajouteObjet(14, 8, '⛲');
+ajouteObjet(14, 9, '▒');
+ajouteObjet(15, 9, '▒');
+ajouteObjet(13, 8, '▒');
+ajouteObjet(13, 7, '▒');
+ajouteObjet(14, 7, '▒');
+ajouteObjet(15, 8, '▒');
+*/
 
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
   Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
-    ajouterObjet(8 + i * 3, 12, nomSymbole);
+    ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
   Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
-    ajouterObjet(11 + i * 3, 17, nomSymbole);
+    ajouteObjet(11 + i * 3, 17, nomSymbole);
   });
 }
