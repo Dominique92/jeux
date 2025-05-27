@@ -37,7 +37,7 @@ function caseEl(x, y) {
 }
 
 // Move el to the x/y position if it's free
-function commun(el, x, y, data, dataInit) {
+function commun(el, x, y, data) {
 
   if (typeof caseEl(x, y) === 'undefined' &&
     typeof el === 'object') {
@@ -48,7 +48,6 @@ function commun(el, x, y, data, dataInit) {
     el.style.left = (x + (data && data.model ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize + 'px';
     el.style.top = (y * 0.866 + (data && data.model ? 0 : Math.random() / 4 - 0.125)) * boxSize + 'px';
     el.data = {
-      ...dataInit,
       ...el.data,
       noIt: noIt, // Pour éviter d'être repris pendant cette itération
       x: x,
@@ -124,6 +123,7 @@ function transformerObjet(el, nomObjet) {
     el.data.age = 0;
     el.data.eau = 20;
     el.data.energie = 20;
+    el.data.amour = 0;
 
     return true;
   }
@@ -133,7 +133,7 @@ function transformerObjet(el, nomObjet) {
 function ajouterObjet(x, y, symbol, data) {
   const el = document.createElement('div');
 
-  if (commun(el, x, y, data, o[symbol] ? o[symbol][1] : null)) {
+  if (commun(el, x, y, data)) {
     document.body.appendChild(el);
     transformerObjet(el, symbol);
 
@@ -292,77 +292,12 @@ function stopper() {
 
 function developper(el, acteur) {
   if (typeof o[acteur] === 'object')
-    return o[acteur][0].every(action =>
+    return o[acteur].every(action =>
       action[0](el, ...action.slice(1)) // Stop when one action is completed
     );
 
   return true; // continue
 }
-
-// SCÉNARIOS
-//🧔👩👫👪🧍💀 ⛲💧 🌱🌿🌽 ▒🧱🏠 🦴🚧🌳🌾🐇🐀🥔🧒👶👷
-o = {
-  animer: [
-    [
-      [consommer, '💧', 'eau', 10],
-      [consommer, '🌽', 'energie', 20],
-      [consommer, '🌿', 'energie', 10],
-      [consommer, '🌱', 'energie', 5],
-      [consommer, '🐇', 'energie', 50],
-    ],
-  ],
-  '🧔': [ //TODO BUG ne viellit pas quand se déplace !
-    [
-      [fusionner, '👩', '👫'], //TODO TEST
-      [developper, 'animer'], //TODO TEST
-      [errer, '💀'], //TODO TEST
-    ],
-  ],
-  '👩': [
-    [
-      [fusionner, '🧔', '👫'], //TODO TEST
-      [developper, 'animer'], //TODO TEST
-      [errer, '💀'], //TODO TEST
-    ],
-  ],
-  '👫': [
-    [
-      [developper, 'animer'], //TODO TEST
-      [errer, '💀'], //TODO TEST
-    ],
-  ],
-  '💀': [
-    [
-      [transformer, '▒', 15], //TODO passer aussi au dessus de sable
-    ],
-  ],
-  '⛲': [
-    [
-      [semmer, 0.3, '💧'],
-    ],
-  ],
-  '💧': [
-    [
-      [errer, 0.05], //TODO smooth evanescence (transparency)
-    ],
-  ],
-  '🌽': [
-    [
-      [semmer, 0.3, '🌱', '💧'],
-      //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
-    ],
-  ],
-  '🌱': [
-    [
-      [transformer, '🌿', 15], // Si eau
-    ],
-  ],
-  '🌿': [
-    [
-      [transformer, '🌽', 15], // Si eau
-    ],
-  ],
-};
 
 function iterer() {
   const debut = Date.now();
@@ -371,14 +306,16 @@ function iterer() {
   noIt++;
   cases.forEach(col => {
     col.forEach(ligneEl => {
-      if (!ligneEl.data.model && // Pas pour les modèles
-        ligneEl.data.noIt < noIt && // Sauf s'il a été traité à partir d'un autre objet pendant la même itération
+      if (!ligneEl.data.model && // Pas les modèles
         !ligneEl.data.hovered && // Pas si le curseur est au dessus
-        developper(ligneEl, ligneEl.innerHTML) // Si aucune une action n'a eu lieu
-      ) {
+        ligneEl.data.noIt < noIt) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
+        developper(ligneEl, ligneEl.innerHTML);
+
+        // Tout le monde viellit
         ligneEl.data.age++;
         ligneEl.data.eau--;
         ligneEl.data.energie--;
+        ligneEl.data.amour--;
       }
     });
   });
@@ -417,19 +354,10 @@ function iterer() {
   statsEl.innerHTML = (Date.now() - debut) + ' ms';
 }
 
-// INITIALISATIONS
-// Modèles
-Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  ajouterObjet(0, i * 2, nomSymbole, {
-    model: true,
-  });
-});
-
 // RÉPONSES SOURIS / CLAVIER
-//TODO save/restaure
-
 self.setInterval(iterer, 1000);
 document.addEventListener('keydown', iterer);
+//TODO save/restaure
 
 function click(evt) {
   if (!evt.target.data.model) {
@@ -470,13 +398,71 @@ document.addEventListener('drop', evt => {
   evt.preventDefault();
 });
 
-// TESTS
+// SCÉNARIOS
+//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
+o = {
+  animer: [
+    [consommer, '💧', 'eau', 10],
+    [consommer, '🌽', 'energie', 20],
+    [consommer, '🌿', 'energie', 10],
+    [consommer, '🌱', 'energie', 5],
+    [consommer, '🐇', 'energie', 50],
+  ],
+  '🧔': [
+    [fusionner, '👩', '👫'], //TODO TEST
+    [developper, 'animer'], //TODO TEST
+    [errer, '💀'], //TODO TEST
+  ],
+  '👩': [
+    [fusionner, '🧔', '👫'], //TODO TESTdata
+    [developper, 'animer'], //TODO TEST
+    [errer, '💀'], //TODO TEST
+  ],
+  '👫': [
+    [developper, 'animer'], //TODO TEST
+    [errer, '💀'], //TODO TEST
+  ],
+  '👪': [
+    [developper, 'animer'], //TODO TEST
+    [errer, '💀'], //TODO TEST
+  ],
+  '🧍': [
+    [developper, 'animer'], //TODO TEST
+    [errer, '💀'], //TODO TEST
+  ],
+  '💀': [
+    [transformer, '▒', 15], //TODO passer aussi au dessus du sable
+  ],
+  '⛲': [
+    [semmer, 0.3, '💧'],
+  ],
+  '💧': [
+    [errer, 0.05], //TODO smooth evanescence (transparency)
+  ],
+  '🌽': [
+    [semmer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
+  ],
+  '🌱': [
+    [transformer, '🌿', 15], // Si eau
+  ],
+  '🌿': [
+    [transformer, '🌽', 15], // Si eau
+  ],
+};
+
+// INITIALISATIONS
+// Modèles
+Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
+  ajouterObjet(0, i * 2, nomSymbole, {
+    model: true,
+  });
+});
+
+// Tests
+//ajouterObjet(13, 14, '👩');
 Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
   ajouterObjet(8 + i * 3, 12, nomSymbole);
 });
 Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
   ajouterObjet(11 + i * 3, 17, nomSymbole);
-});
-Array.from('🦴🚧🌳🌾🐇🐀🥔🧒👶👷').forEach((nomSymbole, i) => {
-  ajouterObjet(5 + i * 2, 0, nomSymbole);
 });
