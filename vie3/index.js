@@ -8,6 +8,12 @@ const statsEl = document.getElementById('stats'),
     [1, 1, -1, 0],
     [-1, -1, 1, 0],
   ],
+  initData = {
+    age: 0,
+    eau: 20,
+    energie: 20,
+    amour: 0,
+  },
   boxSize = 16,
   cases = [];
 
@@ -16,16 +22,16 @@ let o = {},
   zones = [];
 
 /*********************
- * terrain : toute la fenêtre <body>
+ * Terrain : toute la fenêtre <body>
  * objet : <div>unicode</div> rattaché au <body> déplaçable
  * typeObjet : Le caractère unicode
  * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 objet max
  * zones : un tableau à 2 dimensions par type d'objet représentant leur nombre dans chaque carré de n * n cases
  *
- * scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
+ * Routine : fonction qui manipule les données du programme
+ * Verbe : fonction à exécuter qui réalise une action sur un objet
+ * Scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
  *   La première ayant abouti interrompt la liste
- * verbe : fonction à exécuter qui réalise une action sur un objet
- * routine : fonction qui manipule les données du programme
  */
 
 // ROUTINES
@@ -36,7 +42,7 @@ function caseEl(x, y) {
   return cases[x][y];
 }
 
-function casePX(x, y, gigue) {
+function casePixels(x, y, gigue) {
   return [
     (x + (gigue ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize,
     (y * 0.866 + (gigue ? 0 : Math.random() / 4 - 0.125)) * boxSize,
@@ -44,9 +50,9 @@ function casePX(x, y, gigue) {
 }
 
 // Move el to the x/y position if it's free
-function commun(el, x, y, data, xDepart, yDepart) {
-  const positionxDepart = casePX(xDepart || x, yDepart || y, data && data.model),
-    positionPixels = casePX(x, y, data && data.model);
+function commun(el, x, y, data, nomObjet, xDepart, yDepart) {
+  const positionxDepart = casePixels(xDepart || x, yDepart || y, data && data.model),
+    positionPixels = casePixels(x, y, data && data.model);
 
   if (typeof caseEl(x, y) === 'undefined' &&
     typeof el === 'object') {
@@ -54,12 +60,15 @@ function commun(el, x, y, data, xDepart, yDepart) {
     cases[x][y] = el;
 
     // Update the data
+    if (nomObjet)
+      el.innerHTML = nomObjet;
+
     el.data = {
       ...el.data,
-      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
       x: x,
       y: y,
       ...data,
+      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
     };
 
     // Starting position
@@ -75,18 +84,6 @@ function commun(el, x, y, data, xDepart, yDepart) {
       }, 0);
 
     return cases[x][y];
-  }
-}
-
-function transformerObjet(el, nomObjet) {
-  if (el) {
-    el.innerHTML = nomObjet;
-    el.data.age = 0;
-    el.data.eau = 20;
-    el.data.energie = 20;
-    el.data.amour = 0;
-
-    return true;
   }
   return false;
 }
@@ -151,11 +148,14 @@ function pointsProches(el, deep, limit, searched, extended) {
 }
 
 function ajouterObjet(x, y, symbol, data) {
-  const el = document.createElement('div');
+  const el = document.createElement('div'),
+    newData = {
+      ...data,
+      ...initData,
+    };
 
-  if (commun(el, x, y, data)) {
+  if (commun(el, x, y, newData, symbol)) {
     document.body.appendChild(el);
-    transformerObjet(el, symbol);
 
     // Hold moves when hover
     el.onmouseover = () => {
@@ -200,9 +200,9 @@ function supprimerObjet(x, y) {
 }
 
 // VERBES
-function transformer(el, nomObjet, age) {
+function muer(el, nomObjet, age) {
   if (el.data.age > age)
-    return !transformerObjet(el, nomObjet);
+    return !commun(el, el.data.x, el.data.y, nomObjet);
 
   return true;
 }
@@ -451,7 +451,7 @@ o = {
     [errer, '💀'], //TODO TEST
   ],
   '💀': [
-    [transformer, '▒', 15], //TODO passer aussi au dessus du sable
+    [muer, '▒', 15], //TODO passer aussi au dessus du sable
   ],
   '⛲': [
     [essaimer, 0.3, '💧'],
@@ -463,10 +463,10 @@ o = {
     [essaimer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
   ],
   '🌱': [
-    [transformer, '🌿', 15], // Si eau
+    [muer, '🌿', 15], // Si eau
   ],
   '🌿': [
-    [transformer, '🌽', 15], // Si eau
+    [muer, '🌽', 15], // Si eau
   ],
 };
 
