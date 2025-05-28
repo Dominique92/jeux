@@ -20,6 +20,7 @@ const statsEl = document.getElementById('stats'),
 
 let o = {},
   noIteration = 0,
+  noObjet = 1,
   zones = [];
 
 /*********************
@@ -151,6 +152,7 @@ function ajouteObjet(x, y, symbol, data) {
   if (communObjet(el, symbol, x, y, { // ajouteObjet
       ...data,
       ...initData,
+      noObjet: noObjet++,
     })) {
     document.body.appendChild(el);
 
@@ -210,11 +212,11 @@ function muer(el, nomObjet, age) { // Verbe
   return true;
 }
 
-function errer(el, fin) { // Verbe
+function errer(el, /*fin*/ ) { // Verbe
   const pl = pointsProches(el, 1, 1);
 
-  if (fin && el.data.eau <= 0)
-    return muer(el, fin);
+  /*if (fin && el.data.eau <= 0)//TODO dans consommer
+    return muer(el, fin);*/
 
   // Erre
   if (pl.length && el.data.energie > 0)
@@ -223,29 +225,13 @@ function errer(el, fin) { // Verbe
   return true;
 }
 
-function essaimer(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TEST
-  // Si nomRemplace undefined, dans une case vide
-  const pp = pointsProches(el, 1, 1, nomRemplace);
-
-  if (pp.length && Math.random() < probabilite) {
-    const elN = caseEl(pp[0][0], pp[0][1]);
-
-    if (nomRemplace && elN)
-      elN.innerHTML = nomNouveau;
-    else
-      ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
-
-    return false;
-  }
-  return true;
-}
-
 function rapprocher(el, nomObjet) { // Verbe //TODO TEST
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
-  if (pm.length)
-    return !deplaceObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]);
-
+  if (pm.length &&
+    deplaceObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]))
+    return false;
+  // Blocage position -30°
   return true;
 }
 
@@ -262,13 +248,15 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { // Verbe /
     return false;
   }
 
-  // Cherche
+  //TODO -> rapprocher
+  /*/ Cherche
   if (el.data[typeRessource] < 10 &&
     typeof typeObjet !== 'undefined') {
     if (!rapprocher(el, typeObjet)) //TODO TEST
 
       return false;
-  }
+  }*/
+
   return true;
 }
 
@@ -284,6 +272,23 @@ function fusionner(el, nomObjet, nomFinal) { // Verbe //TODO factoriser avec con
       el.innerHTML = nomFinal;
       el.data.amour = 0;
     }
+    return false;
+  }
+  return true;
+}
+
+function semer(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TEST
+  // Si nomRemplace undefined, dans une case vide
+  const pp = pointsProches(el, 1, 1, nomRemplace);
+
+  if (pp.length && Math.random() < probabilite) {
+    const elN = caseEl(pp[0][0], pp[0][1]);
+
+    if (nomRemplace && elN)
+      elN.innerHTML = nomNouveau;
+    else
+      ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
+
     return false;
   }
   return true;
@@ -413,45 +418,50 @@ document.addEventListener('drop', evt => {
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 o = {
   animer: [
-    [consommer, '💧', 'eau', 10],
-    [consommer, '🌽', 'energie', 20],
+    [consommer, '💧', 'eau', 10], //TODO TEST
+    [consommer, '🌽', 'energie', 20], //TODO TEST
     [consommer, '🌿', 'energie', 10],
     [consommer, '🌱', 'energie', 5],
     [consommer, '🐇', 'energie', 50],
   ],
   '🧔': [
-    [fusionner, '👩', '👫'], //TODO TEST
-    [developper, 'animer'], //TODO TEST
+    [rapprocher, '👩'],
+    //  [fusionner, '👩', '👫'], //TODO TEST
+    //  [developper, 'animer'], 
     [errer, '💀'],
   ],
   '👩': [
-    [fusionner, '🧔', '👫'], //TODO TESTdata
-    [developper, 'animer'], //TODO TEST
+    [rapprocher, '🧔'],
+    //[fusionner, '🧔', '👫'], //TODO TESTdata
+    //[developper, 'animer'], 
     [errer, '💀'],
   ],
   '👫': [
-    [developper, 'animer'], //TODO TEST
+    [developper, 'animer'],
     [errer, '💀'],
   ],
   '👪': [
-    [developper, 'animer'], //TODO TEST
+    [developper, 'animer'],
     [errer, '💀'],
   ],
   '🧍': [
-    [developper, 'animer'], //TODO TEST
+    [developper, 'animer'],
+    [errer, '💀'],
+  ],
+  '👫🧍': [
     [errer, '💀'],
   ],
   '💀': [
     [muer, '▒', 15], //TODO passer aussi au dessus du sable
   ],
   '⛲': [
-    [essaimer, 0.3, '💧'],
+    [semer, 0.3, '💧'],
   ],
   '💧': [
-    [errer, 0.05], //TODO smooth evanescence (transparency)
+    //BUG ![errer, 0.05], //TODO smooth evanescence (transparency)
   ],
   '🌽': [
-    [essaimer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
+    [semer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
   ],
   '🌱': [
     [muer, '🌿', 15], // Si eau
@@ -470,19 +480,22 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouteObjet(14, 8, '👫');
+//ajouteObjet(14, 8, '👫🧍');
+//ajouteObjet(16, 8, '🧔👩');
+ajouteObjet(8, 8, '🧔');
+ajouteObjet(16, 8, '👩');
+/*
 ajouteObjet(14, 9, '▒');
 ajouteObjet(15, 9, '▒');
 ajouteObjet(13, 8, '▒');
 ajouteObjet(13, 7, '▒');
 ajouteObjet(14, 7, '▒');
 ajouteObjet(15, 8, '▒');
-/*
  */
 
 /* eslint-disable-next-line no-constant-condition */
 if (0) {
-  Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
+  Array.from('🧔👩🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
   Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {

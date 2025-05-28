@@ -11,6 +11,9 @@ body {
 div {
   position: absolute;
   transition: all 1.2s linear;
+  min-width: 1.5em;
+  text-align: center;
+  letter-spacing: -0.5em;
   cursor: grab;
 }
 
