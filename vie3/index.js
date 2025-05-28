@@ -10,8 +10,8 @@ const statsEl = document.getElementById('stats'),
   ],
   initData = {
     age: 0,
-    eau: 20,
-    energie: 20,
+    eau: 50,
+    energie: 30,
     amour: 0,
     sable: 0,
   },
@@ -170,6 +170,7 @@ function ajouteObjet(x, y, symbol, data) {
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
     el.onclick = click;
+
     return true; // Succes
   }
 }
@@ -200,38 +201,23 @@ function deplaceObjet(x, y, nx, ny) { // De x, y vers nx, ny
 // VERBES
 function muer(el, nomObjet, age) { // Verbe
   if (nomObjet &&
-    el.data.age > age) {
+    el.data.age > (age || 0)) {
     el.innerHTML = nomObjet;
     el.data.age = 0;
 
     return false;
   }
-
   return true;
 }
 
-function errer(el /*, fin*/ ) { // Verbe
+function errer(el, fin) { // Verbe
   const pl = pointsProches(el, 1, 1);
 
-  /*//TODO
-  // Evaporer //TODO TEST
-  if (typeof fin === 'number' &&
-    Math.random() < fin) {
-    return !supprimeObjet(el.data.x, el.data.y)
-  }
-
-  // Mort //TODO TEST
-  if (typeof fin === 'string' &&
-    (el.data.eau < 0 || el.data.energie < 0)
-  ) {
-    el.innerHTML = fin;
-
-    return false;
-  }
-  */
+  if (fin && el.data.eau <= 0)
+    return muer(el, fin);
 
   // Erre
-  if (pl.length)
+  if (pl.length && el.data.energie > 0)
     return !deplaceObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   return true;
@@ -495,7 +481,7 @@ ajouteObjet(15, 8, '▒');
  */
 
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
   Array.from('🧔👩👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
