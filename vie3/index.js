@@ -13,6 +13,7 @@ const statsEl = document.getElementById('stats'),
     eau: 20,
     energie: 20,
     amour: 0,
+    sable: 0,
   },
   boxSize = 16,
   cases = [];
@@ -63,17 +64,16 @@ function pointsProches(el, deep, limit, searched, extended) {
       for (let i = 0; i < d && listeProches.length < limit; i++) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
           ny = el.data.y + d * delta[1] + i * delta[3],
-          eln = caseEl(nx, ny),
+          elN = caseEl(nx, ny),
           pnx = (nx - ny / 2) * boxSize,
           pny = ny * 0.866 * boxSize;
 
-        if (0 <= pnx && pnx < window.innerWidth - boxSize &&
-          0 <= pny && pny < window.innerHeight - boxSize &&
-          (
-            (!searched && !eln) || // Cases libres
-            (!searched && eln && '▒' === eln.innerHTML) || // Sable
-            (searched && eln && searched === eln.innerHTML) // Objet trouvé
-          )
+        if (((!searched && !elN) || // Cases libres
+            (!searched && elN && elN.innerHTML === '▒') || // Sable //TODO KO
+            (searched && elN && elN.innerHTML === searched) // Objet trouvé
+          ) &&
+          0 <= pnx && pnx < window.innerWidth - boxSize &&
+          0 <= pny && pny < window.innerHeight - boxSize
         )
           listeProches.push([nx, ny, ...delta]);
       }
@@ -113,8 +113,7 @@ function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
   const positionxDepart = casePixels(xDepart || nx, yDepart || ny, data && data.model),
     positionPixels = casePixels(nx, ny, data && data.model);
 
-  if (typeof caseEl(nx, ny) === 'undefined' && //TODO Ou sable
-    typeof el === 'object') {
+  if (!caseEl(nx, ny) && typeof el === 'object') {
     // Register in the grid
     cases[nx][ny] = el;
 
@@ -175,22 +174,24 @@ function ajouteObjet(x, y, symbol, data) {
   }
 }
 
-function deplaceObjet(x, y, nx, ny) {
-  const el = caseEl(x, y);
-
-  if (el) {
-    const nEl = communObjet(el, null, nx, ny); // deplaceObjet
-
-    if (nEl) {
-      delete cases[x][y];
-      return true; // Succes
-    }
-  }
-}
-
 function supprimeObjet(x, y) {
   if (caseEl(x, y)) {
     cases[x][y].remove(); //TODO smooth desaparence
+    delete cases[x][y];
+    return true; // Succes
+  }
+}
+
+function deplaceObjet(x, y, nx, ny) { // De x, y vers nx, ny
+  const el = caseEl(x, y),
+    nEl = caseEl(nx, ny);
+
+  if (nEl && nEl.innerHTML === '▒') {
+    supprimeObjet(nx, ny);
+    el.data.sable++;
+  }
+
+  if (communObjet(el, null, nx, ny)) { // deplaceObjet
     delete cases[x][y];
     return true; // Succes
   }
@@ -202,15 +203,17 @@ function muer(el, nomObjet, age) { // Verbe
     el.data.age > age) {
     el.innerHTML = nomObjet;
     el.data.age = 0;
+
     return false;
   }
 
   return true;
 }
 
-function errer(el, fin) { // Verbe
+function errer(el /*, fin*/ ) { // Verbe
   const pl = pointsProches(el, 1, 1);
 
+  /*//TODO
   // Evaporer //TODO TEST
   if (typeof fin === 'number' &&
     Math.random() < fin) {
@@ -225,6 +228,7 @@ function errer(el, fin) { // Verbe
 
     return false;
   }
+  */
 
   // Erre
   if (pl.length)
@@ -332,11 +336,11 @@ function iterer() {
         ligneEl.data.noIteration < noIteration) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
         developper(ligneEl, ligneEl.innerHTML);
 
-        // Tout le monde viellit
+        // Le temps passe !
         ligneEl.data.age++;
-        ligneEl.data.eau--;
-        ligneEl.data.energie--;
-        ligneEl.data.amour--;
+        if (ligneEl.data.eau) ligneEl.data.eau--;
+        if (ligneEl.data.energie) ligneEl.data.energie--;
+        if (ligneEl.data.amour) ligneEl.data.amour--;
       }
     });
   });
@@ -372,7 +376,7 @@ function iterer() {
     });
   });
 
-  statsEl.innerHTML = (Date.now() - debut) + ' ms';
+  statsEl.innerHTML = (Date.now() - debut) + ' ms / ' + cases.length + ' objets / ' + noIteration + ' iterations';
 }
 
 // RÉPONSES SOURIS / CLAVIER
@@ -432,24 +436,24 @@ o = {
   '🧔': [
     [fusionner, '👩', '👫'], //TODO TEST
     [developper, 'animer'], //TODO TEST
-    [errer, '💀'], //TODO TEST
+    [errer, '💀'],
   ],
   '👩': [
     [fusionner, '🧔', '👫'], //TODO TESTdata
     [developper, 'animer'], //TODO TEST
-    [errer, '💀'], //TODO TEST
+    [errer, '💀'],
   ],
   '👫': [
     [developper, 'animer'], //TODO TEST
-    [errer, '💀'], //TODO TEST
+    [errer, '💀'],
   ],
   '👪': [
     [developper, 'animer'], //TODO TEST
-    [errer, '💀'], //TODO TEST
+    [errer, '💀'],
   ],
   '🧍': [
     [developper, 'animer'], //TODO TEST
-    [errer, '💀'], //TODO TEST
+    [errer, '💀'],
   ],
   '💀': [
     [muer, '▒', 15], //TODO passer aussi au dessus du sable
@@ -480,16 +484,15 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouteObjet(14, 8, '🌱');
-/*
-ajouteObjet(14, 8, '⛲');
+ajouteObjet(14, 8, '👫');
 ajouteObjet(14, 9, '▒');
 ajouteObjet(15, 9, '▒');
 ajouteObjet(13, 8, '▒');
 ajouteObjet(13, 7, '▒');
 ajouteObjet(14, 7, '▒');
 ajouteObjet(15, 8, '▒');
-*/
+/*
+ */
 
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
