@@ -34,17 +34,17 @@ let o = {},
  */
 
 // ROUTINES
-function pixelsFromXY(x, y, gigue) {
+function pixelsFromXY(x, y) {
   return {
-    left: (x + (gigue ? Math.random() / 4 - 0.125 - y / 2 : 0)) * boxSize,
-    top: (y * 0.866 + (gigue ? Math.random() / 4 - 0.125 : 0)) * boxSize,
+    left: (x - y / 2 + Math.random() / 4 - 0.125) * boxSize,
+    top: (y * 0.866 + Math.random() / 4 - 0.125) * boxSize,
   };
 }
 
-function xyFromPixels(x, y) {
+function xyFromPixels(left, top) {
   return {
-    x: parseInt((x + y / 2) / boxSize, 10),
-    y: parseInt(y / 0.866 / boxSize, 10),
+    x: Math.round((left + top / 0.866 / 2) / boxSize),
+    y: Math.round(top / 0.866 / boxSize),
   };
 }
 
@@ -119,7 +119,7 @@ function pointsProches(el, deep, limit, searched, extended) {
 }
 
 // Move el to the x/y position if it's free
-function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
+function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
   //TODO ??? pouvoir arriver dans la même case (et absorber à la fin)
   if (!caseEl(nx, ny) && typeof el === 'object') {
     // Register in the grid
@@ -138,16 +138,15 @@ function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
     };
 
     // Starting position
-    if (typeof xDepart === 'number' && typeof yDepart === 'number') {
-      const positionxDepart = pixelsFromXY(xDepart || nx, yDepart || ny);
-      el.style.left = positionxDepart.left + 'px';
-      el.style.top = positionxDepart.top + 'px';
+    if (typeof pixelDepart === 'object') {
+      console.log(pixelDepart); //TODO DCMM UTILE ?
+      el.style.left = pixelDepart.left + 'px';
+      el.style.top = pixelDepart.top + 'px';
     }
 
-    // Timeout ensures styles are applied before scrolling
-    setTimeout(() => {
-      // Destination position (after transition)
-      const positionPixels = pixelsFromXY(nx, ny, !(data && data.model));
+    // Destination position (after transition)
+    setTimeout(() => { // Timeout ensures styles are applied before scrolling
+      const positionPixels = pixelsFromXY(nx, ny /*, !(data && data.model)*/ );
       el.style.left = positionPixels.left + 'px';
       el.style.top = positionPixels.top + 'px';
     }, 0);
@@ -180,9 +179,9 @@ function ajouteObjet(x, y, symbol, data) {
     /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
-    el.onclick = click;
+    el.onclick = clickOnDiv;
 
-    return true; // Succes
+    return el; // Succes
   }
 }
 
@@ -194,7 +193,7 @@ function supprimeObjet(x, y) {
   }
 }
 
-function deplaceObjet(x, y, nx, ny) { // De x, y vers nx, ny
+function deplaceObjet(x, y, nx, ny, pixelDepart) { // De x, y vers nx, ny
   const el = caseEl(x, y),
     nEl = caseEl(nx, ny);
 
@@ -203,7 +202,7 @@ function deplaceObjet(x, y, nx, ny) { // De x, y vers nx, ny
     el.data.sable++;
   }
 
-  if (communObjet(el, null, nx, ny)) { // deplaceObjet
+  if (communObjet(el, null, nx, ny, null, pixelDepart)) { // deplaceObjet
     delete cases[x][y];
     return true; // Succes
   }
@@ -396,13 +395,11 @@ function iterer() {
 
 /* eslint-disable-next-line one-var */
 const timer = self.setInterval(iterer, 1000);
-
-document.addEventListener('keydown', evt => {
-  if (evt.key === 's')
-    self.clearInterval(timer);
+document.addEventListener('keydown', () => { //TODO DELETE (debug)
+  self.clearInterval(timer);
 });
 
-function click(evt) {
+function clickOnDiv(evt) {
   if (!evt.target.data.model) {
     if (JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
       errer(evt.target);
@@ -411,12 +408,17 @@ function click(evt) {
   }
 }
 
-function dragstart(evt) {
-  //const vvv = pixelsFromXY(evt );
-  //console.log(vvv);
+/* eslint-disable-next-line one-var */
+let dragged = null;
 
-  evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
-  evt.dataTransfer.setData('symbol', evt.target.innerHTML);
+function dragstart(evt) {
+  dragged = evt.target;
+
+  if (!evt.target.data.model)
+    setTimeout(() => {
+      evt.target.style.display = 'none';
+    }, 0);
+
   helpEl.style.display = 'none';
 }
 
@@ -425,20 +427,21 @@ document.addEventListener('dragover', evt => {
 });
 
 document.addEventListener('dragend', evt => {
-  //TODO better animation
+  dragged.style.display = 'initial';
+  //TODO error if not dropped
   evt.preventDefault();
 });
 
 document.addEventListener('drop', evt => {
-  const data = JSON.parse(evt.dataTransfer.getData('data')),
-    symbol = evt.dataTransfer.getData('symbol'),
-    xy = xyFromPixels(evt.x, evt.y);
-  //TODO smooth end of move
+  const xy = xyFromPixels(evt.x, evt.y);
 
-  if (data.model)
-    ajouteObjet(xy.x, xy.y, symbol);
-  else
-    deplaceObjet(data.x, data.y, xy.x, xy.y);
+  if (dragged.data.model)
+    ajouteObjet(xy.x, xy.y, dragged.innerHTML);
+  else {
+    /*const deplaceEl=*/
+    deplaceObjet(dragged.data.x, dragged.data.y, xy.x, xy.y);
+    dragged.style.display = 'initial';
+  }
 
   evt.preventDefault();
 });
@@ -503,13 +506,19 @@ o = {
 // INITIALISATIONS
 // Modèles
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  ajouteObjet(0, i * 2, nomSymbole, {
+  const el = ajouteObjet(i, i * 2, nomSymbole, {
     model: true,
   });
+
+  setTimeout(() => {
+    el.style.left = '10px';
+    el.style.top = i * 2 * boxSize + 'px';
+  }, 0);
 });
 
 // Tests
 /*
+ */
 ajouteObjet(14, 8, '🧔');
 ajouteObjet(22, 8, '👩');
 //ajouteObjet(14, 8, '👫🧍');
@@ -520,7 +529,6 @@ ajouteObjet(13, 8, '▒');
 ajouteObjet(13, 7, '▒');
 ajouteObjet(14, 7, '▒');
 ajouteObjet(15, 8, '▒');
- */
 
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
