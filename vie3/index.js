@@ -11,13 +11,11 @@ const helpEl = document.getElementById('help'),
     age: 0,
     eau: 50,
     energie: 30,
-    //amour: 0,
     sable: 0,
   },
   boxSize = 16;
 
 let o = {},
-  //noObjet = 1,
   noIteration = 0,
   cases = [],
   zones = [];
@@ -36,18 +34,31 @@ let o = {},
  */
 
 // ROUTINES
-function caseEl(x, y) {
+function pixelsFromXY(x, y, gigue) {
+  return {
+    left: (x + (gigue ? Math.random() / 4 - 0.125 - y / 2 : 0)) * boxSize,
+    top: (y * 0.866 + (gigue ? Math.random() / 4 - 0.125 : 0)) * boxSize,
+  };
+}
+
+function xyFromPixels(x, y) {
+  return {
+    x: parseInt((x + y / 2) / boxSize, 10),
+    y: parseInt(y / 0.866 / boxSize, 10),
+  };
+}
+
+function caseEl(a, b) { // || [x,y] || {x:x,y:y} || {x:x,y:y}, el
+  const x = a[0] || a.x || a,
+    y = a[0] || a.y || b;
+
   if (typeof cases[x] === 'undefined')
     cases[x] = [];
 
-  return cases[x][y];
-}
+  if (typeof b === 'object')
+    cases[x][y] = b;
 
-function casePixels(x, y, gigue) {
-  return [
-    (x + (gigue ? 0 : Math.random() / 4 - 0.125 - y / 2)) * boxSize,
-    (y * 0.866 + (gigue ? 0 : Math.random() / 4 - 0.125)) * boxSize,
-  ];
+  return cases[x][y];
 }
 
 function pointsProches(el, deep, limit, searched, extended) {
@@ -65,15 +76,14 @@ function pointsProches(el, deep, limit, searched, extended) {
         const nx = el.data.x + d * delta[0] + i * delta[2],
           ny = el.data.y + d * delta[1] + i * delta[3],
           elN = caseEl(nx, ny),
-          pnx = (nx - ny / 2) * boxSize,
-          pny = ny * 0.866 * boxSize;
+          pixel = pixelsFromXY(nx, ny);
 
         if (((!searched && !elN) || // Cases libres
             (!searched && elN && elN.innerHTML === '▒') || // Sable //TODO KO
             (searched && elN && elN.innerHTML === searched) // Objet trouvé
           ) &&
-          0 <= pnx && pnx < window.innerWidth - boxSize &&
-          0 <= pny && pny < window.innerHeight - boxSize
+          0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
+          0 <= pixel.top && pixel.top < window.innerHeight - boxSize
         )
           listeProches.push([nx, ny, ...delta]);
       }
@@ -110,10 +120,7 @@ function pointsProches(el, deep, limit, searched, extended) {
 
 // Move el to the x/y position if it's free
 function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
-  const positionxDepart = casePixels(xDepart || nx, yDepart || ny, data && data.model),
-    positionPixels = casePixels(nx, ny, data && data.model);
-
-  //TODO pouvoir arriver dans la même case (et absorber à la fin)
+  //TODO ??? pouvoir arriver dans la même case (et absorber à la fin)
   if (!caseEl(nx, ny) && typeof el === 'object') {
     // Register in the grid
     cases[nx][ny] = el;
@@ -131,16 +138,19 @@ function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
     };
 
     // Starting position
-    el.style.left = positionxDepart[0] + 'px';
-    el.style.top = positionxDepart[1] + 'px';
+    if (typeof xDepart === 'number' && typeof yDepart === 'number') {
+      const positionxDepart = pixelsFromXY(xDepart || nx, yDepart || ny);
+      el.style.left = positionxDepart.left + 'px';
+      el.style.top = positionxDepart.top + 'px';
+    }
 
     // Timeout ensures styles are applied before scrolling
-    if (typeof xDepart === 'number' && typeof yDepart === 'number')
-      setTimeout(() => {
-        // Destination position (after transition)
-        el.style.left = positionPixels[0] + 'px';
-        el.style.top = positionPixels[1] + 'px';
-      }, 0);
+    setTimeout(() => {
+      // Destination position (after transition)
+      const positionPixels = pixelsFromXY(nx, ny, !(data && data.model));
+      el.style.left = positionPixels.left + 'px';
+      el.style.top = positionPixels.top + 'px';
+    }, 0);
 
     return cases[nx][ny];
   }
@@ -152,7 +162,6 @@ function ajouteObjet(x, y, symbol, data) {
   if (communObjet(el, symbol, x, y, { // ajouteObjet
       ...data,
       ...initData,
-      //noObjet: noObjet++,
     })) {
     document.body.appendChild(el);
 
@@ -293,7 +302,7 @@ function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TEST
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
   if (pp.length && Math.random() < probabilite) {
-    const elN = caseEl(pp[0][0], pp[0][1]);
+    const elN = caseEl(pp[0]);
 
     if (nomRemplace && elN)
       elN.innerHTML = nomNouveau;
@@ -338,13 +347,11 @@ function iterer() {
       !el.data.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
-      caseXY = caseEl(el.data.x, el.data.y),
       roundX = Math.round(el.data.x / 4),
       roundY = Math.round(el.data.y / 4);
 
     // Population des cases
-    if (!caseXY)
-      cases[el.data.x][el.data.y] = el;
+    caseEl(el.data, el);
 
     // Population des zones
     if (typeof zones[car] === 'undefined')
@@ -405,6 +412,9 @@ function click(evt) {
 }
 
 function dragstart(evt) {
+  //const vvv = pixelsFromXY(evt );
+  //console.log(vvv);
+
   evt.dataTransfer.setData('data', JSON.stringify(evt.target.data));
   evt.dataTransfer.setData('symbol', evt.target.innerHTML);
   helpEl.style.display = 'none';
@@ -422,14 +432,13 @@ document.addEventListener('dragend', evt => {
 document.addEventListener('drop', evt => {
   const data = JSON.parse(evt.dataTransfer.getData('data')),
     symbol = evt.dataTransfer.getData('symbol'),
-    nx = parseInt((evt.x + evt.y / 2) / boxSize, 10),
-    ny = parseInt(evt.y / 0.866 / boxSize, 10);
+    xy = xyFromPixels(evt.x, evt.y);
   //TODO smooth end of move
 
   if (data.model)
-    ajouteObjet(nx, ny, symbol);
+    ajouteObjet(xy.x, xy.y, symbol);
   else
-    deplaceObjet(data.x, data.y, nx, ny);
+    deplaceObjet(data.x, data.y, xy.x, xy.y);
 
   evt.preventDefault();
 });
@@ -500,11 +509,11 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-//ajouteObjet(14, 8, '👫🧍');
-//ajouteObjet(16, 8, '🧔👩');
+/*
 ajouteObjet(14, 8, '🧔');
 ajouteObjet(22, 8, '👩');
-/*
+//ajouteObjet(14, 8, '👫🧍');
+//ajouteObjet(16, 8, '🧔👩');
 ajouteObjet(14, 9, '▒');
 ajouteObjet(15, 9, '▒');
 ajouteObjet(13, 8, '▒');
@@ -515,7 +524,7 @@ ajouteObjet(15, 8, '▒');
 
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
-  Array.from('🧔👩🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
+  Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
   Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
