@@ -1,5 +1,4 @@
-const statsEl = document.getElementById('stats'),
-  helpEl = document.getElementById('help'),
+const helpEl = document.getElementById('help'),
   deltasProches = [
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
@@ -15,12 +14,12 @@ const statsEl = document.getElementById('stats'),
     //amour: 0,
     sable: 0,
   },
-  boxSize = 16,
-  cases = [];
+  boxSize = 16;
 
 let o = {},
-  noIteration = 0,
   //noObjet = 1,
+  noIteration = 0,
+  cases = [],
   zones = [];
 
 /*********************
@@ -272,7 +271,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
   return true;
 }
 
-function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETEb : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
+/*function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETEb : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -287,7 +286,7 @@ function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETEb : factoriser
     return false;
   }
   return true;
-}
+}*/
 
 function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TEST
   // Si nomRemplace undefined, dans une case vide
@@ -328,65 +327,73 @@ function developper(el, acteur) {
 }
 
 function iterer() {
-  const debut = Date.now();
+  const debut = Date.now(),
+    divEls = document.getElementsByTagName('div');
+
+  // Reconstruction des tables
+  cases = [];
+  zones = [];
+  for (const el of divEls)
+    if (!el.data.model && // Pas les modèles
+      !el.data.hovered) // Pas si le curseur est au dessus
+  {
+    const car = el.innerHTML,
+      caseXY = caseEl(el.data.x, el.data.y),
+      roundX = Math.round(el.data.x / 4),
+      roundY = Math.round(el.data.y / 4);
+
+    // Population des cases
+    if (!caseXY)
+      cases[el.data.x][el.data.y] = el;
+
+    // Population des zones
+    if (typeof zones[car] === 'undefined')
+      zones[car] = [];
+    if (typeof zones[car][roundX] === 'undefined')
+      zones[car][roundX] = [];
+    if (typeof zones[car][roundX][roundY] === 'undefined')
+      zones[car][roundX][roundY] = 0;
+    zones[car][roundX][roundY]++;
+  }
 
   // Exécution des actions
   noIteration++;
-  if (noIteration < 15) //TODO DELETE debug
-    cases.forEach(col => {
-      col.forEach(ligneEl => {
-        if (!ligneEl.data.model && // Pas les modèles
-          !ligneEl.data.hovered && // Pas si le curseur est au dessus
-          ligneEl.data.noIteration < noIteration) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
-          developper(ligneEl, ligneEl.innerHTML);
+  for (const el of divEls)
+    if (!el.data.model && // Pas les modèles
+      !el.data.hovered && // Pas si le curseur est au dessus
+      el.data.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
+  {
+    developper(el, el.innerHTML);
+    el.data.age++;
+    if (el.data.eau) el.data.eau--;
+    if (el.data.energie) el.data.energie--;
+  }
 
-          // Le temps passe !
-          ligneEl.data.age++;
-          if (ligneEl.data.eau) ligneEl.data.eau--;
-          if (ligneEl.data.energie) ligneEl.data.energie--;
-          //if (ligneEl.data.amour) ligneEl.data.amour--;
-        }
-      });
-    });
+  // Debug
+  for (const el of divEls) {
+    const data = {
+      ...el.data
+    };
+    delete data.x;
+    delete data.y;
+    delete data.noIteration;
+    delete data.hovered;
+    el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
+  }
 
-  zones = [];
-  cases.forEach((col, noCol) => {
-    col.forEach((ligneEl, noLigne) => {
-
-      // Reconstruction de la table des éloignés
-      if (!ligneEl.data.model) {
-        const noColRound = Math.round(noCol / 4),
-          noLigneRound = Math.round(noLigne / 4),
-          car = ligneEl.innerHTML;
-
-        if (typeof zones[car] === 'undefined')
-          zones[car] = [];
-        if (typeof zones[car][noColRound] === 'undefined')
-          zones[car][noColRound] = [];
-        if (typeof zones[car][noColRound][noLigneRound] === 'undefined')
-          zones[car][noColRound][noLigneRound] = 0;
-        zones[car][noColRound][noLigneRound]++;
-      }
-
-      // Debug 
-      const data = {
-        ...ligneEl.data
-      };
-      delete data.x;
-      delete data.y;
-      delete data.noIteration;
-      delete data.hovered;
-      ligneEl.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
-    });
-  });
-
-  statsEl.innerHTML = (Date.now() - debut) + ' ms / ' + cases.length + ' objets / ' + noIteration + ' iterations';
+  console.log(noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj');
 }
 
 // RÉPONSES SOURIS / CLAVIER
-self.setInterval(iterer, 1000);
-document.addEventListener('keydown', iterer);
 //TODO save/restaure
+
+/* eslint-disable-next-line one-var */
+const timer = self.setInterval(iterer, 1000);
+
+document.addEventListener('keydown', evt => {
+  if (evt.key === 's')
+    self.clearInterval(timer);
+});
 
 function click(evt) {
   if (!evt.target.data.model) {
@@ -496,7 +503,7 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 //ajouteObjet(14, 8, '👫🧍');
 //ajouteObjet(16, 8, '🧔👩');
 ajouteObjet(14, 8, '🧔');
-ajouteObjet(18, 8, '👩');
+ajouteObjet(22, 8, '👩');
 /*
 ajouteObjet(14, 9, '▒');
 ajouteObjet(15, 9, '▒');
@@ -507,7 +514,7 @@ ajouteObjet(15, 8, '▒');
  */
 
 /* eslint-disable-next-line no-constant-condition */
-if (0) {
+if (1) {
   Array.from('🧔👩🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
