@@ -12,7 +12,7 @@ const statsEl = document.getElementById('stats'),
     age: 0,
     eau: 50,
     energie: 30,
-    amour: 0,
+    //amour: 0,
     sable: 0,
   },
   boxSize = 16,
@@ -20,7 +20,7 @@ const statsEl = document.getElementById('stats'),
 
 let o = {},
   noIteration = 0,
-  noObjet = 1,
+  //noObjet = 1,
   zones = [];
 
 /*********************
@@ -114,6 +114,7 @@ function communObjet(el, nomObjet, nx, ny, data, xDepart, yDepart) {
   const positionxDepart = casePixels(xDepart || nx, yDepart || ny, data && data.model),
     positionPixels = casePixels(nx, ny, data && data.model);
 
+  //TODO pouvoir arriver dans la même case (et absorber à la fin)
   if (!caseEl(nx, ny) && typeof el === 'object') {
     // Register in the grid
     cases[nx][ny] = el;
@@ -152,7 +153,7 @@ function ajouteObjet(x, y, symbol, data) {
   if (communObjet(el, symbol, x, y, { // ajouteObjet
       ...data,
       ...initData,
-      noObjet: noObjet++,
+      //noObjet: noObjet++,
     })) {
     document.body.appendChild(el);
 
@@ -201,7 +202,7 @@ function deplaceObjet(x, y, nx, ny) { // De x, y vers nx, ny
 }
 
 // VERBES
-function muer(el, nomObjet, age) { // Verbe
+function muer(el, nomObjet, age) {
   if (nomObjet &&
     el.data.age > (age || 0)) {
     el.innerHTML = nomObjet;
@@ -212,7 +213,7 @@ function muer(el, nomObjet, age) { // Verbe
   return true;
 }
 
-function errer(el, /*fin*/ ) { // Verbe
+function errer(el, /*fin*/ ) {
   const pl = pointsProches(el, 1, 1);
 
   /*if (fin && el.data.eau <= 0)//TODO dans consommer
@@ -225,17 +226,28 @@ function errer(el, /*fin*/ ) { // Verbe
   return true;
 }
 
-function rapprocher(el, nomObjet) { // Verbe //TODO TEST
+function rapprocher(el, nomObjet) { //TODO BUG blocage position -30°
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length &&
     deplaceObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]))
     return false;
-  // Blocage position -30°
+
   return true;
 }
 
-function consommer(el, typeObjet, typeRessource, quantiteRessource) { // Verbe //TODO TEST
+function absorber(el, nomObjet, nomObjetFinal) {
+  const pp = pointsProches(el, 1, 1, nomObjet);
+
+  //TODO absorber quand déjà dans la même case
+  if (pp.length) {
+    el.innerHTML = nomObjetFinal;
+    supprimeObjet(pp[0][0], pp[0][1]);
+  }
+  return true;
+}
+
+function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
   const pl = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
@@ -260,7 +272,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { // Verbe /
   return true;
 }
 
-function fusionner(el, nomObjet, nomFinal) { // Verbe //TODO factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
+function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETEb : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -269,7 +281,7 @@ function fusionner(el, nomObjet, nomFinal) { // Verbe //TODO factoriser avec con
 
     if (el.data.amour++ > 3) {
       supprimeObjet(pl[0][0], pl[0][1]);
-      el.innerHTML = nomFinal;
+      el.innerHTML = nomObjetFinal;
       el.data.amour = 0;
     }
     return false;
@@ -277,7 +289,7 @@ function fusionner(el, nomObjet, nomFinal) { // Verbe //TODO factoriser avec con
   return true;
 }
 
-function semer(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TEST
+function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TEST
   // Si nomRemplace undefined, dans une case vide
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
@@ -296,17 +308,17 @@ function semer(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TEST
 
 // Debug
 /* eslint-disable-next-line no-unused-vars */
-function tracer(el, t) { // Verbe
+function tracer(el, t) {
   console.log('trace ' + t);
   return true;
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function stopper() { // Verbe
+function stopper() {
   return false;
 }
 
-function developper(el, acteur) { // Verbe
+function developper(el, acteur) {
   if (typeof o[acteur] === 'object')
     return o[acteur].every(action =>
       action[0](el, ...action.slice(1)) // Stop when one action is completed
@@ -320,21 +332,22 @@ function iterer() {
 
   // Exécution des actions
   noIteration++;
-  cases.forEach(col => {
-    col.forEach(ligneEl => {
-      if (!ligneEl.data.model && // Pas les modèles
-        !ligneEl.data.hovered && // Pas si le curseur est au dessus
-        ligneEl.data.noIteration < noIteration) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
-        developper(ligneEl, ligneEl.innerHTML);
+  if (noIteration < 15) //TODO DELETE debug
+    cases.forEach(col => {
+      col.forEach(ligneEl => {
+        if (!ligneEl.data.model && // Pas les modèles
+          !ligneEl.data.hovered && // Pas si le curseur est au dessus
+          ligneEl.data.noIteration < noIteration) { // Pas s'il a été traité à partir d'un autre objet pendant la même itération
+          developper(ligneEl, ligneEl.innerHTML);
 
-        // Le temps passe !
-        ligneEl.data.age++;
-        if (ligneEl.data.eau) ligneEl.data.eau--;
-        if (ligneEl.data.energie) ligneEl.data.energie--;
-        if (ligneEl.data.amour) ligneEl.data.amour--;
-      }
+          // Le temps passe !
+          ligneEl.data.age++;
+          if (ligneEl.data.eau) ligneEl.data.eau--;
+          if (ligneEl.data.energie) ligneEl.data.energie--;
+          //if (ligneEl.data.amour) ligneEl.data.amour--;
+        }
+      });
     });
-  });
 
   zones = [];
   cases.forEach((col, noCol) => {
@@ -418,21 +431,21 @@ document.addEventListener('drop', evt => {
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 o = {
   animer: [
-    [consommer, '💧', 'eau', 10], //TODO TEST
-    [consommer, '🌽', 'energie', 20], //TODO TEST
+    [consommer, '💧', 'eau', 10],
+    [consommer, '🌽', 'energie', 20],
     [consommer, '🌿', 'energie', 10],
     [consommer, '🌱', 'energie', 5],
     [consommer, '🐇', 'energie', 50],
   ],
   '🧔': [
     [rapprocher, '👩'],
-    //  [fusionner, '👩', '👫'], //TODO TEST
+    [absorber, '👩', '💏'],
     //  [developper, 'animer'], 
     [errer, '💀'],
   ],
   '👩': [
     [rapprocher, '🧔'],
-    //[fusionner, '🧔', '👫'], //TODO TESTdata
+    [absorber, '🧔', '💏'],
     //[developper, 'animer'], 
     [errer, '💀'],
   ],
@@ -455,13 +468,13 @@ o = {
     [muer, '▒', 15], //TODO passer aussi au dessus du sable
   ],
   '⛲': [
-    [semer, 0.3, '💧'],
+    [produire, 0.3, '💧'],
   ],
   '💧': [
     //BUG ![errer, 0.05], //TODO smooth evanescence (transparency)
   ],
   '🌽': [
-    [semer, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
+    [produire, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
   ],
   '🌱': [
     [muer, '🌿', 15], // Si eau
@@ -482,8 +495,8 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 // Tests
 //ajouteObjet(14, 8, '👫🧍');
 //ajouteObjet(16, 8, '🧔👩');
-ajouteObjet(8, 8, '🧔');
-ajouteObjet(16, 8, '👩');
+ajouteObjet(14, 8, '🧔');
+ajouteObjet(18, 8, '👩');
 /*
 ajouteObjet(14, 9, '▒');
 ajouteObjet(15, 9, '▒');
