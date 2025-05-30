@@ -13,10 +13,12 @@ const helpEl = document.getElementById('help'),
     energie: 30,
     sable: 0,
   },
-  boxSize = 16;
+  boxSize = 16,
+  gigue = () => Math.random() * 4 - 2;
 
 let o = {},
   noIteration = 0,
+  noIterationMax = 0,
   cases = [],
   zones = [];
 
@@ -36,27 +38,24 @@ let o = {},
 // ROUTINES
 function pixelsFromXY(x, y) {
   return {
-    left: (x - y / 2 + Math.random() / 4 - 0.125) * boxSize,
-    top: (y * 0.866 + Math.random() / 4 - 0.125) * boxSize,
+    left: (x - y / 2) * boxSize + gigue(),
+    top: y * 0.866 * boxSize + gigue(),
   };
 }
 
 function xyFromPixels(left, top) {
   return {
-    x: Math.round((left + top / 0.866 / 2) / boxSize),
+    x: Math.round((left + top / 1.732) / boxSize),
     y: Math.round(top / 0.866 / boxSize),
   };
 }
 
-function caseEl(a, b) { // || [x,y] || {x:x,y:y} || {x:x,y:y}, el
-  const x = a[0] || a.x || a,
-    y = a[0] || a.y || b;
-
+function caseEl(x, y, el) {
   if (typeof cases[x] === 'undefined')
     cases[x] = [];
 
-  if (typeof b === 'object')
-    cases[x][y] = b;
+  if (typeof el === 'object')
+    cases[x][y] = el;
 
   return cases[x][y];
 }
@@ -79,7 +78,7 @@ function pointsProches(el, deep, limit, searched, extended) {
           pixel = pixelsFromXY(nx, ny);
 
         if (((!searched && !elN) || // Cases libres
-            (!searched && elN && elN.innerHTML === '▒') || // Sable //TODO KO
+            (!searched && elN && elN.innerHTML === '▒') || // Sable
             (searched && elN && elN.innerHTML === searched) // Objet trouvé
           ) &&
           0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
@@ -139,7 +138,6 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
 
     // Starting position
     if (typeof pixelDepart === 'object') {
-      console.log(pixelDepart); //TODO DCMM UTILE ?
       el.style.left = pixelDepart.left + 'px';
       el.style.top = pixelDepart.top + 'px';
     }
@@ -301,7 +299,7 @@ function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TEST
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
   if (pp.length && Math.random() < probabilite) {
-    const elN = caseEl(pp[0]);
+    const elN = caseEl(pp[0][0], pp[0][1]);
 
     if (nomRemplace && elN)
       elN.innerHTML = nomNouveau;
@@ -334,11 +332,9 @@ function developper(el, acteur) {
   return true; // continue
 }
 
-function iterer() {
-  const debut = Date.now(),
-    divEls = document.getElementsByTagName('div');
+function rebuidCases() {
+  const divEls = document.getElementsByTagName('div');
 
-  // Reconstruction des tables
   cases = [];
   zones = [];
   for (const el of divEls)
@@ -346,62 +342,76 @@ function iterer() {
       !el.data.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
-      roundX = Math.round(el.data.x / 4),
-      roundY = Math.round(el.data.y / 4);
+      rect = el.getBoundingClientRect(),
+      xy = xyFromPixels(rect.left, rect.top);
 
     // Population des cases
-    caseEl(el.data, el);
+    caseEl(xy.x, xy.y, el);
 
     // Population des zones
     if (typeof zones[car] === 'undefined')
       zones[car] = [];
-    if (typeof zones[car][roundX] === 'undefined')
-      zones[car][roundX] = [];
-    if (typeof zones[car][roundX][roundY] === 'undefined')
-      zones[car][roundX][roundY] = 0;
-    zones[car][roundX][roundY]++;
+    if (typeof zones[car][xy.x / 4] === 'undefined')
+      zones[car][xy.x / 4] = [];
+    if (typeof zones[car][xy.x / 4][xy.y / 4] === 'undefined')
+      zones[car][xy.x / 4][xy.y / 4] = 0;
+    zones[car][xy.x / 4][xy.y / 4]++;
   }
+}
 
-  // Exécution des actions
-  noIteration++;
-  for (const el of divEls)
-    if (!el.data.model && // Pas les modèles
-      !el.data.hovered && // Pas si le curseur est au dessus
-      el.data.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
-  {
-    developper(el, el.innerHTML);
-    el.data.age++;
-    if (el.data.eau) el.data.eau--;
-    if (el.data.energie) el.data.energie--;
+function iterer() {
+  if (noIteration < noIterationMax) {
+
+    const debut = Date.now(),
+      divEls = document.getElementsByTagName('div');
+
+    rebuidCases();
+
+    // Exécution des actions
+    noIteration++;
+    for (const el of divEls)
+      if (!el.data.model && // Pas les modèles
+        !el.data.hovered && // Pas si le curseur est au dessus
+        el.data.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
+    {
+      developper(el, el.innerHTML);
+      el.data.age++;
+      if (el.data.eau) el.data.eau--;
+      if (el.data.energie) el.data.energie--;
+    }
+
+    // Debug
+    for (const el of divEls) {
+      const data = {
+        ...el.data
+      };
+      delete data.x;
+      delete data.y;
+      delete data.noIteration;
+      delete data.hovered;
+      el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
+    }
+
+    console.log(noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj');
   }
-
-  // Debug
-  for (const el of divEls) {
-    const data = {
-      ...el.data
-    };
-    delete data.x;
-    delete data.y;
-    delete data.noIteration;
-    delete data.hovered;
-    el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
-  }
-
-  console.log(noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj');
 }
 
 // RÉPONSES SOURIS / CLAVIER
 //TODO save/restaure
 
-/* eslint-disable-next-line one-var */
-const timer = self.setInterval(iterer, 1000);
-document.addEventListener('keydown', () => { //TODO DELETE (debug)
-  self.clearInterval(timer);
+self.setInterval(iterer, 1000);
+
+document.addEventListener('keydown', evt => {
+  if (evt.keyCode === 32) noIterationMax = noIteration + 1;
+  else if (evt.keyCode === 107) noIterationMax = 1000000;
+  else if (evt.keyCode === 109) noIterationMax = 0;
+  else noIterationMax = noIteration + evt.keyCode % 48;
 });
 
 function clickOnDiv(evt) {
   if (!evt.target.data.model) {
-    if (JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
+    if (o[evt.target.innerHTML] &&
+      JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
       errer(evt.target);
     else
       supprimeObjet(evt.target.data.x, evt.target.data.y);
@@ -409,10 +419,21 @@ function clickOnDiv(evt) {
 }
 
 /* eslint-disable-next-line one-var */
-let dragged = null;
+let dragstartInfo = null;
 
 function dragstart(evt) {
-  dragged = evt.target;
+  dragstartInfo = {
+    el: evt.target,
+    innerHTML: evt.target.innerHTML,
+    style: {
+      ...evt.target.style,
+    },
+    data: evt.target.data,
+    offset: {
+      x: evt.offsetX,
+      y: evt.offsetY,
+    },
+  };
 
   if (!evt.target.data.model)
     setTimeout(() => {
@@ -426,21 +447,35 @@ document.addEventListener('dragover', evt => {
   evt.preventDefault();
 });
 
-document.addEventListener('dragend', evt => {
-  dragged.style.display = 'initial';
-  //TODO error if not dropped
+document.addEventListener('dragend', evt => { // Error
+  dragstartInfo.el.style.display = 'initial';
   evt.preventDefault();
 });
 
 document.addEventListener('drop', evt => {
-  const xy = xyFromPixels(evt.x, evt.y);
+  const x = evt.x - dragstartInfo.offset.x,
+    y = evt.y - dragstartInfo.offset.y,
+    xy = xyFromPixels(x, y);
 
-  if (dragged.data.model)
-    ajouteObjet(xy.x, xy.y, dragged.innerHTML);
-  else {
-    /*const deplaceEl=*/
-    deplaceObjet(dragged.data.x, dragged.data.y, xy.x, xy.y);
-    dragged.style.display = 'initial';
+  rebuidCases();
+
+  if (dragstartInfo.data.model) {
+    const elN = ajouteObjet(xy.x, xy.y, dragstartInfo.innerHTML);
+    if (elN) { //TODO should not hover
+      elN.style.left = (evt.x + -dragstartInfo.offset.x) + 'px';
+      elN.style.top = (evt.y - dragstartInfo.offset.y) + 'px';
+    }
+  } else {
+    dragstartInfo.el.style.display = 'initial';
+    dragstartInfo.el.style.left = x + 'px';
+    dragstartInfo.el.style.top = y + 'px';
+
+    // Case occupée.
+    if (caseEl(xy.x, xy.y)) //TODO ne prendpas les zones de sable
+      setTimeout(() => {
+        dragstartInfo.el.style.left = dragstartInfo.style.left;
+        dragstartInfo.el.style.top = dragstartInfo.style.top;
+      }, 100);
   }
 
   evt.preventDefault();
@@ -459,13 +494,13 @@ o = {
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
-    //  [developper, 'animer'], 
+    //  [developper, 'animer'],
     [errer, '💀'],
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
-    //[developper, 'animer'], 
+    //[developper, 'animer'],
     [errer, '💀'],
   ],
   '👫': [
