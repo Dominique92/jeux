@@ -1,4 +1,5 @@
-const helpEl = document.getElementById('help'),
+const statsEl = document.getElementById('stats'),
+  helpEl = document.getElementById('help'),
   deltasProches = [
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
@@ -185,7 +186,7 @@ function ajouteObjet(x, y, symbol, data) {
 
 function supprimeObjet(x, y) {
   if (caseEl(x, y)) {
-    cases[x][y].remove(); //TODO smooth desaparence
+    cases[x][y].remove(); //TODO ??? smooth desaparence
     delete cases[x][y];
     return true; // Succes
   }
@@ -195,7 +196,7 @@ function deplaceObjet(x, y, nx, ny, pixelDepart) { // De x, y vers nx, ny
   const el = caseEl(x, y),
     nEl = caseEl(nx, ny);
 
-  if (nEl && nEl.innerHTML === '▒') {
+  if (el && nEl && nEl.innerHTML === '▒') {
     supprimeObjet(nx, ny);
     el.data.sable++;
   }
@@ -207,7 +208,7 @@ function deplaceObjet(x, y, nx, ny, pixelDepart) { // De x, y vers nx, ny
 }
 
 // VERBES
-function muer(el, nomObjet, age) {
+function muer(el, nomObjet, age) { // Verbe
   if (nomObjet &&
     el.data.age > (age || 0)) {
     el.innerHTML = nomObjet;
@@ -218,20 +219,17 @@ function muer(el, nomObjet, age) {
   return true;
 }
 
-function errer(el, /*fin*/ ) {
+function errer(el) { // Verbe
   const pl = pointsProches(el, 1, 1);
 
-  /*if (fin && el.data.eau <= 0)//TODO dans consommer
-    return muer(el, fin);*/
-
-  // Erre
   if (pl.length && el.data.energie > 0)
     return !deplaceObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
 
   return true;
 }
 
-function rapprocher(el, nomObjet) { //TODO BUG blocage position -30°
+function rapprocher(el, nomObjet) { // Verbe
+  //TODO ??? jusqu'au même emplacement
   const pm = pointsProches(el, 5, 1, nomObjet, true);
 
   if (pm.length &&
@@ -241,12 +239,21 @@ function rapprocher(el, nomObjet) { //TODO BUG blocage position -30°
   return true;
 }
 
-function absorber(el, nomObjet, nomObjetFinal) {
+function absorber(el, nomObjet, nomObjetFinal) { // Verbe //TODO TESTER
+  //TODO ??? absorber quand déjà dans la même case
   const pp = pointsProches(el, 1, 1, nomObjet);
 
-  //TODO absorber quand déjà dans la même case
   if (pp.length) {
-    el.innerHTML = nomObjetFinal;
+    const elDel = caseEl(pp[0][0], pp[0][1]);
+
+    // Concatène les possessions
+    el.data.eau += elDel.data.eau;
+    el.data.energie += elDel.data.energie;
+    el.data.sable += elDel.data.sable;
+
+    if (nomObjetFinal)
+      el.innerHTML = nomObjetFinal;
+
     supprimeObjet(pp[0][0], pp[0][1]);
   }
   return true;
@@ -294,7 +301,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
   return true;
 }*/
 
-function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TEST
+function produire(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TESTER
   // Si nomRemplace undefined, dans une case vide
   const pp = pointsProches(el, 1, 1, nomRemplace);
 
@@ -356,16 +363,25 @@ function rebuidCases() {
     if (typeof zones[car][xy.x / 4][xy.y / 4] === 'undefined')
       zones[car][xy.x / 4][xy.y / 4] = 0;
     zones[car][xy.x / 4][xy.y / 4]++;
+
+    // Debug
+    /* eslint-disable-next-line one-var */
+    const data = {
+      ...el.data,
+    };
+    //TODO faire une sous structure ressource
+    delete data.x;
+    delete data.y;
+    delete data.noIteration;
+    delete data.hovered;
+    el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
   }
 }
 
 function iterer() {
   if (noIteration < noIterationMax) {
-
     const debut = Date.now(),
       divEls = document.getElementsByTagName('div');
-
-    rebuidCases();
 
     // Exécution des actions
     noIteration++;
@@ -376,37 +392,21 @@ function iterer() {
     {
       developper(el, el.innerHTML);
       el.data.age++;
-      if (el.data.eau) el.data.eau--;
-      if (el.data.energie) el.data.energie--;
+      if (el.data.eau > 0) el.data.eau--;
+      if (el.data.energie > 0) el.data.energie--;
     }
 
-    // Debug
-    for (const el of divEls) {
-      const data = {
-        ...el.data
-      };
-      delete data.x;
-      delete data.y;
-      delete data.noIteration;
-      delete data.hovered;
-      el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
-    }
+    rebuidCases();
 
-    console.log(noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj');
+    statsEl.innerHTML = noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj';
   }
 }
 
 // RÉPONSES SOURIS / CLAVIER
 //TODO save/restaure
 
-self.setInterval(iterer, 1000);
-
-document.addEventListener('keydown', evt => {
-  if (evt.keyCode === 32) noIterationMax = noIteration + 1;
-  else if (evt.keyCode === 107) noIterationMax = 1000000;
-  else if (evt.keyCode === 109) noIterationMax = 0;
-  else noIterationMax = noIteration + evt.keyCode % 48;
-});
+window.onload = rebuidCases;
+self.setInterval(iterer, 1000); //TODO saccadé
 
 function clickOnDiv(evt) {
   if (!evt.target.data.model) {
@@ -443,16 +443,17 @@ function dragstart(evt) {
   helpEl.style.display = 'none';
 }
 
-document.addEventListener('dragover', evt => {
+document.ondragover = evt => {
+  //TODO ne pas faire preventDefault quand on survolle un div
   evt.preventDefault();
-});
+};
 
-document.addEventListener('dragend', evt => { // Error
+document.ondragend = evt => { // Error
   dragstartInfo.el.style.display = 'initial';
   evt.preventDefault();
-});
+};
 
-document.addEventListener('drop', evt => {
+document.ondrop = evt => {
   const x = evt.x - dragstartInfo.offset.x,
     y = evt.y - dragstartInfo.offset.y,
     xy = xyFromPixels(x, y);
@@ -471,7 +472,9 @@ document.addEventListener('drop', evt => {
     dragstartInfo.el.style.top = y + 'px';
 
     // Case occupée.
-    if (caseEl(xy.x, xy.y)) //TODO ne prendpas les zones de sable
+    //TODO certaines fois, bouge dessus
+    //TODO ne prend pas les zones de sable
+    if (caseEl(xy.x, xy.y))
       setTimeout(() => {
         dragstartInfo.el.style.left = dragstartInfo.style.left;
         dragstartInfo.el.style.top = dragstartInfo.style.top;
@@ -479,62 +482,80 @@ document.addEventListener('drop', evt => {
   }
 
   evt.preventDefault();
-});
+};
+
+document.onkeydown = evt => {
+  if (evt.keyCode === 109) noIterationMax = 0;
+  else if (evt.keyCode === 107) noIterationMax = 1000000;
+  else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
+  else noIterationMax = noIteration + evt.keyCode % 48;
+};
 
 // SCÉNARIOS
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
 o = {
   animer: [
-    [consommer, '💧', 'eau', 10],
-    [consommer, '🌽', 'energie', 20],
-    [consommer, '🌿', 'energie', 10],
-    [consommer, '🌱', 'energie', 5],
-    [consommer, '🐇', 'energie', 50],
+    [rapprocher, '💧'], //TODO si besoin
+    [absorber, '💧'],
+    [rapprocher, '🌽'],
+    [absorber, '🌽'],
+    [rapprocher, '🌿'],
+    [absorber, '🌿'],
+    [rapprocher, '🌱'],
+    [absorber, '🌱'],
   ],
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
-    //  [developper, 'animer'],
-    [errer, '💀'],
+    [developper, 'animer'],
+    [errer],
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
-    //[developper, 'animer'],
-    [errer, '💀'],
+    [developper, 'animer'],
+    [errer],
+  ],
+  '💏': [
+    [developper, 'animer'],
+    [muer, '👫', 5],
+    [errer],
   ],
   '👫': [
     [developper, 'animer'],
-    [errer, '💀'],
+    [muer, '👪', 5],
+    [errer],
   ],
   '👪': [
     [developper, 'animer'],
-    [errer, '💀'],
+    //[muer, '▒', 15],  //TODO produite enfant
+    [errer],
   ],
   '🧍': [
     [developper, 'animer'],
-    [errer, '💀'],
+    //TODO muer 50% 🧔 50% 👩
+    [errer],
   ],
-  '👫🧍': [
-    [errer, '💀'],
-  ],
+  /* '👫🧍': [
+    [errer],
+  ],*/
   '💀': [
-    [muer, '▒', 15], //TODO passer aussi au dessus du sable
+    [muer, '▒', 15],
   ],
   '⛲': [
-    [produire, 0.3, '💧'],
+    //[produire, 0.3, '💧'],
   ],
   '💧': [
-    //BUG ![errer, 0.05], //TODO smooth evanescence (transparency)
-  ],
-  '🌽': [
-    [produire, 0.3, '🌱', '💧'], //TODO BUG 💧 continue à se déplacer quand transformé en 🌱
+    //BUG ![errer, 0.05],//TODO BUG laisse carc. //TODO smooth evanescence (transparency)
   ],
   '🌱': [
-    [muer, '🌿', 15], // Si eau
+    [muer, '🌿', 15], //TODO Si eau
   ],
   '🌿': [
-    [muer, '🌽', 15], // Si eau
+    [muer, '🌽', 15], //TODO Si eau
+  ],
+  '🌽': [
+    //[produire, 0.3, '🌱', '💧'], 
   ],
 };
 
@@ -546,24 +567,25 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
   });
 
   setTimeout(() => {
-    el.style.left = '10px';
+    el.style.left = '0';
     el.style.top = i * 2 * boxSize + 'px';
   }, 0);
 });
 
 // Tests
-/*
- */
-ajouteObjet(14, 8, '🧔');
-ajouteObjet(22, 8, '👩');
-//ajouteObjet(14, 8, '👫🧍');
-//ajouteObjet(16, 8, '🧔👩');
-ajouteObjet(14, 9, '▒');
-ajouteObjet(15, 9, '▒');
-ajouteObjet(13, 8, '▒');
-ajouteObjet(13, 7, '▒');
-ajouteObjet(14, 7, '▒');
-ajouteObjet(15, 8, '▒');
+/* eslint-disable-next-line no-constant-condition */
+if (1) {
+  ajouteObjet(14, 8, '🧔');
+  ajouteObjet(22, 8, '👩');
+  //ajouteObjet(14, 8, '👫🧍');
+  //ajouteObjet(16, 8, '🧔👩');
+  ajouteObjet(14, 9, '▒');
+  ajouteObjet(15, 9, '▒');
+  ajouteObjet(13, 8, '▒');
+  ajouteObjet(13, 7, '▒');
+  ajouteObjet(14, 7, '▒');
+  ajouteObjet(15, 8, '▒');
+}
 
 /* eslint-disable-next-line no-constant-condition */
 if (1) {

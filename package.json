@@ -14,7 +14,7 @@
   },
   "type": "module",
   "scripts": {
-    "beautify": "js-beautify -s=2 *.js* */*.js* */*.html */*.css",
+    "beautify": "js-beautify -s=2 *.js* */*.js* *.html */*.html */*.css",
     "lint": "npx eslint *.js* */*.js*"
   },
   "devDependencies": {
