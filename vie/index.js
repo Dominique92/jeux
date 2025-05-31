@@ -85,7 +85,7 @@ function pointsProches(el, deep, limit, searched, extended) {
           0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
           0 <= pixel.top && pixel.top < window.innerHeight - boxSize
         )
-          listeProches.push([nx, ny, ...delta]);
+          listeProches.push([...delta, nx, ny, elN]);
       }
     });
   }
@@ -104,7 +104,7 @@ function pointsProches(el, deep, limit, searched, extended) {
         if (dMin > dist) {
           dMin = dist;
           listeProches = [
-            [0, 0,
+            [
               Math.sign(deltaCol),
               Math.sign(deltaLigne),
               deltaCol,
@@ -184,7 +184,7 @@ function ajouteObjet(x, y, symbol, data) {
   }
 }
 
-function supprimeObjet(x, y) {
+function supprimeObjet(x, y) { //TODO désigner par el
   if (caseEl(x, y)) {
     cases[x][y].remove(); //TODO ??? smooth desaparence
     delete cases[x][y];
@@ -192,19 +192,16 @@ function supprimeObjet(x, y) {
   }
 }
 
-function deplaceObjet(x, y, nx, ny, pixelDepart) { // De x, y vers nx, ny
-  const el = caseEl(x, y),
-    nEl = caseEl(nx, ny);
+function deplaceObjet(el, nx, ny, pixelDepart) { // De x, y vers nx, ny
+  const nEl = caseEl(nx, ny);
 
   if (el && nEl && nEl.innerHTML === '▒') {
     supprimeObjet(nx, ny);
     el.data.sable++;
   }
 
-  if (communObjet(el, null, nx, ny, null, pixelDepart)) { // deplaceObjet
-    delete cases[x][y];
-    return true; // Succes
-  }
+  return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
+  //TODO delete cases[x][y]; // (dans communObjet ?)
 }
 
 // VERBES
@@ -220,20 +217,20 @@ function muer(el, nomObjet, age) { // Verbe
 }
 
 function errer(el) { // Verbe
-  const pl = pointsProches(el, 1, 1);
+  const pp = pointsProches(el, 1, 1);
 
-  if (pl.length && el.data.energie > 0)
-    return !deplaceObjet(el.data.x, el.data.y, el.data.x + pl[0][2], el.data.y + pl[0][3]);
+  if (pp.length && el.data.energie > 0)
+    return !deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]);
 
   return true;
 }
 
 function rapprocher(el, nomObjet) { // Verbe
   //TODO ??? jusqu'au même emplacement
-  const pm = pointsProches(el, 5, 1, nomObjet, true);
+  const pp = pointsProches(el, 5, 1, nomObjet, true);
 
-  if (pm.length &&
-    deplaceObjet(el.data.x, el.data.y, el.data.x + pm[0][2], el.data.y + pm[0][3]))
+  if (pp.length &&
+    deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]))
     return false;
 
   return true;
@@ -244,7 +241,7 @@ function absorber(el, nomObjet, nomObjetFinal) { // Verbe //TODO TESTER
   const pp = pointsProches(el, 1, 1, nomObjet);
 
   if (pp.length) {
-    const elDel = caseEl(pp[0][0], pp[0][1]);
+    const elDel = caseEl(pp[0][4], pp[0][5]);
 
     // Concatène les possessions
     el.data.eau += elDel.data.eau;
@@ -260,14 +257,14 @@ function absorber(el, nomObjet, nomObjetFinal) { // Verbe //TODO TESTER
 }
 
 function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
-  const pl = pointsProches(el, 1, 1, typeObjet);
+  const pp = pointsProches(el, 1, 1, typeObjet);
 
   // Consomme
   if (el.data[typeRessource] < 20 &&
     typeof typeObjet !== 'undefined' &&
-    pl.length) {
+    pp.length) {
     el.data[typeRessource] += quantiteRessource;
-    supprimeObjet(pl[0][0], pl[0][1]);
+    supprimeObjet(pp[0][4], pp[0][5]);
 
     return false;
   }
@@ -284,7 +281,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
   return true;
 }
 
-/*function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETEb : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
+/*function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETE : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -292,7 +289,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      supprimeObjet(pl[0][0], pl[0][1]);
+      supprimeObjet(pl[0][4], pl[0][5]);
       el.innerHTML = nomObjetFinal;
       el.data.amour = 0;
     }
