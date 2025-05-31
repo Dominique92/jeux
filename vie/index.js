@@ -137,8 +137,11 @@ function pointsProches(el, deep, limit, searched) {
 function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
   if (typeof el === 'object') {
     if (!caseEl(nx, ny) && typeof el === 'object') {
+      const xyDebut = xyFromEl(el);
+
       // Register in the grid
       cases[nx][ny] = el;
+      delete cases[xyDebut.x][xyDebut.y];
 
       // Update the data
       if (nomObjet)
@@ -165,7 +168,7 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
 
       el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
-      return cases[nx][ny];
+      return true;
     }
   }
 }
@@ -221,7 +224,6 @@ function deplaceObjet(el, nx, ny, pixelDepart) { // el vers nx, ny
     }
 
     return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
-    //TODO delete cases[x][y]; // (dans communObjet ?)
   }
 }
 
@@ -268,8 +270,10 @@ function absorber(el, nomObjet, nomObjetFinal) { // Verbe
       el.data.sable += pp[0][6].data.sable;
       supprimeObjet(pp[0][6]);
 
-      if (nomObjetFinal)
+      if (nomObjetFinal) {
         el.innerHTML = nomObjetFinal;
+        el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+      }
 
       return false;
     }
@@ -591,19 +595,16 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 ajouteObjet(10, 8, '🧔');
 ajouteObjet(25, 8, '👩');
 /* eslint-disable-next-line no-constant-condition */
-if (0) {
-  //ajouteObjet(14, 8, '👫🧍');
-  //ajouteObjet(16, 8, '🧔👩');
+if (1) {
+  ajouteObjet(14, 8, '👫🧍');
+  ajouteObjet(16, 8, '🧔👩');
   ajouteObjet(14, 9, '▒');
   ajouteObjet(15, 9, '▒');
   ajouteObjet(13, 8, '▒');
   ajouteObjet(13, 7, '▒');
   ajouteObjet(14, 7, '▒');
   ajouteObjet(15, 8, '▒');
-}
 
-/* eslint-disable-next-line no-constant-condition */
-if (0) {
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
