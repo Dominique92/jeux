@@ -62,7 +62,7 @@ function xyFromEl(el) {
   }
 }
 
-// get or set case el
+// Get or set case el
 function caseEl(x, y, el) {
   if (typeof cases[x] === 'undefined')
     cases[x] = [];
@@ -151,8 +151,7 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
         ...data,
       };
 
-      el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-
+      // Smoothly move the icon
       // Starting position
       if (typeof pixelDepart === 'object') {
         el.style.left = pixelDepart.left + 'px';
@@ -165,6 +164,8 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
         el.style.left = positionPixels.left + 'px';
         el.style.top = positionPixels.top + 'px';
       }, 0);
+
+      el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
       return cases[nx][ny];
     }
@@ -458,6 +459,7 @@ function dragstart(evt) {
   };
 
   if (!evt.target.data.model)
+    // Efface temporairement l'icône de départ
     setTimeout(() => {
       evt.target.style.display = 'none';
     }, 0);
@@ -465,9 +467,16 @@ function dragstart(evt) {
   helpEl.style.display = 'none';
 }
 
+// Interdit les emplacements occupés
+//TODO BUG le sable n'est pas interdit
 document.ondragover = evt => {
-  //TODO ne pas faire preventDefault quand on survolle un div
-  evt.preventDefault();
+  const xy = xyFromPixels(
+    evt.x - dragstartInfo.offset.x,
+    evt.y - dragstartInfo.offset.y,
+  );
+
+  if (!caseEl(xy.x, xy.y))
+    evt.preventDefault();
 };
 
 document.ondragend = evt => { // Error
@@ -483,8 +492,9 @@ document.ondrop = evt => {
   rebuidCases();
 
   if (dragstartInfo.data.model) {
+    // Création à partir du modèle
     const elN = ajouteObjet(xy.x, xy.y, dragstartInfo.innerHTML);
-    if (elN) { //TODO should not hover
+    if (elN) {
       elN.style.left = left + 'px';
       elN.style.top = top + 'px';
     }
@@ -492,14 +502,6 @@ document.ondrop = evt => {
     dragstartInfo.el.style.display = 'initial';
     dragstartInfo.el.style.left = left + 'px';
     dragstartInfo.el.style.top = top + 'px';
-
-    // Case occupée.
-    //TODO ne prend pas les zones de sable
-    if (caseEl(xy.x, xy.y))
-      setTimeout(() => {
-        dragstartInfo.el.style.left = dragstartInfo.style.left;
-        dragstartInfo.el.style.top = dragstartInfo.style.top;
-      }, 0);
   }
 
   evt.preventDefault();
