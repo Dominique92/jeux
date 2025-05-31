@@ -51,6 +51,15 @@ function xyFromPixels(left, top) {
   };
 }
 
+function xyFromEl(el) {
+  if (typeof el === 'object') {
+    const rect = el.getBoundingClientRect();
+
+    return xyFromPixels(rect.left, rect.top);
+  }
+}
+
+// get or set case el
 function caseEl(x, y, el) {
   if (typeof cases[x] === 'undefined')
     cases[x] = [];
@@ -62,95 +71,99 @@ function caseEl(x, y, el) {
 }
 
 function pointsProches(el, deep, limit, searched, extended) {
-  let listeProches = [],
-    dMin = 999999;
+  if (typeof el === 'object') {
+    let listeProches = [],
+      dMin = 999999;
 
-  // Randomize points order array
-  for (let i = Math.random() * 4; i > 0; i--)
-    deltasProches.push(deltasProches.shift());
+    // Randomize points order array
+    for (let i = Math.random() * 4; i > 0; i--)
+      deltasProches.push(deltasProches.shift());
 
-  for (let d = 1; d < deep + 1 && listeProches.length < limit; d++) {
-    /* eslint-disable-next-line no-loop-func */
-    deltasProches.forEach(delta => {
-      for (let i = 0; i < d && listeProches.length < limit; i++) {
-        const nx = el.data.x + d * delta[0] + i * delta[2],
-          ny = el.data.y + d * delta[1] + i * delta[3],
-          elN = caseEl(nx, ny),
-          pixel = pixelsFromXY(nx, ny);
+    for (let d = 1; d < deep + 1 && listeProches.length < limit; d++) {
+      /* eslint-disable-next-line no-loop-func */
+      deltasProches.forEach(delta => {
+        for (let i = 0; i < d && listeProches.length < limit; i++) {
+          const nx = el.data.x + d * delta[0] + i * delta[2],
+            ny = el.data.y + d * delta[1] + i * delta[3],
+            elN = caseEl(nx, ny),
+            pixel = pixelsFromXY(nx, ny);
 
-        if (((!searched && !elN) || // Cases libres
-            (!searched && elN && elN.innerHTML === '▒') || // Sable
-            (searched && elN && elN.innerHTML === searched) // Objet trouvé
-          ) &&
-          0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
-          0 <= pixel.top && pixel.top < window.innerHeight - boxSize
-        )
-          listeProches.push([...delta, nx, ny, elN]);
-      }
-    });
-  }
-
-  // Recherche éloignés
-  if (extended &&
-    !listeProches.length &&
-    typeof zones[searched] === 'object')
-    zones[searched].forEach((col, noCol) => {
-      col.forEach((ligne, noLigne) => {
-
-        const deltaCol = noCol - Math.round(el.data.x / 4),
-          deltaLigne = noLigne - Math.round(el.data.y / 4),
-          dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
-
-        if (dMin > dist) {
-          dMin = dist;
-          listeProches = [
-            [
-              Math.sign(deltaCol),
-              Math.sign(deltaLigne),
-              deltaCol,
-              deltaLigne,
-            ]
-          ];
+          if (((!searched && !elN) || // Cases libres
+              (!searched && elN && elN.innerHTML === '▒') || // Sable
+              (searched && elN && elN.innerHTML === searched) // Objet trouvé
+            ) &&
+            0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
+            0 <= pixel.top && pixel.top < window.innerHeight - boxSize
+          )
+            listeProches.push([...delta, nx, ny, elN]);
         }
       });
-    });
+    }
 
-  return listeProches;
+    // Recherche éloignés
+    if (extended &&
+      !listeProches.length &&
+      typeof zones[searched] === 'object')
+      zones[searched].forEach((col, noCol) => {
+        col.forEach((ligne, noLigne) => {
+
+          const deltaCol = noCol - Math.round(el.data.x / 4),
+            deltaLigne = noLigne - Math.round(el.data.y / 4),
+            dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
+
+          if (dMin > dist) {
+            dMin = dist;
+            listeProches = [
+              [
+                Math.sign(deltaCol),
+                Math.sign(deltaLigne),
+                deltaCol,
+                deltaLigne,
+              ]
+            ];
+          }
+        });
+      });
+
+    return listeProches;
+  }
 }
 
 // Move el to the x/y position if it's free
 function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
-  //TODO ??? pouvoir arriver dans la même case (et absorber à la fin)
-  if (!caseEl(nx, ny) && typeof el === 'object') {
-    // Register in the grid
-    cases[nx][ny] = el;
+  if (typeof el === 'object') {
+    //TODO ??? pouvoir arriver dans la même case (et absorber à la fin)
+    if (!caseEl(nx, ny) && typeof el === 'object') {
+      // Register in the grid
+      cases[nx][ny] = el;
 
-    // Update the data
-    if (nomObjet)
-      el.innerHTML = nomObjet;
+      // Update the data
+      if (nomObjet)
+        el.innerHTML = nomObjet;
 
-    el.data = {
-      ...el.data,
-      x: nx,
-      y: ny,
-      ...data,
-      noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
-    };
+      el.data = {
+        ...el.data,
+        x: nx,
+        y: ny,
+        ...data,
+        noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
+      };
 
-    // Starting position
-    if (typeof pixelDepart === 'object') {
-      el.style.left = pixelDepart.left + 'px';
-      el.style.top = pixelDepart.top + 'px';
+      // Starting position
+      if (typeof pixelDepart === 'object') {
+        el.style.left = pixelDepart.left + 'px';
+        el.style.top = pixelDepart.top + 'px';
+      }
+
+      // Destination position (after transition)
+      setTimeout(() => { // Timeout ensures styles are applied before scrolling
+        const positionPixels = pixelsFromXY(nx, ny /*, !(data && data.model)*/ );
+        el.style.left = positionPixels.left + 'px';
+        el.style.top = positionPixels.top + 'px';
+      }, 0);
+
+      return cases[nx][ny];
     }
-
-    // Destination position (after transition)
-    setTimeout(() => { // Timeout ensures styles are applied before scrolling
-      const positionPixels = pixelsFromXY(nx, ny /*, !(data && data.model)*/ );
-      el.style.left = positionPixels.left + 'px';
-      el.style.top = positionPixels.top + 'px';
-    }, 0);
-
-    return cases[nx][ny];
   }
 }
 
@@ -184,24 +197,29 @@ function ajouteObjet(x, y, symbol, data) {
   }
 }
 
-function supprimeObjet(x, y) { //TODO désigner par el
-  if (caseEl(x, y)) {
-    cases[x][y].remove(); //TODO ??? smooth desaparence
-    delete cases[x][y];
+function supprimeObjet(el) {
+  const xy = xyFromEl(el);
+
+  if (xy) {
+    el.remove(); //TODO ??? smooth desaparence
+    delete cases[xy.x][xy.y];
     return true; // Succes
   }
 }
 
 function deplaceObjet(el, nx, ny, pixelDepart) { // De x, y vers nx, ny
-  const nEl = caseEl(nx, ny);
+  if (typeof el === 'object') {
+    const nEl = caseEl(nx, ny);
 
-  if (el && nEl && nEl.innerHTML === '▒') {
-    supprimeObjet(nx, ny);
-    el.data.sable++;
+    // S'il y avait du sable, prend le sable et sa place
+    if (nEl && nEl.innerHTML === '▒') {
+      supprimeObjet(nEl);
+      el.data.sable++;
+    }
+
+    return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
+    //TODO delete cases[x][y]; // (dans communObjet ?)
   }
-
-  return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
-  //TODO delete cases[x][y]; // (dans communObjet ?)
 }
 
 // VERBES
@@ -217,71 +235,80 @@ function muer(el, nomObjet, age) { // Verbe
 }
 
 function errer(el) { // Verbe
-  const pp = pointsProches(el, 1, 1);
+  if (typeof el === 'object') {
+    const pp = pointsProches(el, 1, 1);
 
-  if (pp.length && el.data.energie > 0)
-    return !deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]);
+    if (pp.length && el.data.energie > 0)
+      return !deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]);
 
-  return true;
+    return true;
+  }
 }
 
 function rapprocher(el, nomObjet) { // Verbe
-  //TODO ??? jusqu'au même emplacement
-  const pp = pointsProches(el, 5, 1, nomObjet, true);
+  if (typeof el === 'object') {
+    //TODO ??? jusqu'au même emplacement
+    const pp = pointsProches(el, 5, 1, nomObjet, true);
 
-  if (pp.length &&
-    deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]))
-    return false;
+    if (pp.length &&
+      deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]))
+      return false;
 
-  return true;
+    return true;
+  }
 }
 
 function absorber(el, nomObjet, nomObjetFinal) { // Verbe //TODO TESTER
-  //TODO ??? absorber quand déjà dans la même case
-  const pp = pointsProches(el, 1, 1, nomObjet);
+  if (typeof el === 'object') {
+    //TODO ??? absorber quand déjà dans la même case
+    const pp = pointsProches(el, 1, 1, nomObjet);
 
-  if (pp.length) {
-    const elDel = caseEl(pp[0][4], pp[0][5]);
+    if (pp.length) {
+      const elDel = caseEl(pp[0][4], pp[0][5]);
 
-    // Concatène les possessions
-    el.data.eau += elDel.data.eau;
-    el.data.energie += elDel.data.energie;
-    el.data.sable += elDel.data.sable;
+      // Concatène les possessions
+      el.data.eau += elDel.data.eau;
+      el.data.energie += elDel.data.energie;
+      el.data.sable += elDel.data.sable;
 
-    if (nomObjetFinal)
-      el.innerHTML = nomObjetFinal;
+      if (nomObjetFinal)
+        el.innerHTML = nomObjetFinal;
 
-    supprimeObjet(pp[0][0], pp[0][1]);
+      supprimeObjet(pp[7]);
+    }
+    return true;
   }
-  return true;
 }
 
 function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
-  const pp = pointsProches(el, 1, 1, typeObjet);
+  if (typeof el === 'object') {
+    const pp = pointsProches(el, 1, 1, typeObjet);
 
-  // Consomme
-  if (el.data[typeRessource] < 20 &&
-    typeof typeObjet !== 'undefined' &&
-    pp.length) {
-    el.data[typeRessource] += quantiteRessource;
-    supprimeObjet(pp[0][4], pp[0][5]);
-
-    return false;
-  }
-
-  //TODO -> rapprocher
-  /*/ Cherche
-  if (el.data[typeRessource] < 10 &&
-    typeof typeObjet !== 'undefined') {
-    if (!rapprocher(el, typeObjet)) //TODO TEST
+    // Consomme
+    if (el.data[typeRessource] < 20 &&
+      typeof typeObjet !== 'undefined' &&
+      pp.length) {
+      el.data[typeRessource] += quantiteRessource;
+      supprimeObjet(pp[7]);
 
       return false;
-  }*/
+    }
 
-  return true;
+    //TODO -> rapprocher
+    /*/ Cherche
+    if (el.data[typeRessource] < 10 &&
+      typeof typeObjet !== 'undefined') {
+      if (!rapprocher(el, typeObjet)) //TODO TEST
+
+        return false;
+    }*/
+
+    return true;
+  }
 }
 
 /*function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETE : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
+	if(typeof el === 'object'){
   const pl = pointsProches(el, 1, 1, nomObjet);
 
   if (pl.length) {
@@ -289,30 +316,32 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      supprimeObjet(pl[0][4], pl[0][5]);
+      supprimeObjet(pp[7]);
       el.innerHTML = nomObjetFinal;
       el.data.amour = 0;
     }
     return false;
   }
   return true;
-}*/
+}}*/
 
 function produire(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TESTER
-  // Si nomRemplace undefined, dans une case vide
-  const pp = pointsProches(el, 1, 1, nomRemplace);
+  if (typeof el === 'object') {
+    // Si nomRemplace undefined, dans une case vide
+    const pp = pointsProches(el, 1, 1, nomRemplace);
 
-  if (pp.length && Math.random() < probabilite) {
-    const elN = caseEl(pp[0][0], pp[0][1]);
+    if (pp.length && Math.random() < probabilite) {
+      const elN = caseEl(pp[0][0], pp[0][1]);
 
-    if (nomRemplace && elN)
-      elN.innerHTML = nomNouveau;
-    else
-      ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
+      if (nomRemplace && elN)
+        elN.innerHTML = nomNouveau;
+      else
+        ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
 
-    return false;
+      return false;
+    }
+    return true;
   }
-  return true;
 }
 
 // Debug
@@ -346,8 +375,7 @@ function rebuidCases() {
       !el.data.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
-      rect = el.getBoundingClientRect(),
-      xy = xyFromPixels(rect.left, rect.top);
+      xy = xyFromEl(el);
 
     // Population des cases
     caseEl(xy.x, xy.y, el);
@@ -411,7 +439,7 @@ function clickOnDiv(evt) {
       JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
       errer(evt.target);
     else
-      supprimeObjet(evt.target.data.x, evt.target.data.y);
+      supprimeObjet(evt.target);
   }
 }
 
@@ -451,22 +479,22 @@ document.ondragend = evt => { // Error
 };
 
 document.ondrop = evt => {
-  const x = evt.x - dragstartInfo.offset.x,
-    y = evt.y - dragstartInfo.offset.y,
-    xy = xyFromPixels(x, y);
+  const left = evt.x - dragstartInfo.offset.x,
+    top = evt.y - dragstartInfo.offset.y,
+    xy = xyFromPixels(left, top);
 
   rebuidCases();
 
   if (dragstartInfo.data.model) {
     const elN = ajouteObjet(xy.x, xy.y, dragstartInfo.innerHTML);
     if (elN) { //TODO should not hover
-      elN.style.left = (evt.x + -dragstartInfo.offset.x) + 'px';
-      elN.style.top = (evt.y - dragstartInfo.offset.y) + 'px';
+      elN.style.left = left + 'px';
+      elN.style.top = top + 'px';
     }
   } else {
     dragstartInfo.el.style.display = 'initial';
-    dragstartInfo.el.style.left = x + 'px';
-    dragstartInfo.el.style.top = y + 'px';
+    dragstartInfo.el.style.left = left + 'px';
+    dragstartInfo.el.style.top = top + 'px';
 
     // Case occupée.
     //TODO certaines fois, bouge dessus
@@ -475,7 +503,7 @@ document.ondrop = evt => {
       setTimeout(() => {
         dragstartInfo.el.style.left = dragstartInfo.style.left;
         dragstartInfo.el.style.top = dragstartInfo.style.top;
-      }, 100);
+      }, 100); //TODO pourquoi 100 ?
   }
 
   evt.preventDefault();
