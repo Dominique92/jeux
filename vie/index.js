@@ -35,9 +35,9 @@ let o = {},
  * Scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
  *   La première ayant abouti interrompt la liste
  */
-//TODO ne manipuler que des struct xy
-//TODO Flag consommable / init data
-//TODO Consommer / chercher type de ressource + (quantité ?)
+//BEST Init data
+//BEST Flag consommable
+//BEST Consommer / chercher type de ressource + (quantité ?)
 
 // ROUTINES
 function pixelsFromXY(x, y) {
@@ -204,7 +204,7 @@ function supprimeObjet(el) {
   const xy = xyFromEl(el);
 
   if (xy) {
-    el.remove(); //TODO ??? smooth desaparence
+    el.remove(); //BEST smooth desaparence
     delete cases[xy.x][xy.y];
     return true; // Succes
   }
@@ -241,47 +241,40 @@ function errer(el) { // Verbe
   const pp = pointsProches(el, 1, 1),
     xy = xyFromEl(el);
 
-  if (xy) {
-    if (pp.length && el.data.energie > 0)
-      return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
+  if (xy && pp.length && el.data.energie > 0)
+    return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
-    return true;
-  }
+  return true;
 }
 
 function rapprocher(el, nomObjet) { // Verbe
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
-  if (xy) {
-    if (pp.length &&
-      deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]))
-      return false;
+  if (pp.length && xy)
+    return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
-    return true;
-  }
+  return true;
 }
 
-function absorber(el, nomObjet, nomObjetFinal) { // Verbe //TODO TESTER
+function absorber(el, nomObjet, nomObjetFinal) { // Verbe
   if (typeof el === 'object') {
-    //TODO ??? absorber quand déjà dans la même case
     const pp = pointsProches(el, 1, 1, nomObjet);
 
     if (pp.length) {
-      const elDel = caseEl(pp[0][4], pp[0][5]);
-
       // Concatène les possessions
-      el.data.eau += elDel.data.eau;
-      el.data.energie += elDel.data.energie;
-      el.data.sable += elDel.data.sable;
+      el.data.eau += pp[0][6].data.eau;
+      el.data.energie += pp[0][6].data.energie;
+      el.data.sable += pp[0][6].data.sable;
+      supprimeObjet(pp[0][6]);
 
       if (nomObjetFinal)
         el.innerHTML = nomObjetFinal;
 
-      supprimeObjet(pp[7]);
+      return false;
     }
-    return true;
   }
+  return true;
 }
 
 function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
@@ -293,7 +286,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       typeof typeObjet !== 'undefined' &&
       pp.length) {
       el.data[typeRessource] += quantiteRessource;
-      supprimeObjet(pp[7]);
+      supprimeObjet(pp[0][6]);
 
       return false;
     }
@@ -320,7 +313,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      supprimeObjet(pp[7]);
+      supprimeObjet(pp[0][6]);
       el.innerHTML = nomObjetFinal;
       el.data.amour = 0;
     }
@@ -577,7 +570,7 @@ o = {
     [muer, '🌽', 15], //TODO Si eau
   ],
   '🌽': [
-    //[produire, 0.3, '🌱', '💧'], 
+    //[produire, 0.3, '🌱', '💧'],
   ],
 };
 
