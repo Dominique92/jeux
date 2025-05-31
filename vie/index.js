@@ -35,6 +35,9 @@ let o = {},
  * Scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
  *   La première ayant abouti interrompt la liste
  */
+//TODO ne manipuler que des struct xy
+//TODO Flag consommable / init data
+//TODO Consommer / chercher type de ressource + (quantité ?)
 
 // ROUTINES
 function pixelsFromXY(x, y) {
@@ -71,10 +74,12 @@ function caseEl(x, y, el) {
 }
 
 function pointsProches(el, deep, limit, searched, extended) {
-  if (typeof el === 'object') {
-    let listeProches = [],
-      dMin = 999999;
+  const xy = xyFromEl(el);
 
+  let listeProches = [],
+    dMin = 999999;
+
+  if (xy) {
     // Randomize points order array
     for (let i = Math.random() * 4; i > 0; i--)
       deltasProches.push(deltasProches.shift());
@@ -83,8 +88,8 @@ function pointsProches(el, deep, limit, searched, extended) {
       /* eslint-disable-next-line no-loop-func */
       deltasProches.forEach(delta => {
         for (let i = 0; i < d && listeProches.length < limit; i++) {
-          const nx = el.data.x + d * delta[0] + i * delta[2],
-            ny = el.data.y + d * delta[1] + i * delta[3],
+          const nx = xy.x + d * delta[0] + i * delta[2],
+            ny = xy.y + d * delta[1] + i * delta[3],
             elN = caseEl(nx, ny),
             pixel = pixelsFromXY(nx, ny);
 
@@ -107,8 +112,8 @@ function pointsProches(el, deep, limit, searched, extended) {
       zones[searched].forEach((col, noCol) => {
         col.forEach((ligne, noLigne) => {
 
-          const deltaCol = noCol - Math.round(el.data.x / 4),
-            deltaLigne = noLigne - Math.round(el.data.y / 4),
+          const deltaCol = noCol - Math.round(xy.x / 4),
+            deltaLigne = noLigne - Math.round(xy.y / 4),
             dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
 
           if (dMin > dist) {
@@ -143,11 +148,10 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
 
       el.data = {
         ...el.data,
-        x: nx,
-        y: ny,
         ...data,
-        noIteration: noIteration, // Pour éviter d'être relancé pendant cette itération
       };
+
+      el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
       // Starting position
       if (typeof pixelDepart === 'object') {
@@ -157,7 +161,7 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
 
       // Destination position (after transition)
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        const positionPixels = pixelsFromXY(nx, ny /*, !(data && data.model)*/ );
+        const positionPixels = pixelsFromXY(nx, ny);
         el.style.left = positionPixels.left + 'px';
         el.style.top = positionPixels.top + 'px';
       }, 0);
@@ -178,12 +182,12 @@ function ajouteObjet(x, y, symbol, data) {
 
     // Hold moves when hover
     el.onmouseover = () => {
-      el.data.hovered = true;
+      el.hovered = true;
       el.style.top = window.getComputedStyle(el).top;
       el.style.left = window.getComputedStyle(el).left;
     };
     el.onmouseout = () => {
-      el.data.hovered = false;
+      el.hovered = false;
     };
 
     // Mouse actions
@@ -207,7 +211,7 @@ function supprimeObjet(el) {
   }
 }
 
-function deplaceObjet(el, nx, ny, pixelDepart) { // De x, y vers nx, ny
+function deplaceObjet(el, nx, ny, pixelDepart) { // el vers nx, ny
   if (typeof el === 'object') {
     const nEl = caseEl(nx, ny);
 
@@ -235,23 +239,25 @@ function muer(el, nomObjet, age) { // Verbe
 }
 
 function errer(el) { // Verbe
-  if (typeof el === 'object') {
-    const pp = pointsProches(el, 1, 1);
+  const pp = pointsProches(el, 1, 1),
+    xy = xyFromEl(el);
 
+  if (xy) {
     if (pp.length && el.data.energie > 0)
-      return !deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]);
+      return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
     return true;
   }
 }
 
 function rapprocher(el, nomObjet) { // Verbe
-  if (typeof el === 'object') {
-    //TODO ??? jusqu'au même emplacement
-    const pp = pointsProches(el, 5, 1, nomObjet, true);
+  const pp = pointsProches(el, 5, 1, nomObjet, true),
+    xy = xyFromEl(el);
 
+  if (xy) {
+    //TODO ??? jusqu'au même emplacement
     if (pp.length &&
-      deplaceObjet(el, el.data.x + pp[0][0], el.data.y + pp[0][1]))
+      deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]))
       return false;
 
     return true;
@@ -372,7 +378,7 @@ function rebuidCases() {
   zones = [];
   for (const el of divEls)
     if (!el.data.model && // Pas les modèles
-      !el.data.hovered) // Pas si le curseur est au dessus
+      !el.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
       xy = xyFromEl(el);
@@ -390,16 +396,7 @@ function rebuidCases() {
     zones[car][xy.x / 4][xy.y / 4]++;
 
     // Debug
-    /* eslint-disable-next-line one-var */
-    const data = {
-      ...el.data,
-    };
-    //TODO faire une sous structure ressource
-    delete data.x;
-    delete data.y;
-    delete data.noIteration;
-    delete data.hovered;
-    el.setAttribute('title', JSON.stringify(data).replace(/\{|"|\}/gu, '') || '-');
+    el.setAttribute('title', JSON.stringify(el.data).replace(/\{|"|\}/gu, '') || '-');
   }
 }
 
@@ -412,8 +409,8 @@ function iterer() {
     noIteration++;
     for (const el of divEls)
       if (!el.data.model && // Pas les modèles
-        !el.data.hovered && // Pas si le curseur est au dessus
-        el.data.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
+        !el.hovered && // Pas si le curseur est au dessus
+        el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
       developper(el, el.innerHTML);
       el.data.age++;
@@ -431,7 +428,7 @@ function iterer() {
 //TODO save/restaure
 
 window.onload = rebuidCases;
-self.setInterval(iterer, 1000); //TODO saccadé
+self.setInterval(iterer, 1000);
 
 function clickOnDiv(evt) {
   if (!evt.target.data.model) {
@@ -497,13 +494,12 @@ document.ondrop = evt => {
     dragstartInfo.el.style.top = top + 'px';
 
     // Case occupée.
-    //TODO certaines fois, bouge dessus
     //TODO ne prend pas les zones de sable
     if (caseEl(xy.x, xy.y))
       setTimeout(() => {
         dragstartInfo.el.style.left = dragstartInfo.style.left;
         dragstartInfo.el.style.top = dragstartInfo.style.top;
-      }, 100); //TODO pourquoi 100 ?
+      }, 0);
   }
 
   evt.preventDefault();
