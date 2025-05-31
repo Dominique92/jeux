@@ -73,7 +73,7 @@ function caseEl(x, y, el) {
   return cases[x][y];
 }
 
-function pointsProches(el, deep, limit, searched, extended) {
+function pointsProches(el, deep, limit, searched) {
   const xy = xyFromEl(el);
 
   let listeProches = [],
@@ -81,10 +81,10 @@ function pointsProches(el, deep, limit, searched, extended) {
 
   if (xy) {
     // Randomize points order array
-    for (let i = Math.random() * 4; i > 0; i--)
+    for (let i = Math.random() * deltasProches.length; i > 0; i--)
       deltasProches.push(deltasProches.shift());
 
-    for (let d = 1; d < deep + 1 && listeProches.length < limit; d++) {
+    for (let d = 1; d < Math.min(deep, 5) + 1 && listeProches.length < limit; d++) {
       /* eslint-disable-next-line no-loop-func */
       deltasProches.forEach(delta => {
         for (let i = 0; i < d && listeProches.length < limit; i++) {
@@ -106,12 +106,11 @@ function pointsProches(el, deep, limit, searched, extended) {
     }
 
     // Recherche éloignés
-    if (extended &&
+    if (deep > 5 &&
       !listeProches.length &&
       typeof zones[searched] === 'object')
       zones[searched].forEach((col, noCol) => {
         col.forEach((ligne, noLigne) => {
-
           const deltaCol = noCol - Math.round(xy.x / 4),
             deltaLigne = noLigne - Math.round(xy.y / 4),
             dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
@@ -137,7 +136,6 @@ function pointsProches(el, deep, limit, searched, extended) {
 // Move el to the x/y position if it's free
 function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
   if (typeof el === 'object') {
-    //TODO ??? pouvoir arriver dans la même case (et absorber à la fin)
     if (!caseEl(nx, ny) && typeof el === 'object') {
       // Register in the grid
       cases[nx][ny] = el;
@@ -252,11 +250,10 @@ function errer(el) { // Verbe
 }
 
 function rapprocher(el, nomObjet) { // Verbe
-  const pp = pointsProches(el, 5, 1, nomObjet, true),
+  const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
   if (xy) {
-    //TODO ??? jusqu'au même emplacement
     if (pp.length &&
       deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]))
       return false;
@@ -382,7 +379,9 @@ function rebuidCases() {
       !el.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
-      xy = xyFromEl(el);
+      xy = xyFromEl(el),
+      zx = Math.round(xy.x / 4),
+      zy = Math.round(xy.y / 4);
 
     // Population des cases
     caseEl(xy.x, xy.y, el);
@@ -390,11 +389,11 @@ function rebuidCases() {
     // Population des zones
     if (typeof zones[car] === 'undefined')
       zones[car] = [];
-    if (typeof zones[car][xy.x / 4] === 'undefined')
-      zones[car][xy.x / 4] = [];
-    if (typeof zones[car][xy.x / 4][xy.y / 4] === 'undefined')
-      zones[car][xy.x / 4][xy.y / 4] = 0;
-    zones[car][xy.x / 4][xy.y / 4]++;
+    if (typeof zones[car][zx] === 'undefined')
+      zones[car][zx] = [];
+    if (typeof zones[car][zx][zy] === 'undefined')
+      zones[car][zx][zy] = 0;
+    zones[car][zx][zy]++;
 
     // Debug
     el.setAttribute('title', JSON.stringify(el.data).replace(/\{|"|\}/gu, '') || '-');
@@ -596,10 +595,10 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
+ajouteObjet(10, 8, '🧔');
+ajouteObjet(25, 8, '👩');
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
-  ajouteObjet(14, 8, '🧔');
-  ajouteObjet(22, 8, '👩');
+if (0) {
   //ajouteObjet(14, 8, '👫🧍');
   //ajouteObjet(16, 8, '🧔👩');
   ajouteObjet(14, 9, '▒');
@@ -611,7 +610,7 @@ if (1) {
 }
 
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouteObjet(8 + i * 3, 12, nomSymbole);
   });
