@@ -63,17 +63,36 @@ function xyFromEl(el) {
 }
 
 // Get or set case el
-function caseEl(x, y, el) {
+function caseEl(x, y, nomObjet, el) {
+  // 7,7 : test case free
+  // 7,7,🌿 : returns case
+  // 7,7,🌿,el : fill the case
+
   if (typeof cases[x] === 'undefined')
     cases[x] = [];
 
-  if (typeof el === 'object')
-    cases[x][y] = el;
+  if (typeof cases[x][y] === 'undefined')
+    cases[x][y] = [];
 
-  return cases[x][y];
+  if (typeof nomObjet === 'undefined')
+    return cases[x][y];
+
+  if (typeof el === 'object')
+    cases[x][y][nomObjet] = el;
+
+  return cases[x][y][nomObjet];
+}
+
+function deleteCase(el) {
+  const xy = xyFromEl(el);
+  delete caseEl(xy.x, xy.y)[el.innerHTML];
 }
 
 function pointsProches(el, deep, limit, searched) {
+  // el : Autour de el
+  // deep : Rayon (nb cases) autour de el
+  // limit : nombre de points ramenés
+  // searched : type d'objets 🌿 recherchés
   const xy = xyFromEl(el);
 
   let listeProches = [],
@@ -84,23 +103,23 @@ function pointsProches(el, deep, limit, searched) {
     for (let i = Math.random() * deltasProches.length; i > 0; i--)
       deltasProches.push(deltasProches.shift());
 
+    // Recherche dans un rayon
     for (let d = 1; d < Math.min(deep, 5) + 1 && listeProches.length < limit; d++) {
-      /* eslint-disable-next-line no-loop-func */
       deltasProches.forEach(delta => {
         for (let i = 0; i < d && listeProches.length < limit; i++) {
           const nx = xy.x + d * delta[0] + i * delta[2],
             ny = xy.y + d * delta[1] + i * delta[3],
-            elN = caseEl(nx, ny),
-            pixel = pixelsFromXY(nx, ny);
+            pixelEln = pixelsFromXY(nx, ny),
+            caseN = caseEl(nx, ny),
+            elN = caseEl(nx, ny, searched);
 
-          if (((!searched && !elN) || // Cases libres
-              (!searched && elN && elN.innerHTML === '▒') || // Sable
-              (searched && elN && elN.innerHTML === searched) // Objet trouvé
-            ) &&
-            0 <= pixel.left && pixel.left < window.innerWidth - boxSize &&
-            0 <= pixel.top && pixel.top < window.innerHeight - boxSize
-          )
-            listeProches.push([...delta, nx, ny, elN]);
+          if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
+            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
+
+            if ((!searched && !caseN) || // Cases libres
+              (searched && elN)) // Le bon type d'objet
+              listeProches.push([...delta, nx, ny]);
+          }
         }
       });
     }
@@ -134,14 +153,15 @@ function pointsProches(el, deep, limit, searched) {
 }
 
 // Move el to the x/y position if it's free
-function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
+function communObjet(el, nomObjet, nx, ny, data, pixelDepart, pixelArrivee) {
   if (typeof el === 'object') {
-    if (!caseEl(nx, ny) && typeof el === 'object') {
-      const xyDebut = xyFromEl(el);
+    if (!caseEl(nx, ny, nomObjet) && typeof el === 'object') {
+      // Delete the previous location
+      deleteCase(el);
 
-      // Register in the grid
-      cases[nx][ny] = el;
-      delete cases[xyDebut.x][xyDebut.y];
+      // Register in the grid at the new place
+      if (nx && ny)
+        caseEl(nx, ny, nomObjet, el)
 
       // Update the data
       if (nomObjet)
@@ -161,25 +181,26 @@ function communObjet(el, nomObjet, nx, ny, data, pixelDepart) {
 
       // Destination position (after transition)
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        const positionPixels = pixelsFromXY(nx, ny);
-        el.style.left = positionPixels.left + 'px';
-        el.style.top = positionPixels.top + 'px';
+        const pa = pixelArrivee || pixelsFromXY(nx, ny);
+        el.style.left = pa.left + 'px';
+        el.style.top = pa.top + 'px';
       }, 0);
 
       el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
-      return true;
+      return el;
     }
+    return el; //TODO should not !!
   }
 }
 
-function ajouteObjet(x, y, symbol, data) {
+function ajouteObjet(x, y, symbol, data, pixelArrivee) {
   const el = document.createElement('div');
 
   if (communObjet(el, symbol, x, y, { // ajouteObjet
       ...data,
       ...initData,
-    })) {
+    }, pixelArrivee, pixelArrivee)) {
     document.body.appendChild(el);
 
     // Hold moves when hover
@@ -208,23 +229,13 @@ function supprimeObjet(el) {
 
   if (xy) {
     el.remove(); //BEST smooth desaparence
-    delete cases[xy.x][xy.y];
+    //delete cases[xy.x][xy.y]; //TODO
     return true; // Succes
   }
 }
 
 function deplaceObjet(el, nx, ny, pixelDepart) { // el vers nx, ny
-  if (typeof el === 'object') {
-    const nEl = caseEl(nx, ny);
-
-    // S'il y avait du sable, prend le sable et sa place
-    if (nEl && nEl.innerHTML === '▒') {
-      supprimeObjet(nEl);
-      el.data.sable++;
-    }
-
-    return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
-  }
+  return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
 }
 
 // VERBES
@@ -372,7 +383,7 @@ function rebuidCases() {
   cases = [];
   zones = [];
   for (const el of divEls)
-    if (!el.data.model && // Pas les modèles
+    if (el.data && !el.data.model && // Pas les modèles
       !el.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
@@ -381,7 +392,7 @@ function rebuidCases() {
       zy = Math.round(xy.y / 4);
 
     // Population des cases
-    caseEl(xy.x, xy.y, el);
+    caseEl(xy.x, xy.y, car, el);
 
     // Population des zones
     if (typeof zones[car] === 'undefined')
@@ -464,7 +475,6 @@ function dragstart(evt) {
 }
 
 // Interdit les emplacements occupés
-//TODO BUG le sable n'est pas interdit
 document.ondragover = evt => {
   const xy = xyFromPixels(
     evt.x - dragstartInfo.offset.x,
@@ -547,7 +557,8 @@ o = {
   ],
   '👪': [
     [developper, 'animer'],
-    //[muer, '▒', 15],  //TODO produite enfant
+    [muer, '👫', 15],
+    //TODO produire enfant
     [errer],
   ],
   '🧍': [
@@ -581,14 +592,12 @@ o = {
 // INITIALISATIONS
 // Modèles
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  const el = ajouteObjet(i, i * 2, nomSymbole, {
+  ajouteObjet(null, null, nomSymbole, {
     model: true,
+  }, {
+    left: 5,
+    top: i * 2 * boxSize + 5,
   });
-
-  setTimeout(() => {
-    el.style.left = '0';
-    el.style.top = i * 2 * boxSize + 'px';
-  }, 0);
 });
 
 // Tests

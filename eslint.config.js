@@ -93,7 +93,7 @@ export default [{
     "no-label-var": "warn",
     "no-lone-blocks": "warn",
     "no-lonely-if": "warn",
-    "no-loop-func": "warn",
+    //"no-loop-func": "warn",
     "no-loss-of-precision": "warn",
     //"no-magic-numbers": "warn",
     "no-misleading-character-class": "warn",
