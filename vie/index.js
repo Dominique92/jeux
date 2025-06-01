@@ -13,6 +13,7 @@ const statsEl = document.getElementById('stats'),
     eau: 50,
     energie: 30,
     sable: 0,
+    brique: 0,
   },
   boxSize = 16,
   gigue = () => Math.random() * 4 - 2;
@@ -153,93 +154,83 @@ function pointsProches(el, deep, limit, searched) {
 }
 
 // Move el to the x/y position if it's free
-function communObjet(el, nomObjet, nx, ny, data, pixelDepart, pixelArrivee) {
-  if (typeof el === 'object') {
-    if (!caseEl(nx, ny, nomObjet) && typeof el === 'object') {
-      // Delete the previous location
-      deleteCase(el);
+function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) {
+  const pos = position || pixelsFromXY(nx, ny);
 
-      // Register in the grid at the new place
-      if (nx && ny)
-        caseEl(nx, ny, nomObjet, el)
+  if (typeof nomObjet === 'string')
+    el.innerHTML = nomObjet;
 
-      // Update the data
-      if (nomObjet)
-        el.innerHTML = nomObjet;
+  if (!caseEl(nx, ny, el.innerHTML) && typeof el === 'object') {
+    // Delete the previous location
+    deleteCase(el);
 
-      el.data = {
-        ...el.data,
-        ...data,
-      };
+    el.data = {
+      ...el.data,
+      ...data,
+    };
 
-      // Smoothly move the icon
-      // Starting position
-      if (typeof pixelDepart === 'object') {
-        el.style.left = pixelDepart.left + 'px';
-        el.style.top = pixelDepart.top + 'px';
-      }
+    // Register in the grid at the new place
+    if (nx && ny)
+      caseEl(nx, ny, el.innerHTML, el)
 
-      // Destination position (after transition)
+    // Positionne dans la fenêtre
+    el.style.left = pos.left + 'px';
+    el.style.top = pos.top + 'px';
+    el.style.display = 'initial';
+
+    // Smoothly move the icon
+    if (typeof positionFinale === 'object')
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        const pa = pixelArrivee || pixelsFromXY(nx, ny);
-        el.style.left = pa.left + 'px';
-        el.style.top = pa.top + 'px';
+        el.style.left = positionFinale.left + 'px';
+        el.style.top = positionFinale.top + 'px';
       }, 0);
 
-      el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-
-      return el;
-    }
-    return el; //TODO should not !!
+    el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
   }
 }
 
-function ajouteObjet(x, y, symbol, data, pixelArrivee) {
+function ajouter(x, y, symbol, data, position, positionFinale) {
   const el = document.createElement('div');
 
-  if (communObjet(el, symbol, x, y, { // ajouteObjet
-      ...data,
-      ...initData,
-    }, pixelArrivee, pixelArrivee)) {
-    document.body.appendChild(el);
+  deplacer(el, x, y, position, positionFinale, symbol, { // ajouter
+    ...data,
+    ...initData,
+  });
 
-    // Hold moves when hover
-    el.onmouseover = () => {
-      el.hovered = true;
-      el.style.top = window.getComputedStyle(el).top;
-      el.style.left = window.getComputedStyle(el).left;
-    };
-    el.onmouseout = () => {
-      el.hovered = false;
-    };
+  document.body.appendChild(el);
 
-    // Mouse actions
-    el.draggable = true;
-    /* eslint-disable-next-line no-use-before-define */
-    el.ondragstart = dragstart;
-    /* eslint-disable-next-line no-use-before-define */
-    el.onclick = clickOnDiv;
+  // Hold moves when hover
+  el.onmouseover = () => {
+    el.hovered = true;
+    el.style.top = window.getComputedStyle(el).top;
+    el.style.left = window.getComputedStyle(el).left;
+  };
+  el.onmouseout = () => {
+    el.hovered = false;
+  };
 
-    return el; // Succes
-  }
+  // Mouse actions
+  el.draggable = true;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragstart = dragstart;
+  /* eslint-disable-next-line no-use-before-define */
+  el.onclick = clickOnDiv;
+
+  return el;
 }
 
-function supprimeObjet(el) {
+function supprimer(el) {
   const xy = xyFromEl(el);
 
   if (xy) {
     el.remove(); //BEST smooth desaparence
-    //delete cases[xy.x][xy.y]; //TODO
-    return true; // Succes
+    deleteCase(el);
+    return false;
   }
+  return true;
 }
 
-function deplaceObjet(el, nx, ny, pixelDepart) { // el vers nx, ny
-  return communObjet(el, null, nx, ny, null, pixelDepart); // deplaceObjet
-}
-
-// VERBES
-function muer(el, nomObjet, age) { // Verbe
+function muer(el, nomObjet, age) {
   if (nomObjet &&
     el.data.age > (age || 0)) {
     el.innerHTML = nomObjet;
@@ -250,27 +241,27 @@ function muer(el, nomObjet, age) { // Verbe
   return true;
 }
 
-function errer(el) { // Verbe
+function errer(el) {
   const pp = pointsProches(el, 1, 1),
     xy = xyFromEl(el);
 
   if (xy && pp.length && el.data.energie > 0)
-    return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
+    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
   return true;
 }
 
-function rapprocher(el, nomObjet) { // Verbe
+function rapprocher(el, nomObjet) {
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
   if (pp.length && xy)
-    return !deplaceObjet(el, xy.x + pp[0][0], xy.y + pp[0][1]);
+    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
   return true;
 }
 
-function absorber(el, nomObjet, nomObjetFinal) { // Verbe
+function absorber(el, nomObjet, nomObjetFinal) {
   if (typeof el === 'object') {
     const pp = pointsProches(el, 1, 1, nomObjet);
 
@@ -279,7 +270,7 @@ function absorber(el, nomObjet, nomObjetFinal) { // Verbe
       el.data.eau += pp[0][6].data.eau;
       el.data.energie += pp[0][6].data.energie;
       el.data.sable += pp[0][6].data.sable;
-      supprimeObjet(pp[0][6]);
+      supprimer(pp[0][6]);
 
       if (nomObjetFinal) {
         el.innerHTML = nomObjetFinal;
@@ -301,7 +292,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       typeof typeObjet !== 'undefined' &&
       pp.length) {
       el.data[typeRessource] += quantiteRessource;
-      supprimeObjet(pp[0][6]);
+      supprimer(pp[0][6]);
 
       return false;
     }
@@ -328,7 +319,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       el.data.amour = 0;
 
     if (el.data.amour++ > 3) {
-      supprimeObjet(pp[0][6]);
+      supprimer(pp[0][6]);
       el.innerHTML = nomObjetFinal;
       el.data.amour = 0;
     }
@@ -337,7 +328,7 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
   return true;
 }}*/
 
-function produire(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TESTER
+function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TESTER
   if (typeof el === 'object') {
     // Si nomRemplace undefined, dans une case vide
     const pp = pointsProches(el, 1, 1, nomRemplace);
@@ -348,7 +339,7 @@ function produire(el, probabilite, nomNouveau, nomRemplace) { // Verbe //TODO TE
       if (nomRemplace && elN)
         elN.innerHTML = nomNouveau;
       else
-        ajouteObjet(pp[0][0], pp[0][1], nomNouveau);
+        ajouter(pp[0][0], pp[0][1], nomNouveau);
 
       return false;
     }
@@ -371,10 +362,10 @@ function stopper() {
 function developper(el, acteur) {
   if (typeof o[acteur] === 'object')
     return o[acteur].every(action =>
-      action[0](el, ...action.slice(1)) // Stop when one action is completed
+      action[0](el, ...action.slice(1)) // Stop when one action is completed & return false
     );
 
-  return true; // continue
+  return true; // Continue
 }
 
 function rebuidCases() {
@@ -444,7 +435,7 @@ function clickOnDiv(evt) {
       JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
       errer(evt.target);
     else
-      supprimeObjet(evt.target);
+      supprimer(evt.target);
   }
 }
 
@@ -474,15 +465,9 @@ function dragstart(evt) {
   helpEl.style.display = 'none';
 }
 
-// Interdit les emplacements occupés
 document.ondragover = evt => {
-  const xy = xyFromPixels(
-    evt.x - dragstartInfo.offset.x,
-    evt.y - dragstartInfo.offset.y,
-  );
-
-  if (!caseEl(xy.x, xy.y))
-    evt.preventDefault();
+  // Tout autoriser dans la fenêtre
+  evt.preventDefault();
 };
 
 document.ondragend = evt => { // Error
@@ -499,13 +484,12 @@ document.ondrop = evt => {
 
   if (dragstartInfo.data.model) {
     // Création à partir du modèle
-    const elN = ajouteObjet(xy.x, xy.y, dragstartInfo.innerHTML);
+    const elN = ajouter(xy.x, xy.y, dragstartInfo.innerHTML);
     if (elN) {
       elN.style.left = left + 'px';
       elN.style.top = top + 'px';
     }
   } else {
-    dragstartInfo.el.style.display = 'initial';
     dragstartInfo.el.style.left = left + 'px';
     dragstartInfo.el.style.top = top + 'px';
   }
@@ -592,7 +576,7 @@ o = {
 // INITIALISATIONS
 // Modèles
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  ajouteObjet(null, null, nomSymbole, {
+  ajouter(null, null, nomSymbole, {
     model: true,
   }, {
     left: 5,
@@ -601,23 +585,23 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouteObjet(10, 8, '🧔');
-ajouteObjet(25, 8, '👩');
+ajouter(10, 8, '🧔');
+ajouter(25, 8, '👩');
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
-  ajouteObjet(14, 8, '👫🧍');
-  ajouteObjet(16, 8, '🧔👩');
-  ajouteObjet(14, 9, '▒');
-  ajouteObjet(15, 9, '▒');
-  ajouteObjet(13, 8, '▒');
-  ajouteObjet(13, 7, '▒');
-  ajouteObjet(14, 7, '▒');
-  ajouteObjet(15, 8, '▒');
+  ajouter(14, 8, '👫🧍');
+  ajouter(16, 8, '🧔👩');
+  ajouter(14, 9, '▒');
+  ajouter(15, 9, '▒');
+  ajouter(13, 8, '▒');
+  ajouter(13, 7, '▒');
+  ajouter(14, 7, '▒');
+  ajouter(15, 8, '▒');
 
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
-    ajouteObjet(8 + i * 3, 12, nomSymbole);
+    ajouter(8 + i * 3, 12, nomSymbole);
   });
   Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
-    ajouteObjet(11 + i * 3, 17, nomSymbole);
+    ajouter(11 + i * 3, 17, nomSymbole);
   });
 }
