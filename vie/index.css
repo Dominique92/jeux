@@ -27,3 +27,7 @@ div {
 #stats {
   margin: 3px 30px;
 }
+
+#paradis {
+  display: none;
+}

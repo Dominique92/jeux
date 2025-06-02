@@ -1,5 +1,6 @@
 const statsEl = document.getElementById('stats'),
   helpEl = document.getElementById('help'),
+  paradisEl = document.getElementById('paradis'),
   deltasProches = [
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
@@ -176,7 +177,6 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) {
     // Positionne dans la fenêtre
     el.style.left = pos.left + 'px';
     el.style.top = pos.top + 'px';
-    el.style.display = 'initial';
 
     // Smoothly move the icon
     if (typeof positionFinale === 'object')
@@ -230,6 +230,7 @@ function supprimer(el) {
   return true;
 }
 
+// VERBES
 function muer(el, nomObjet, age) {
   if (nomObjet &&
     el.data.age > (age || 0)) {
@@ -255,8 +256,9 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) {
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
-  if (pp.length && xy &&
-    el.data[nomRessource] && el.data[nomRessource] < (quRessource || 20))
+  if (xy && pp.length &&
+    (!nomRessource || (el.data[nomRessource] && el.data[nomRessource] < (quRessource || 20)))
+  )
     return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
   return true;
@@ -282,7 +284,8 @@ function absorber(el, nomObjet, nomObjetFinal) {
   return true;
 }
 
-function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
+/*
+function wwwconsommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
   if (typeof el === 'object') {
     const pp = pointsProches(el, 1, 1, typeObjet);
 
@@ -296,20 +299,19 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
       return false;
     }
 
-    //TODO -> rapprocher
-    /*/ Cherche
+    // Cherche
     if (el.data[typeRessource] < 10 &&
       typeof typeObjet !== 'undefined') {
       if (!rapprocher(el, typeObjet)) //TODO TEST
 
         return false;
-    }*/
+    }
 
     return true;
   }
 }
 
-/*function WWWfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETE : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
+function wwwfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETE : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
 	if(typeof el === 'object'){
   const pl = pointsProches(el, 1, 1, nomObjet);
 
@@ -325,7 +327,8 @@ function consommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DEL
     return false;
   }
   return true;
-}}*/
+}}
+*/
 
 function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TESTER
   if (typeof el === 'object') {
@@ -346,18 +349,7 @@ function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TESTER
   }
 }
 
-// Debug
-/* eslint-disable-next-line no-unused-vars */
-function tracer(el, t) {
-  console.log('trace ' + t);
-  return true;
-}
-
-/* eslint-disable-next-line no-unused-vars */
-function stopper() {
-  return false;
-}
-
+// ACTIVATION
 function rebuidCases() {
   const divEls = document.getElementsByTagName('div');
 
@@ -397,7 +389,7 @@ function iterer() {
     // Exécution des actions
     noIteration++;
     for (const el of divEls)
-      if (!el.data.model && // Pas les modèles
+      if (el.data && !el.data.model && // Pas les modèles
         !el.hovered && // Pas si le curseur est au dessus
         el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
@@ -425,7 +417,7 @@ self.setInterval(iterer, 1000);
 function clickOnDiv(evt) {
   if (!evt.target.data.model) {
     if (o[evt.target.innerHTML] &&
-      JSON.stringify(o[evt.target.innerHTML][0]).includes('animer'))
+      JSON.stringify(o[evt.target.innerHTML][0] || []).includes('animer'))
       errer(evt.target);
     else
       supprimer(evt.target);
@@ -454,7 +446,7 @@ function dragstart(evt) {
   if (!evt.target.data.model)
     // Efface temporairement l'icône de départ
     setTimeout(() => {
-      evt.target.style.display = 'none';
+      paradisEl.appendChild(evt.target);
     }, 0);
 
   helpEl.style.display = 'none';
@@ -465,8 +457,9 @@ document.ondragover = evt => {
   evt.preventDefault();
 };
 
-document.ondragend = evt => { // Error
-  dragstartInfo.el.style.display = 'initial';
+document.ondragend = evt => { // Drag error
+  document.body.appendChild(evt.target);
+
   evt.preventDefault();
 };
 
@@ -476,16 +469,16 @@ document.ondrop = evt => {
     top = evt.y - dragstartInfo.offset.y,
     xy = xyFromPixels(left, top);
 
-  rebuidCases();
-
   if (dragstartInfo.data.model) {
     // Création à partir du modèle
     const elN = ajouter(xy.x, xy.y, dragstartInfo.innerHTML);
     if (elN) {
+      document.body.appendChild(elN);
       elN.style.left = left + 'px';
       elN.style.top = top + 'px';
     }
   } else {
+    document.body.appendChild(dragstartInfo.el);
     dragstartInfo.el.style.left = left + 'px';
     dragstartInfo.el.style.top = top + 'px';
   }
@@ -556,7 +549,7 @@ o = {
     [muer, '▒', 15],
   ],
   '⛲': [
-    //[produire, 0.3, '💧'],
+    [produire, 0.3, '💧'],
   ],
   '💧': [
     //BUG ![errer, 0.05],//TODO BUG laisse carc. //TODO smooth evanescence (transparency)
@@ -568,7 +561,7 @@ o = {
     [muer, '🌽', 15], //TODO Si eau
   ],
   '🌽': [
-    //[produire, 0.3, '🌱', '💧'],
+    [produire, 0.3, '🌱', '💧'],
   ],
 };
 
@@ -585,7 +578,7 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 ajouter(10, 8, '🧔');
-ajouter(13, 8, '💧');
+ajouter(13, 8, '👩');
 /* eslint-disable-next-line no-constant-condition */
 if (0) {
   ajouter(14, 8, '👫🧍');
