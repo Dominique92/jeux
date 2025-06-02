@@ -57,11 +57,9 @@ function xyFromPixels(left, top) {
 }
 
 function xyFromEl(el) {
-  if (typeof el === 'object') {
-    const rect = el.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
 
-    return xyFromPixels(rect.left, rect.top);
-  }
+  return xyFromPixels(rect.left, rect.top);
 }
 
 // Get or set case el
@@ -161,7 +159,7 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) {
   if (typeof nomObjet === 'string')
     el.innerHTML = nomObjet;
 
-  if (!caseEl(nx, ny, el.innerHTML) && typeof el === 'object') {
+  if (!caseEl(nx, ny, el.innerHTML)) {
     // Delete the previous location
     deleteCase(el);
 
@@ -244,10 +242,13 @@ function muer(el, nomObjet, age) {
 
 function errer(el) {
   const pp = pointsProches(el, 1, 1),
-    xy = xyFromEl(el);
+    xy = xyFromEl(el),
+    xn = xy.x + pp[0][0],
+    yn = xy.y + pp[0][1],
+    existe = caseEl(xn, yn);
 
-  if (xy && pp.length && el.data.energie > 0)
-    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
+  if (pp.length && !existe && el.data.energie > 0)
+    return deplacer(el, xn, yn);
 
   return true;
 }
@@ -284,69 +285,17 @@ function absorber(el, nomObjet, nomObjetFinal) {
   return true;
 }
 
-/*
-function wwwconsommer(el, typeObjet, typeRessource, quantiteRessource) { //TODO DELETE
-  if (typeof el === 'object') {
-    const pp = pointsProches(el, 1, 1, typeObjet);
+function produire(el, nomNouveau, probabilite) {
+  const xy = xyFromEl(el),
+    existe = caseEl(xy.x, xy.y)[nomNouveau];
 
-    // Consomme
-    if (el.data[typeRessource] < 20 &&
-      typeof typeObjet !== 'undefined' &&
-      pp.length) {
-      el.data[typeRessource] += quantiteRessource;
-      supprimer(pp[0][6]);
-
-      return false;
-    }
-
-    // Cherche
-    if (el.data[typeRessource] < 10 &&
-      typeof typeObjet !== 'undefined') {
-      if (!rapprocher(el, typeObjet)) //TODO TEST
-
-        return false;
-    }
-
-    return true;
-  }
-}
-
-function wwwfusionner(el, nomObjet, nomObjetFinal) { //TODO DELETE : factoriser avec consommer / rapprocher ? //TODO TEST KO (manque rapprocher)
-	if(typeof el === 'object'){
-  const pl = pointsProches(el, 1, 1, nomObjet);
-
-  if (pl.length) {
-    if (typeof el.data.amour !== 'number')
-      el.data.amour = 0;
-
-    if (el.data.amour++ > 3) {
-      supprimer(pp[0][6]);
-      el.innerHTML = nomObjetFinal;
-      el.data.amour = 0;
-    }
+  if (!existe &&
+    Math.random() < probabilite) {
+    ajouter(xy.x, xy.y, nomNouveau);
     return false;
   }
+
   return true;
-}}
-*/
-
-function produire(el, probabilite, nomNouveau, nomRemplace) { //TODO TESTER
-  if (typeof el === 'object') {
-    // Si nomRemplace undefined, dans une case vide
-    const pp = pointsProches(el, 1, 1, nomRemplace);
-
-    if (pp.length && Math.random() < probabilite) {
-      const elN = caseEl(pp[0][0], pp[0][1]);
-
-      if (nomRemplace && elN)
-        elN.innerHTML = nomNouveau;
-      else
-        ajouter(pp[0][0], pp[0][1], nomNouveau);
-
-      return false;
-    }
-    return true;
-  }
 }
 
 // ACTIVATION
@@ -464,7 +413,6 @@ document.ondragend = evt => { // Drag error
 };
 
 document.ondrop = evt => {
-  //TODO BUG de temps en temps, va n'importe où
   const left = evt.x - dragstartInfo.offset.x,
     top = evt.y - dragstartInfo.offset.y,
     xy = xyFromPixels(left, top);
@@ -494,7 +442,8 @@ document.onkeydown = evt => {
 };
 
 // SCÉNARIOS
-//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
+//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
+//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕🎕🎕
 
 /* eslint-disable-next-line one-var */
 const vivant = [
@@ -542,17 +491,14 @@ o = {
     //TODO muer 50% 🧔 50% 👩
     [errer],
   ],
-  /* '👫🧍': [
-    [errer],
-  ],*/
   '💀': [
     [muer, '▒', 15],
   ],
   '⛲': [
-    [produire, 0.3, '💧'],
+    [produire, '💧', 0.2],
   ],
   '💧': [
-    //BUG ![errer, 0.05],//TODO BUG laisse carc. //TODO smooth evanescence (transparency)
+    [errer],
   ],
   '🌱': [
     [muer, '🌿', 15], //TODO Si eau
@@ -561,7 +507,7 @@ o = {
     [muer, '🌽', 15], //TODO Si eau
   ],
   '🌽': [
-    [produire, 0.3, '🌱', '💧'],
+    [produire, '🌱', 0.8],
   ],
 };
 
@@ -577,18 +523,23 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(10, 8, '🧔');
-ajouter(13, 8, '👩');
+ajouter(14, 8, '⛲');
+ajouter(14, 9, '🧱');
+ajouter(15, 9, '🧱');
+ajouter(13, 8, '🧱');
+ajouter(13, 7, '🧱');
+ajouter(14, 7, '🧱');
+ajouter(15, 8, '🧱');
 /* eslint-disable-next-line no-constant-condition */
-if (0) {
-  ajouter(14, 8, '👫🧍');
-  ajouter(16, 8, '🧔👩');
+if (1) {
+  /*
   ajouter(14, 9, '▒');
   ajouter(15, 9, '▒');
   ajouter(13, 8, '▒');
   ajouter(13, 7, '▒');
   ajouter(14, 7, '▒');
   ajouter(15, 8, '▒');
+*/
 
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouter(8 + i * 3, 12, nomSymbole);
