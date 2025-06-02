@@ -18,7 +18,7 @@ const statsEl = document.getElementById('stats'),
   boxSize = 16,
   gigue = () => Math.random() * 4 - 2;
 
-let o = {},
+let o = [],
   noIteration = 0,
   noIterationMax = 0,
   cases = [],
@@ -197,8 +197,6 @@ function ajouter(x, y, symbol, data, position, positionFinale) {
     ...initData,
   });
 
-  document.body.appendChild(el);
-
   // Hold moves when hover
   el.onmouseover = () => {
     el.hovered = true;
@@ -216,6 +214,8 @@ function ajouter(x, y, symbol, data, position, positionFinale) {
   /* eslint-disable-next-line no-use-before-define */
   el.onclick = clickOnDiv;
 
+  document.body.appendChild(el);
+
   return el;
 }
 
@@ -223,7 +223,7 @@ function supprimer(el) {
   const xy = xyFromEl(el);
 
   if (xy) {
-    el.remove(); //BEST smooth desaparence
+    el.remove();
     deleteCase(el);
     return false;
   }
@@ -359,15 +359,6 @@ function stopper() {
   return false;
 }
 
-function developper(el, acteur) {
-  if (typeof o[acteur] === 'object')
-    return o[acteur].every(action =>
-      action[0](el, ...action.slice(1)) // Stop when one action is completed & return false
-    );
-
-  return true; // Continue
-}
-
 function rebuidCases() {
   const divEls = document.getElementsByTagName('div');
 
@@ -411,7 +402,10 @@ function iterer() {
         !el.hovered && // Pas si le curseur est au dessus
         el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
-      developper(el, el.innerHTML);
+      if (typeof o[el.innerHTML] === 'object')
+        o[el.innerHTML].every(action =>
+          action[0](el, ...action.slice(1)) // Stop when one action is completed & return false
+        );
       el.data.age++;
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
@@ -443,6 +437,8 @@ function clickOnDiv(evt) {
 let dragstartInfo = null;
 
 function dragstart(evt) {
+  rebuidCases();
+
   dragstartInfo = {
     el: evt.target,
     innerHTML: evt.target.innerHTML,
@@ -464,11 +460,6 @@ function dragstart(evt) {
 
   helpEl.style.display = 'none';
 }
-
-document.ondragover = evt => {
-  // Tout autoriser dans la fenêtre
-  evt.preventDefault();
-};
 
 document.ondragend = evt => { // Error
   dragstartInfo.el.style.display = 'initial';
@@ -506,47 +497,51 @@ document.onkeydown = evt => {
 
 // SCÉNARIOS
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷
+
+/* eslint-disable-next-line one-var */
+const vivant = [
+  [rapprocher, '💧'], //TODO si besoin
+  [absorber, '💧'],
+  [rapprocher, '🌽'],
+  [absorber, '🌽'],
+  [rapprocher, '🌿'],
+  [absorber, '🌿'],
+  [rapprocher, '🌱'],
+  [absorber, '🌱'],
+];
+
 o = {
-  animer: [
-    [rapprocher, '💧'], //TODO si besoin
-    [absorber, '💧'],
-    [rapprocher, '🌽'],
-    [absorber, '🌽'],
-    [rapprocher, '🌿'],
-    [absorber, '🌿'],
-    [rapprocher, '🌱'],
-    [absorber, '🌱'],
-  ],
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
-    [developper, 'animer'],
+    [absorber, '🌿'],
+    ...vivant,
     [errer],
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
-    [developper, 'animer'],
+    ...vivant,
     [errer],
   ],
   '💏': [
-    [developper, 'animer'],
+    ...vivant,
     [muer, '👫', 5],
     [errer],
   ],
   '👫': [
-    [developper, 'animer'],
+    ...vivant,
     [muer, '👪', 5],
     [errer],
   ],
   '👪': [
-    [developper, 'animer'],
+    ...vivant,
     [muer, '👫', 15],
     //TODO produire enfant
     [errer],
   ],
   '🧍': [
-    [developper, 'animer'],
+    ...vivant,
     //TODO muer 50% 🧔 50% 👩
     [errer],
   ],
@@ -586,7 +581,7 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 ajouter(10, 8, '🧔');
-ajouter(25, 8, '👩');
+ajouter(25, 8, '💧');
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
   ajouter(14, 8, '👫🧍');
