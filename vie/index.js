@@ -117,7 +117,7 @@ function pointsProches(el, deep, limit, searched) {
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
 
-            if ((!searched && !caseN) || // Cases libres
+            if ((!searched && !caseN.length) || // Cases libres
               (searched && elN)) // Le bon type d'objet
               listeProches.push([...delta, nx, ny]);
           }
@@ -135,7 +135,7 @@ function pointsProches(el, deep, limit, searched) {
             deltaLigne = noLigne - Math.round(xy.y / 4),
             dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
 
-          if (dMin > dist) {
+          if (dMin > dist && (deltaCol || deltaLigne)) {
             dMin = dist;
             listeProches = [
               [
@@ -251,34 +251,33 @@ function errer(el) {
   return true;
 }
 
-function rapprocher(el, nomObjet) {
+function rapprocher(el, nomObjet, nomRessource, quRessource) {
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
-  if (pp.length && xy)
+  if (pp.length && xy &&
+    el.data[nomRessource] && el.data[nomRessource] < (quRessource || 20))
     return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
   return true;
 }
 
 function absorber(el, nomObjet, nomObjetFinal) {
-  if (typeof el === 'object') {
-    const pp = pointsProches(el, 1, 1, nomObjet);
+  const xy = xyFromEl(el),
+    trouveEl = caseEl(xy.x, xy.y)[nomObjet];
 
-    if (pp.length) {
-      // Concatène les possessions
-      el.data.eau += pp[0][6].data.eau;
-      el.data.energie += pp[0][6].data.energie;
-      el.data.sable += pp[0][6].data.sable;
-      supprimer(pp[0][6]);
+  if (trouveEl) {
+    // Concatène les possessions
+    el.data.eau += trouveEl.data.eau;
+    el.data.energie += trouveEl.data.energie;
+    el.data.sable += trouveEl.data.sable;
+    supprimer(trouveEl);
 
-      if (nomObjetFinal) {
-        el.innerHTML = nomObjetFinal;
-        el.data.age = 0; // L'âge repart à 0 si l'objet change de type
-      }
-
-      return false;
+    if (nomObjetFinal) {
+      el.innerHTML = nomObjetFinal;
+      el.data.age = 0; // L'âge repart à 0 si l'objet change de type
     }
+    return false;
   }
   return true;
 }
@@ -461,12 +460,18 @@ function dragstart(evt) {
   helpEl.style.display = 'none';
 }
 
+document.ondragover = evt => {
+  // Autorise drop partout
+  evt.preventDefault();
+};
+
 document.ondragend = evt => { // Error
   dragstartInfo.el.style.display = 'initial';
   evt.preventDefault();
 };
 
 document.ondrop = evt => {
+  //TODO BUG de temps en temps, va n'importe où
   const left = evt.x - dragstartInfo.offset.x,
     top = evt.y - dragstartInfo.offset.y,
     xy = xyFromPixels(left, top);
@@ -500,13 +505,13 @@ document.onkeydown = evt => {
 
 /* eslint-disable-next-line one-var */
 const vivant = [
-  [rapprocher, '💧'], //TODO si besoin
+  [rapprocher, '💧', 'eau'],
   [absorber, '💧'],
-  [rapprocher, '🌽'],
+  [rapprocher, '🌽', 'energie'],
   [absorber, '🌽'],
-  [rapprocher, '🌿'],
+  [rapprocher, '🌿', 'energie'],
   [absorber, '🌿'],
-  [rapprocher, '🌱'],
+  [rapprocher, '🌱', 'energie'],
   [absorber, '🌱'],
 ];
 
@@ -514,7 +519,6 @@ o = {
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
-    [absorber, '🌿'],
     ...vivant,
     [errer],
   ],
@@ -581,9 +585,9 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 ajouter(10, 8, '🧔');
-ajouter(25, 8, '💧');
+ajouter(13, 8, '💧');
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
   ajouter(14, 8, '👫🧍');
   ajouter(16, 8, '🧔👩');
   ajouter(14, 9, '▒');
