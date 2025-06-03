@@ -343,9 +343,25 @@ function iterer() {
         el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
       if (typeof o[el.innerHTML] === 'object')
-        o[el.innerHTML].every(action =>
-          action[0](el, ...action.slice(1)) // Stop when one action is completed & return false
-        );
+        o[el.innerHTML].every(action => {
+          // Condition to the last argument '?expression'
+          const last = action[action.length - 1].toString(),
+            verbes = typeof action[0] === 'function' ? [action[0]] : action[0],
+            // Context for eval
+            /* eslint-disable-next-line no-unused-vars */
+            p = Math.random(),
+            /* eslint-disable-next-line no-unused-vars */
+            d = el.data;
+
+          if (last[0] === '?') {
+            if (!eval(last.substring(1)))
+              return true;
+            action.pop();
+          }
+
+          // Stop when one action is completed & return false
+          return verbes[0](el, ...action.slice(1));
+        });
       el.data.age++;
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
@@ -446,16 +462,13 @@ document.onkeydown = evt => {
 //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕🎕🎕
 
 /* eslint-disable-next-line one-var */
-const vivant = [
-  [rapprocher, '💧', 'eau'],
-  [absorber, '💧'],
-  [rapprocher, '🌽', 'energie'],
-  [absorber, '🌽'],
-  [rapprocher, '🌿', 'energie'],
-  [absorber, '🌿'],
-  [rapprocher, '🌱', 'energie'],
-  [absorber, '🌱'],
-];
+const consommer = [rapprocher, absorber],
+  vivant = [
+    [consommer, '💧', 'eau'],
+    [consommer, '🌽', 'energie'],
+    [consommer, '🌿', 'energie'],
+    [consommer, '🌱', 'energie'],
+  ];
 
 o = {
   '🧔': [
@@ -523,15 +536,15 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(14, 8, '⛲');
-ajouter(14, 9, '🧱');
-ajouter(15, 9, '🧱');
-ajouter(13, 8, '🧱');
-ajouter(13, 7, '🧱');
-ajouter(14, 7, '🧱');
-ajouter(15, 8, '🧱');
 /* eslint-disable-next-line no-constant-condition */
 if (1) {
+  ajouter(14, 8, '⛲');
+  ajouter(14, 9, '🧱');
+  ajouter(15, 9, '🧱');
+  ajouter(13, 8, '🧱');
+  ajouter(13, 7, '🧱');
+  ajouter(14, 7, '🧱');
+  ajouter(15, 8, '🧱');
   /*
   ajouter(14, 9, '▒');
   ajouter(15, 9, '▒');

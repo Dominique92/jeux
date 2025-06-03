@@ -70,7 +70,7 @@ export default [{
     "no-empty-pattern": "warn",
     "no-empty-static-block": "warn",
     "no-eq-null": "warn",
-    "no-eval": "warn",
+    //"no-eval": "warn",
     "no-ex-assign": "warn",
     "no-extend-native": "warn",
     "no-extra-bind": "warn",
