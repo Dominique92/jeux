@@ -222,25 +222,13 @@ function supprimer(el) {
 }
 
 // VERBES
-function muer(el, nomObjet, age) {
-  if (nomObjet &&
-    ~~el.data.age > ~~age) {
-    el.innerHTML = nomObjet;
-    el.data.age = 0;
-
-    return false;
-  }
-  return true;
-}
-
 function errer(el) {
   const pp = pointsProches(el, 1, 1),
     xy = xyFromEl(el),
     xn = xy.x + pp[0][0],
-    yn = xy.y + pp[0][1],
-    existe = caseEl(xn, yn);
+    yn = xy.y + pp[0][1];
 
-  if (pp.length && !existe)
+  if (pp.length && !caseEl(xn, yn).length)
     return deplacer(el, xn, yn);
 
   return true;
@@ -258,7 +246,14 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) {
   return true;
 }
 
+function rencontrer(el, nomObjetRencontre, nomsObjetsFinaux) {
+  console.log(...arguments); //TODO TEST
+  const nfo = nomsObjetsFinaux.split(' ');
+  //TODO développer
+}
+
 function absorber(el, nomObjet, nomObjetFinal) {
+  console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y)[nomObjet];
 
@@ -278,7 +273,15 @@ function absorber(el, nomObjet, nomObjetFinal) {
   return true;
 }
 
+function muer(el, nomObjet) {
+  el.innerHTML = nomObjet;
+  el.data.age = 0;
+
+  return false;
+}
+
 function produire(el, nomNouveau, probabilite) {
+  console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y)[nomNouveau];
 
@@ -471,11 +474,16 @@ const consommer = [rapprocher, absorber],
 
 o = {
   '💧': [
+    [muer, '💦', '?d.eau<10'],
     [errer],
-    ...vivant,
     {
-      toto: 20,
+      eau: 20,
     },
+  ],
+  '💦': [
+    [supprimer, '?d.eau<=0'],
+    [errer],
+    {},
   ],
   //////////////////////////
   '🧔': [
