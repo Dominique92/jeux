@@ -9,17 +9,10 @@ const statsEl = document.getElementById('stats'),
     [1, 1, -1, 0],
     [-1, -1, 1, 0],
   ],
-  initData = {
-    age: 0,
-    eau: 50,
-    energie: 30,
-    sable: 0,
-    brique: 0,
-  },
   boxSize = 16,
   gigue = () => Math.random() * 4 - 2;
 
-let o = [],
+let o = {},
   noIteration = 0,
   noIterationMax = 0,
   cases = [],
@@ -192,7 +185,7 @@ function ajouter(x, y, symbol, data, position, positionFinale) {
 
   deplacer(el, x, y, position, positionFinale, symbol, { // ajouter
     ...data,
-    ...initData,
+    ...o[symbol][o[symbol].length - 1],
   });
 
   // Hold moves when hover
@@ -231,7 +224,7 @@ function supprimer(el) {
 // VERBES
 function muer(el, nomObjet, age) {
   if (nomObjet &&
-    el.data.age > (age || 0)) {
+    ~~el.data.age > ~~age) {
     el.innerHTML = nomObjet;
     el.data.age = 0;
 
@@ -247,7 +240,7 @@ function errer(el) {
     yn = xy.y + pp[0][1],
     existe = caseEl(xn, yn);
 
-  if (pp.length && !existe && el.data.energie > 0)
+  if (pp.length && !existe)
     return deplacer(el, xn, yn);
 
   return true;
@@ -258,7 +251,7 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) {
     xy = xyFromEl(el);
 
   if (xy && pp.length &&
-    (!nomRessource || (el.data[nomRessource] && el.data[nomRessource] < (quRessource || 20)))
+    (!nomRessource || (~~el.data[nomRessource] && ~~el.data[nomRessource] < (quRessource || 20)))
   )
     return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
 
@@ -271,9 +264,9 @@ function absorber(el, nomObjet, nomObjetFinal) {
 
   if (trouveEl) {
     // Concatène les possessions
-    el.data.eau += trouveEl.data.eau;
-    el.data.energie += trouveEl.data.energie;
-    el.data.sable += trouveEl.data.sable;
+    el.data.eau = ~~el.data.eau + 1;
+    el.data.energie = ~~el.data.energie + 1;
+    el.data.sable = ~~el.data.sable + 1;
     supprimer(trouveEl);
 
     if (nomObjetFinal) {
@@ -311,7 +304,8 @@ function rebuidCases() {
     const car = el.innerHTML,
       xy = xyFromEl(el),
       zx = Math.round(xy.x / 4),
-      zy = Math.round(xy.y / 4);
+      zy = Math.round(xy.y / 4),
+      d = {};
 
     // Population des cases
     caseEl(xy.x, xy.y, car, el);
@@ -326,7 +320,11 @@ function rebuidCases() {
     zones[car][zx][zy]++;
 
     // Debug
-    el.setAttribute('title', JSON.stringify(el.data).replace(/\{|"|\}/gu, '') || '-');
+    Object.keys(el.data).forEach(key => {
+      if (el.data[key])
+        d[key] = el.data[key];
+    });
+    el.setAttribute('title', JSON.stringify(d).replace(/\{|"|\}/gu, '') || '-');
   }
 }
 
@@ -343,7 +341,7 @@ function iterer() {
         el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
       if (typeof o[el.innerHTML] === 'object')
-        o[el.innerHTML].every(action => {
+        o[el.innerHTML].slice(0, -1).every(action => {
           // Condition to the last argument '?expression'
           const last = action[action.length - 1].toString(),
             verbes = typeof action[0] === 'function' ? [action[0]] : action[0],
@@ -362,7 +360,8 @@ function iterer() {
           // Stop when one action is completed & return false
           return verbes[0](el, ...action.slice(1));
         });
-      el.data.age++;
+      el.data.age = ~~el.data.age + 1;
+
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
     }
@@ -471,56 +470,72 @@ const consommer = [rapprocher, absorber],
   ];
 
 o = {
+  '💧': [
+    [errer],
+    ...vivant,
+    {
+      toto: 20,
+    },
+  ],
+  //////////////////////////
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
     ...vivant,
     [errer],
+    {},
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
     ...vivant,
     [errer],
+    {},
   ],
   '💏': [
     ...vivant,
     [muer, '👫', 5],
     [errer],
+    {},
   ],
   '👫': [
     ...vivant,
     [muer, '👪', 5],
     [errer],
+    {},
   ],
   '👪': [
     ...vivant,
     [muer, '👫', 15],
     //TODO produire enfant
     [errer],
+    {},
   ],
   '🧍': [
     ...vivant,
     //TODO muer 50% 🧔 50% 👩
     [errer],
+    {},
   ],
   '💀': [
     [muer, '▒', 15],
+    {},
   ],
   '⛲': [
     [produire, '💧', 0.2],
-  ],
-  '💧': [
-    [errer],
+    {},
   ],
   '🌱': [
     [muer, '🌿', 15], //TODO Si eau
+    {},
   ],
   '🌿': [
     [muer, '🌽', 15], //TODO Si eau
+    {},
   ],
   '🌽': [
     [produire, '🌱', 0.8],
+    {},
   ],
 };
 
@@ -536,8 +551,9 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
+ajouter(14, 8, '💧');
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
   ajouter(14, 8, '⛲');
   ajouter(14, 9, '🧱');
   ajouter(15, 9, '🧱');
