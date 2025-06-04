@@ -34,7 +34,7 @@ let o = {},
 //BEST Flag consommable
 //BEST Consommer / chercher type de ressource + (quantité ?)
 
-// ROUTINES
+// ROUTINES (functions)
 function pixelsFromXY(x, y) {
   return {
     left: (x - y / 2) * boxSize + gigue(),
@@ -225,13 +225,20 @@ function supprimer(el) { // 1 -> 0
   return true;
 }
 
-// VERBES
+// VERBES (functions)
+function muer(el, nomObjet) { // 1 -> 1
+  el.innerHTML = nomObjet;
+  el.data.age = 0;
+
+  return false;
+}
+
 function errer(el) { // 1 -> 1
-  const pp = pointsProches(el, 1, 1);
+  const pp = pointsProches(el, 1, 1); //TODO aussi sur la terre
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xn = xy.x + pp[0][0],
+      xn = xy.x + pp[0][0], //TODO en biais
       yn = xy.y + pp[0][1];
 
     if (pp.length &&
@@ -241,26 +248,27 @@ function errer(el) { // 1 -> 1
   return true;
 }
 
-function muer(el, nomObjet) { // 1 -> 1
-  el.innerHTML = nomObjet;
-  el.data.age = 0;
-
-  return false;
-}
-
-function rapprocher(el, nomObjet, nomRessource, quRessource) { // 1 -> 1
+function rapprocher(el, nomObjet, nomRessource, quRessource) { // 1 -> 1 (jusqu'à la même case)
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
   if (xy && pp.length &&
-    (!nomRessource || (~~el.data[nomRessource] && ~~el.data[nomRessource] < (quRessource || 20)))
+    (!nomRessource || (
+      ~~el.data[nomRessource] &&
+      ~~el.data[nomRessource] < (quRessource || 20) //TODO késako
+    ))
   )
-    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]);
+    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //TODO en biais
 
   return true;
 }
 
-function produire(el, nomNouveau) { // 1 -> 2
+/* eslint-disable-next-line no-unused-vars */
+function attirer( /*el, nomObjet*/ ) { // 1 -> 1 (jusqu'à la même case) //TODO DEVELOPPER
+  console.log(...arguments); //TODO TEST
+}
+
+function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y, nomNouveau);
 
@@ -272,9 +280,9 @@ function produire(el, nomNouveau) { // 1 -> 2
   return true;
 }
 
-function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1
+function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
   //TODO également element proche
-  console.log(...arguments); //TODO TEST
+  //console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y, nomObjet);
 
@@ -287,22 +295,20 @@ function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1
 
     if (nomObjetFinal) {
       el.innerHTML = nomObjetFinal;
-      el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+      el.data.age = 0; // L'âge repart à 0 si l'objet change de type //TODO paramètre
     }
     return false;
   }
   return true;
 }
 
-/*
-function rencontrer(el, nomObjetRencontre, nomsObjetsFinaux) {// 2 -> 2
+/* eslint-disable-next-line no-unused-vars */
+function rencontrer( /*el, nomObjetRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case) //TODO DEVELOPPER
   console.log(...arguments); //TODO TEST
-  const nfo = nomsObjetsFinaux.split(' ');
-  //TODO développer
+  //const nfo = nomsObjetsFinaux.split(' ');
 }
-*/
 
-// ACTIVATION
+// ACTIVATION (functions)
 function rebuidCases() {
   const divEls = document.getElementsByTagName('div');
 
@@ -500,7 +506,7 @@ o = {
   ],
   // Cycle des plantes
   '💮': [
-    [muer, '▒', d => d.eau <= 0],
+    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
     [muer, '🌱', d => d.age > 10],
     [errer],
     {
@@ -511,7 +517,7 @@ o = {
   '🌱': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0],
+    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
     [muer, '🌿', d => d.age > 20],
     {
       type: 'Pousse',
@@ -520,7 +526,7 @@ o = {
   '🌿': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0],
+    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
     [muer, '🌽', d => d.age > 20],
     {
       type: 'Plante',
@@ -529,7 +535,7 @@ o = {
   '🌽': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0],
+    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
     [produire, '💮', () => Math.random() < 0.3],
     {
       type: 'Mais',
@@ -623,7 +629,7 @@ ajouter(22, 8, '⛲');
 ajouter(18, 16, '⛲');
 ajouter(26, 16, '🌽');
 /* eslint-disable-next-line no-constant-condition */
-if (0) {
+if (1) {
   ajouter(14, 8, '⛲');
   ajouter(14, 9, '🧱');
   ajouter(15, 9, '🧱');
