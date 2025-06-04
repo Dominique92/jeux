@@ -178,7 +178,7 @@ export default [{
     "prefer-object-has-own": "warn",
     "prefer-object-spread": "warn",
     "prefer-regex-literals": "warn",
-    "prefer-rest-params": "warn",
+    //"prefer-rest-params": "warn",
     "prefer-spread": "warn",
     //"prefer-template": "warn",
     "radix": "warn",

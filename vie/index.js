@@ -246,14 +246,16 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) {
   return true;
 }
 
+/*
 function rencontrer(el, nomObjetRencontre, nomsObjetsFinaux) {
   console.log(...arguments); //TODO TEST
   const nfo = nomsObjetsFinaux.split(' ');
   //TODO développer
 }
+*/
 
 function absorber(el, nomObjet, nomObjetFinal) {
-  console.log(...arguments); //TODO TEST
+  //console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y)[nomObjet];
 
@@ -281,7 +283,7 @@ function muer(el, nomObjet) {
 }
 
 function produire(el, nomNouveau, probabilite) {
-  console.log(...arguments); //TODO TEST
+  //console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y)[nomNouveau];
 
@@ -345,23 +347,18 @@ function iterer() {
     {
       if (typeof o[el.innerHTML] === 'object')
         o[el.innerHTML].slice(0, -1).every(action => {
-          // Condition to the last argument '?expression'
-          const last = action[action.length - 1].toString(),
-            verbes = typeof action[0] === 'function' ? [action[0]] : action[0],
-            // Context for eval
-            /* eslint-disable-next-line no-unused-vars */
-            p = Math.random(),
-            /* eslint-disable-next-line no-unused-vars */
-            d = el.data;
+          // Condition to the last argument (function)
+          const last = action[action.length - 1];
 
-          if (last[0] === '?') {
-            if (!eval(last.substring(1)))
+          if (action.length > 1 && typeof last === 'function') {
+            if (last(el.data))
               return true;
+
             action.pop();
           }
 
           // Stop when one action is completed & return false
-          return verbes[0](el, ...action.slice(1));
+          return action[0](el, ...action.slice(1));
         });
       el.data.age = ~~el.data.age + 1;
 
@@ -462,26 +459,26 @@ document.onkeydown = evt => {
 // SCÉNARIOS
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
 //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕🎕🎕
-
-/* eslint-disable-next-line one-var */
-const consommer = [rapprocher, absorber],
+/*
+const consommer = [rapprocher, absorber];
   vivant = [
     [consommer, '💧', 'eau'],
     [consommer, '🌽', 'energie'],
     [consommer, '🌿', 'energie'],
     [consommer, '🌱', 'energie'],
   ];
+*/
 
 o = {
   '💧': [
-    [muer, '💦', '?d.eau<10'],
+    [muer, '💦', d => d.eau < 10],
     [errer],
     {
       eau: 20,
     },
   ],
   '💦': [
-    [supprimer, '?d.eau<=0'],
+    [supprimer, d => d.eau < 10],
     [errer],
     {},
   ],
@@ -489,38 +486,38 @@ o = {
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
-    ...vivant,
+    //...vivant,
     [errer],
     {},
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
-    ...vivant,
+    //...vivant,
     [errer],
     {},
   ],
   '💏': [
-    ...vivant,
+    //...vivant,
     [muer, '👫', 5],
     [errer],
     {},
   ],
   '👫': [
-    ...vivant,
+    //...vivant,
     [muer, '👪', 5],
     [errer],
     {},
   ],
   '👪': [
-    ...vivant,
+    //...vivant,
     [muer, '👫', 15],
     //TODO produire enfant
     [errer],
     {},
   ],
   '🧍': [
-    ...vivant,
+    //...vivant,
     //TODO muer 50% 🧔 50% 👩
     [errer],
     {},
@@ -545,6 +542,9 @@ o = {
     [produire, '🌱', 0.8],
     {},
   ],
+  '▒': [{}, ],
+  '🧱': [{}, ],
+  '🏠': [{}, ],
 };
 
 // INITIALISATIONS
@@ -561,7 +561,7 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 // Tests
 ajouter(14, 8, '💧');
 /* eslint-disable-next-line no-constant-condition */
-if (0) {
+if (1) {
   ajouter(14, 8, '⛲');
   ajouter(14, 9, '🧱');
   ajouter(15, 9, '🧱');
