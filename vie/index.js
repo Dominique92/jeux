@@ -282,13 +282,11 @@ function muer(el, nomObjet) {
   return false;
 }
 
-function produire(el, nomNouveau, probabilite) {
-  //console.log(...arguments); //TODO TEST
+function produire(el, nomNouveau) {
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y)[nomNouveau];
 
-  if (!existe &&
-    Math.random() < probabilite) {
+  if (!existe) {
     ajouter(xy.x, xy.y, nomNouveau);
     return false;
   }
@@ -350,12 +348,10 @@ function iterer() {
           // Condition to the last argument (function)
           const last = action[action.length - 1];
 
-          if (action.length > 1 && typeof last === 'function') {
-            if (last(el.data))
-              return true;
-
-            action.pop();
-          }
+          if (action.length > 1 && // S'il y a assez d'arguments
+            typeof last === 'function' && // Si le dernier est une fonction
+            !last(el.data)) // Et que le test est négatif
+            return true; // On n'exécute pas l'action et on passe au suivant
 
           // Stop when one action is completed & return false
           return action[0](el, ...action.slice(1));
@@ -470,15 +466,18 @@ const consommer = [rapprocher, absorber];
 */
 
 o = {
+  '⛲': [
+    [produire, '💧', () => Math.random() < 0.3],
+    {},
+  ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
-    [errer],
-    {
-      eau: 20,
+    [errer], {
+      eau: 100,
     },
   ],
   '💦': [
-    [supprimer, d => d.eau < 10],
+    [supprimer, d => d.eau <= 0],
     [errer],
     {},
   ],
@@ -526,10 +525,6 @@ o = {
     [muer, '▒', 15],
     {},
   ],
-  '⛲': [
-    [produire, '💧', 0.2],
-    {},
-  ],
   '🌱': [
     [muer, '🌿', 15], //TODO Si eau
     {},
@@ -559,9 +554,9 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(14, 8, '💧');
+ajouter(14, 8, '⛲');
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
   ajouter(14, 8, '⛲');
   ajouter(14, 9, '🧱');
   ajouter(15, 9, '🧱');
