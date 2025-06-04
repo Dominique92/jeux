@@ -336,7 +336,7 @@ function rebuidCases() {
     });
     el.setAttribute('title', (
       (JSON.stringify(d).replace(/\{|"|\}/gu, '') || '') +
-      ' ' + xy.x + ',' + xy.y
+      ' ' + xy.x + '@' + xy.y
     ));
   }
 }
@@ -464,7 +464,7 @@ document.onkeydown = evt => {
 
 // SCÉNARIOS
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
-//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕
+//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸
 /*
 const consommer = [rapprocher, absorber];
   vivant = [
@@ -478,85 +478,130 @@ const consommer = [rapprocher, absorber];
 o = {
   // Cycle de l'eau
   '⛲': [
-    [produire, '💧' /*, () => Math.random() < 0.3*/ ],
-    {},
+    [produire, '💧', () => Math.random() < 0.3],
+    {
+      type: 'Fontaine',
+    },
   ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
     [errer], {
+      type: 'Eau',
       eau: 100,
     },
   ],
   '💦': [
     [supprimer, d => d.eau <= 0],
     [errer],
-    {},
+    {
+      type: 'Eau',
+    },
   ],
   // Cycle des plantes
-  //////////////////////////TODO
-  '🎕': [
-    [muer, '🌽', 15], //TODO Si eau
-    {},
+  '💮': [
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌱', d => d.age > 10],
+    [errer],
+    {
+      type: 'Graine',
+      eau: 40,
+    },
   ],
   '🌱': [
-    [muer, '🌿', 15], //TODO Si eau
-    {},
+    [absorber, '💧'],
+    [absorber, '💦'],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌿', d => d.age > 20],
+    {
+      type: 'Pousse',
+    },
   ],
   '🌿': [
-    [muer, '🌽', 15], //TODO Si eau
-    {},
+    [absorber, '💧'],
+    [absorber, '💦'],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌽', d => d.age > 20],
+    {
+      type: 'Plante',
+    },
   ],
   '🌽': [
-    [produire, '🌱', 0.8],
-    {},
+    [absorber, '💧'],
+    [absorber, '💦'],
+    [muer, '▒', d => d.eau <= 0],
+    [produire, '💮', () => Math.random() < 0.3],
+    {
+      type: 'Mais',
+    },
   ],
+  '▒': [{
+    type: 'Terre',
+  }, ],
+  //////////////////////////TODO
   // Cycle des humains
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
     //...vivant,
     [errer],
-    {},
+    {
+      type: 'Homme',
+    },
   ],
   '👩': [
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
     //...vivant,
     [errer],
-    {},
+    {
+      type: 'Femme',
+    },
   ],
   '💏': [
     //...vivant,
     [muer, '👫', 5],
     [errer],
-    {},
+    {
+      type: 'Amoureux',
+    },
   ],
   '👫': [
     //...vivant,
     [muer, '👪', 5],
     [errer],
-    {},
+    {
+      type: 'Couple',
+    },
   ],
   '👪': [
     //...vivant,
     [muer, '👫', 15],
     //TODO produire enfant
     [errer],
-    {},
+    {
+      type: 'Famille',
+    },
   ],
   '🧍': [
     //...vivant,
     //TODO muer 50% 🧔 50% 👩
     [errer],
-    {},
+    {
+      type: 'Enfant',
+    },
   ],
   '💀': [
     [muer, '▒', 15],
-    {},
+    {
+      type: 'Mort',
+    },
   ],
-  '▒': [{}, ],
-  '🧱': [{}, ],
-  '🏠': [{}, ],
+  '🧱': [{
+    type: 'Briques',
+  }, ],
+  '🏠': [{
+    type: 'Msaison',
+  }, ],
 };
 
 // INITIALISATIONS
@@ -572,15 +617,17 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(14, 8, '⛲');
-ajouter(14, 9, '🧱');
-ajouter(15, 9, '🧱');
-ajouter(13, 8, '🧱');
-ajouter(13, 7, '🧱');
-ajouter(14, 7, '🧱');
-ajouter(15, 8, '🧱');
+ajouter(14, 8, '💮');
 /* eslint-disable-next-line no-constant-condition */
-if (1) {
+if (0) {
+  ajouter(14, 8, '⛲');
+  ajouter(14, 9, '🧱');
+  ajouter(15, 9, '🧱');
+  ajouter(13, 8, '🧱');
+  ajouter(13, 7, '🧱');
+  ajouter(14, 7, '🧱');
+  ajouter(15, 8, '🧱');
+
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouter(8 + i * 3, 12, nomSymbole);
   });
