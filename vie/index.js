@@ -150,7 +150,7 @@ function pointsProches(el, deep, limit, searched) {
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) {
+function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -> 1
   const pos = position || pixelsFromXY(nx, ny);
 
   if (typeof nomObjet === 'string')
@@ -184,7 +184,7 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) {
   }
 }
 
-function ajouter(x, y, symbol, data, position, positionFinale) {
+function ajouter(x, y, symbol, data, position, positionFinale) { // 0 -> 1
   const el = document.createElement('div');
 
   deplacer(el, x, y, position, positionFinale, symbol, { // ajouter
@@ -214,7 +214,7 @@ function ajouter(x, y, symbol, data, position, positionFinale) {
   return el;
 }
 
-function supprimer(el) {
+function supprimer(el) { // 1 -> 0
   const xy = xyFromEl(el);
 
   if (xy) {
@@ -226,7 +226,7 @@ function supprimer(el) {
 }
 
 // VERBES
-function errer(el) {
+function errer(el) { // 1 -> 1
   const pp = pointsProches(el, 1, 1);
 
   if (pp.length) {
@@ -241,7 +241,14 @@ function errer(el) {
   return true;
 }
 
-function rapprocher(el, nomObjet, nomRessource, quRessource) {
+function muer(el, nomObjet) { // 1 -> 1
+  el.innerHTML = nomObjet;
+  el.data.age = 0;
+
+  return false;
+}
+
+function rapprocher(el, nomObjet, nomRessource, quRessource) { // 1 -> 1
   const pp = pointsProches(el, 50, 1, nomObjet),
     xy = xyFromEl(el);
 
@@ -253,16 +260,21 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) {
   return true;
 }
 
-/*
-function rencontrer(el, nomObjetRencontre, nomsObjetsFinaux) {
-  console.log(...arguments); //TODO TEST
-  const nfo = nomsObjetsFinaux.split(' ');
-  //TODO développer
-}
-*/
+function produire(el, nomNouveau) { // 1 -> 2
+  const xy = xyFromEl(el),
+    existe = caseEl(xy.x, xy.y, nomNouveau);
 
-function absorber(el, nomObjet, nomObjetFinal) {
-  //console.log(...arguments); //TODO TEST
+  if (!existe) {
+    ajouter(xy.x, xy.y, nomNouveau);
+    return false;
+  }
+
+  return true;
+}
+
+function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1
+  //TODO également element proche
+  console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y, nomObjet);
 
@@ -282,24 +294,13 @@ function absorber(el, nomObjet, nomObjetFinal) {
   return true;
 }
 
-function muer(el, nomObjet) {
-  el.innerHTML = nomObjet;
-  el.data.age = 0;
-
-  return false;
+/*
+function rencontrer(el, nomObjetRencontre, nomsObjetsFinaux) {// 2 -> 2
+  console.log(...arguments); //TODO TEST
+  const nfo = nomsObjetsFinaux.split(' ');
+  //TODO développer
 }
-
-function produire(el, nomNouveau) {
-  const xy = xyFromEl(el),
-    existe = caseEl(xy.x, xy.y, nomNouveau);
-
-  if (!existe) {
-    ajouter(xy.x, xy.y, nomNouveau);
-    return false;
-  }
-
-  return true;
-}
+*/
 
 // ACTIVATION
 function rebuidCases() {
@@ -617,7 +618,10 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(14, 8, '💮');
+ajouter(14, 8, '🌽');
+ajouter(22, 8, '⛲');
+ajouter(18, 16, '⛲');
+ajouter(26, 16, '🌽');
 /* eslint-disable-next-line no-constant-condition */
 if (0) {
   ajouter(14, 8, '⛲');
