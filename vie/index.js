@@ -185,12 +185,14 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
 }
 
 function ajouter(x, y, symbol, data, position, positionFinale) { // 0 -> 1
-  const el = document.createElement('div');
+  const el = document.createElement('div'),
+    newData = {
+      ...data,
+      ...o[symbol][o[symbol].length - 1],
+    };
 
-  deplacer(el, x, y, position, positionFinale, symbol, { // ajouter
-    ...data,
-    ...o[symbol][o[symbol].length - 1],
-  });
+  delete newData.type;
+  deplacer(el, x, y, position, positionFinale, symbol, newData); // ajouter
 
   // Hold moves when hover
   el.onmouseover = () => {
@@ -263,11 +265,6 @@ function rapprocher(el, nomObjet, nomRessource, quRessource) { // 1 -> 1 (jusqu'
   return true;
 }
 
-/* eslint-disable-next-line no-unused-vars */
-function attirer( /*el, nomObjet*/ ) { // 1 -> 1 (jusqu'à la même case) //TODO DEVELOPPER
-  console.log(...arguments); //TODO TEST
-}
-
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y, nomNouveau);
@@ -281,7 +278,6 @@ function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
 }
 
 function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
-  //TODO également element proche
   //console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y, nomObjet);
@@ -319,6 +315,7 @@ function rebuidCases() {
       !el.hovered) // Pas si le curseur est au dessus
   {
     const car = el.innerHTML,
+      nomType = o[car][o[car].length - 1].type,
       xy = xyFromEl(el),
       zx = Math.round(xy.x / 4),
       zy = Math.round(xy.y / 4),
@@ -341,9 +338,12 @@ function rebuidCases() {
       if (el.data[key])
         d[key] = el.data[key];
     });
+
     el.setAttribute('title', (
-      (JSON.stringify(d).replace(/\{|"|\}/gu, '') || '') +
-      ' ' + xy.x + '@' + xy.y
+      nomType + ' ' +
+      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
+      (Object.keys(d).length ? ',' : '') +
+      'pos:' + xy.x + ',' + xy.y
     ));
   }
 }
@@ -363,15 +363,27 @@ function iterer() {
       if (typeof o[el.innerHTML] === 'object')
         o[el.innerHTML].slice(0, -1).every(action => {
           // Condition to the last argument (function)
-          const last = action[action.length - 1];
+          const conditionFunction = action[action.length - 1],
+            executionFunction = action[action.length - 2];
 
           if (action.length > 1 && // S'il y a assez d'arguments
-            typeof last === 'function' && // Si le dernier est une fonction
-            !last(el.data)) // Et que le test est négatif
+            typeof conditionFunction === 'function' && // Si le dernier est une fonction
+            !conditionFunction(el.data) // Et que le test est négatif
+          )
             return true; // On n'exécute pas l'action et on passe au suivant
 
+          // Execute action
+          /* eslint-disable-next-line one-var */
+          const statusExec = action[0](el, ...action.slice(1));
+
+          if (statusExec &&
+            action.length > 2 &&
+            typeof executionFunction === 'function'
+          )
+            executionFunction(el.data);
+
           // Stop when one action is completed & return false
-          return action[0](el, ...action.slice(1));
+          return statusExec;
         });
       el.data.age = ~~el.data.age + 1;
 
@@ -471,7 +483,7 @@ document.onkeydown = evt => {
 
 // SCÉNARIOS
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
-//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸
+//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸❀
 /*
 const consommer = [rapprocher, absorber];
   vivant = [
@@ -484,12 +496,19 @@ const consommer = [rapprocher, absorber];
 
 o = {
   // Cycle de l'eau
-  '⛲': [
-    [produire, '💧', () => Math.random() < 0.3],
-    {
-      type: 'Fontaine',
-    },
-  ],
+  '⛲': // Scénario du type d'objet
+    [ // Action élémentaire du scénario
+      [produire, // Verbe à exécuter
+        '💧', // Argument
+        () => {
+          console.log('Coucou'); //TODO
+        }, // Fonction à exécuter aprés avoir appliqué la règle la règle
+        () => Math.random() < 0.3
+      ], // Test d'applicabilité de la règle
+      { // Init des data quand on crée
+        type: 'Fontaine',
+      },
+    ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
     [errer], {
@@ -505,7 +524,7 @@ o = {
     },
   ],
   // Cycle des plantes
-  '💮': [
+  '❀': [
     [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
     [muer, '🌱', d => d.age > 10],
     [errer],
@@ -536,7 +555,7 @@ o = {
     [absorber, '💧'],
     [absorber, '💦'],
     [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
-    [produire, '💮', () => Math.random() < 0.3],
+    [produire, '❀', () => Math.random() < 0.3],
     {
       type: 'Mais',
     },
@@ -607,7 +626,7 @@ o = {
     type: 'Briques',
   }, ],
   '🏠': [{
-    type: 'Msaison',
+    type: 'Maison',
   }, ],
 };
 
