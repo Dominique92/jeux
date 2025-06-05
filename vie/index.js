@@ -227,14 +227,8 @@ function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
 }
 
 function supprimer(el) { // 1 -> 0
-  const xy = xyFromEl(el);
-
-  if (xy) {
-    el.remove();
-    deleteCase(el);
-    return false;
-  }
-  return true;
+  el.remove();
+  deleteCase(el);
 }
 
 function errer(el) { // 1 -> 1
@@ -496,17 +490,18 @@ o = {
     [ // Action élémentaire du scénario
       [produire, // Verbe à exécuter
         '💧', // Argument
-        () => {
+        () => { // Fonction à exécuter aprés avoir appliqué la règle la règle
           console.log('Coucou'); //TODO
-        }, // Fonction à exécuter aprés avoir appliqué la règle la règle
-        () => Math.random() < 0.3
-      ], // Test d'applicabilité de la règle
+        },
+        () => Math.random() < 0.3 // Test d'applicabilité de la règle
+      ],
       { // Init des data quand on crée
         type: 'Fontaine',
       },
     ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
+    [rapprocher, '❀', 3],
     [rapprocher, '🌱', 3],
     [rapprocher, '🌿', 3],
     [rapprocher, '🌽', 3],
@@ -522,10 +517,16 @@ o = {
       type: 'Eau',
     },
   ],
+  //////////////////////////TODO
   // Cycle des plantes
   '❀': [
-    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
-    [muer, '🌱', d => d.age > 10],
+    //[muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
+    //[muer, '🌱', d => d.age > 10],
+    [rapprocher, '💧', 3],
+    [absorber, '💧', '🌱'],
+    [rapprocher, '▒', 3],
+    [absorber, '▒', '🌱'],
+    [supprimer, d => d.age > 10],
     [errer],
     {
       type: 'Graine',
@@ -565,7 +566,6 @@ o = {
   '▓': [{
     type: 'Herbe',
   }, ],
-  //////////////////////////TODO
   // Cycle des humains
   '🧔': [
     [rapprocher, '👩'],
@@ -634,7 +634,6 @@ o = {
 
 // INITIALISATIONS
 // Modèles
-//TODO inclure en # <div>
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
   ajouter(null, null, nomSymbole, {
     model: true,
@@ -645,14 +644,14 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
-ajouter(14, 8, '💀');
-Object.keys(o).forEach((nomSymbole, i) => {
-  ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
-});
+ajouter(14, 8, '⛲');
 /*
   Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
     ajouter(12 + i * 3, 8, nomSymbole);
   });
+Object.keys(o).forEach((nomSymbole, i) => {
+  ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
+});
 ajouter(14, 8, '🌽');
 ajouter(22, 8, '⛲');
 ajouter(18, 16, '⛲');
