@@ -83,10 +83,10 @@ function deleteCase(el) {
   delete caseEl(xy.x, xy.y, el.innerHTML);
 }
 
-function pointsProches(el, deep, limit, searched) {
+function pointsProches(el, distance, limite, searched) {
   // el : Autour de el
-  // deep : Rayon (nb cases) autour de el
-  // limit : nombre de points ramenés
+  // distance : Rayon (nb cases) autour de el
+  // limite : nombre de points ramenés
   // searched : type d'objets 🌿 recherchés
   const xy = xyFromEl(el);
 
@@ -99,9 +99,9 @@ function pointsProches(el, deep, limit, searched) {
       deltasProches.push(deltasProches.shift());
 
     // Recherche dans un rayon
-    for (let d = 1; d < Math.min(deep, 5) + 1 && listeProches.length < limit; d++) {
+    for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
       deltasProches.forEach(delta => {
-        for (let i = 0; i < d && listeProches.length < limit; i++) {
+        for (let i = 0; i < d && listeProches.length < limite; i++) {
           const nx = xy.x + d * delta[0] + i * delta[2],
             ny = xy.y + d * delta[1] + i * delta[3],
             pixelEln = pixelsFromXY(nx, ny),
@@ -121,7 +121,7 @@ function pointsProches(el, deep, limit, searched) {
     }
 
     // Recherche éloignés
-    if (deep > 5 &&
+    if (distance && distance > 5 &&
       !listeProches.length &&
       typeof zones[searched] === 'object')
       zones[searched].forEach((col, noCol) => {
@@ -184,15 +184,18 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
   }
 }
 
-function ajouter(x, y, symbol, data, position, positionFinale) { // 0 -> 1
+function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
   const el = document.createElement('div'),
+    nomType = o[symboleType][o[symboleType].length - 1].type,
     newData = {
       ...data,
-      ...o[symbol][o[symbol].length - 1],
+      ...o[symboleType][o[symboleType].length - 1],
     };
 
+  el.classList = nomType;
+
   delete newData.type;
-  deplacer(el, x, y, position, positionFinale, symbol, newData); // ajouter
+  deplacer(el, x, y, position, positionFinale, symboleType, newData); // ajouter
 
   // Hold moves when hover
   el.onmouseover = () => {
@@ -250,16 +253,11 @@ function errer(el) { // 1 -> 1
   return true;
 }
 
-function rapprocher(el, nomObjet, nomRessource, quRessource) { // 1 -> 1 (jusqu'à la même case)
-  const pp = pointsProches(el, 50, 1, nomObjet),
+function rapprocher(el, nomObjet, distance) { // 1 -> 1 (jusqu'à la même case)
+  const pp = pointsProches(el, distance || 100, 1, nomObjet),
     xy = xyFromEl(el);
 
-  if (xy && pp.length &&
-    (!nomRessource || (
-      ~~el.data[nomRessource] &&
-      ~~el.data[nomRessource] < (quRessource || 20) //TODO késako
-    ))
-  )
+  if (xy && pp.length)
     return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //TODO en biais
 
   return true;
@@ -314,24 +312,24 @@ function rebuidCases() {
     if (el.data && !el.data.model && // Pas les modèles
       !el.hovered) // Pas si le curseur est au dessus
   {
-    const car = el.innerHTML,
-      nomType = o[car][o[car].length - 1].type,
+    const symboleType = el.innerHTML,
+      nomType = o[symboleType][o[symboleType].length - 1].type,
       xy = xyFromEl(el),
       zx = Math.round(xy.x / 4),
       zy = Math.round(xy.y / 4),
       d = {};
 
     // Population des cases
-    caseEl(xy.x, xy.y, car, el);
+    caseEl(xy.x, xy.y, symboleType, el);
 
     // Population des zones
-    if (typeof zones[car] === 'undefined')
-      zones[car] = [];
-    if (typeof zones[car][zx] === 'undefined')
-      zones[car][zx] = [];
-    if (typeof zones[car][zx][zy] === 'undefined')
-      zones[car][zx][zy] = 0;
-    zones[car][zx][zy]++;
+    if (typeof zones[symboleType] === 'undefined')
+      zones[symboleType] = [];
+    if (typeof zones[symboleType][zx] === 'undefined')
+      zones[symboleType][zx] = [];
+    if (typeof zones[symboleType][zx][zy] === 'undefined')
+      zones[symboleType][zx][zy] = 0;
+    zones[symboleType][zx][zy]++;
 
     // Debug
     Object.keys(el.data).forEach(key => {
@@ -482,7 +480,7 @@ document.onkeydown = evt => {
 };
 
 // SCÉNARIOS
-//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽 ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
+//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽▓ ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
 //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸❀
 /*
 const consommer = [rapprocher, absorber];
@@ -511,6 +509,9 @@ o = {
     ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
+    [rapprocher, '🌱', 3],
+    [rapprocher, '🌿', 3],
+    [rapprocher, '🌽', 3],
     [errer], {
       type: 'Eau',
       eau: 100,
@@ -562,6 +563,9 @@ o = {
   ],
   '▒': [{
     type: 'Terre',
+  }, ],
+  '▓': [{
+    type: 'Herbe',
   }, ],
   //////////////////////////TODO
   // Cycle des humains
@@ -643,12 +647,18 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
+Object.keys(o).forEach((nomSymbole, i) => {
+  ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
+});
+/*
+  Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
+    ajouter(12 + i * 3, 8, nomSymbole);
+  });
 ajouter(14, 8, '🌽');
 ajouter(22, 8, '⛲');
 ajouter(18, 16, '⛲');
 ajouter(26, 16, '🌽');
-/* eslint-disable-next-line no-constant-condition */
-if (1) {
+ 
   ajouter(14, 8, '⛲');
   ajouter(14, 9, '🧱');
   ajouter(15, 9, '🧱');
@@ -660,7 +670,4 @@ if (1) {
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouter(8 + i * 3, 12, nomSymbole);
   });
-  Array.from('⛲💧🌱🌿🌽▒🧱🏠').forEach((nomSymbole, i) => {
-    ajouter(11 + i * 3, 17, nomSymbole);
-  });
-}
+*/
