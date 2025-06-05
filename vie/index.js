@@ -149,12 +149,19 @@ function pointsProches(el, distance, limite, searched) {
   }
 }
 
+// VERBES (functions)
+// Transformer un type en un autre
+function muer(el, nomObjet) { // 1 -> 1
+  el.innerHTML = nomObjet;
+  el.classList = o[nomObjet][o[nomObjet].length - 1].type;
+  el.data.age = 0; // L'âge repart à 0 si l'objet change de type //TODO paramètre
+
+  return false;
+}
+
 // Move el to the x/y position if it's free
 function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -> 1
   const pos = position || pixelsFromXY(nx, ny);
-
-  if (typeof nomObjet === 'string')
-    el.innerHTML = nomObjet;
 
   if (!caseEl(nx, ny, el.innerHTML)) {
     // Delete the previous location
@@ -164,6 +171,9 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
       ...el.data,
       ...data,
     };
+
+    if (typeof nomObjet === 'string')
+      muer(el, nomObjet);
 
     // Register in the grid at the new place
     if (nx && ny)
@@ -186,13 +196,10 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
 
 function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
   const el = document.createElement('div'),
-    nomType = o[symboleType][o[symboleType].length - 1].type,
     newData = {
       ...data,
       ...o[symboleType][o[symboleType].length - 1],
     };
-
-  el.classList = nomType;
 
   delete newData.type;
   deplacer(el, x, y, position, positionFinale, symboleType, newData); // ajouter
@@ -228,14 +235,6 @@ function supprimer(el) { // 1 -> 0
     return false;
   }
   return true;
-}
-
-// VERBES (functions)
-function muer(el, nomObjet) { // 1 -> 1
-  el.innerHTML = nomObjet;
-  el.data.age = 0;
-
-  return false;
 }
 
 function errer(el) { // 1 -> 1
@@ -287,10 +286,9 @@ function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
     el.data.sable = ~~el.data.sable + 1;
     supprimer(trouveEl);
 
-    if (nomObjetFinal) {
-      el.innerHTML = nomObjetFinal;
-      el.data.age = 0; // L'âge repart à 0 si l'objet change de type //TODO paramètre
-    }
+    if (nomObjetFinal)
+      muer(el, nomObjetFinal);
+
     return false;
   }
   return true;
@@ -647,6 +645,7 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 });
 
 // Tests
+ajouter(14, 8, '💀');
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
 });
