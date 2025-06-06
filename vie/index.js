@@ -21,7 +21,7 @@ let o = {},
 /*********************
  * Terrain : toute la fenêtre <body>
  * objet : <div>unicode</div> rattaché au <body> déplaçable
- * typeObjet : Le caractère unicode
+ * typeObjet : type d'objet (un caractère unicode)
  * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 objet max
  * zones : un tableau à 2 dimensions par type d'objet représentant leur nombre dans chaque carré de n * n cases
  *
@@ -56,7 +56,7 @@ function xyFromEl(el) {
 }
 
 // Get or set case el
-function caseEl(x, y, nomObjet, el) {
+function caseEl(x, y, symboleType, el) {
   // 7,7 : test case free
   // 7,7,🌿 : returns case
   // 7,7,🌿,el : fill the case
@@ -68,13 +68,13 @@ function caseEl(x, y, nomObjet, el) {
     cases[x][y] = [];
 
   // Liste des objets dans une case
-  if (typeof nomObjet === 'undefined')
+  if (typeof symboleType === 'undefined')
     return cases[x][y];
 
   if (typeof el === 'object')
-    cases[x][y][nomObjet] = el;
+    cases[x][y][symboleType] = el;
 
-  return cases[x][y][nomObjet];
+  return cases[x][y][symboleType];
 }
 
 function deleteCase(el) {
@@ -151,21 +151,19 @@ function pointsProches(el, distance, limite, searched) {
 
 // VERBES (functions)
 // Transformer un type en un autre
-function muer(el, nomObjet) { // 1 -> 1
-  //TODO seul endroit où on peut changer de type
-  el.innerHTML = nomObjet;
-  el.classList = o[nomObjet][o[nomObjet].length - 1].type;
+function muer(el, symboleType) { // 1 -> 1
+  el.innerHTML = symboleType;
+  el.classList = o[symboleType][o[symboleType].length - 1].type;
   el.data.age = 0; // L'âge repart à 0 si l'objet change de type //BEST paramètre
 
   return true; // Succés
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -> 1
+function deplacer(el, nx, ny, position, positionFinale, symboleType, data) { // 1 -> 1
   const pos = position || pixelsFromXY(nx, ny);
   //TODO ne pas bouger si déjà +1 objet dans la case
   //TODO la fois suivante rencontrer si déjà 1 objet
-  //TODO seul endroit où on peut changer de position
 
   if (!caseEl(nx, ny, el.innerHTML)) {
     // Delete the previous location
@@ -176,8 +174,8 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
       ...data,
     };
 
-    if (typeof nomObjet === 'string')
-      muer(el, nomObjet);
+    if (typeof symboleType === 'string')
+      muer(el, symboleType);
 
     // Register in the grid at the new place
     if (nx && ny)
@@ -253,8 +251,8 @@ function errer(el) { // 1 -> 1
   }
 }
 
-function rapprocher(el, nomObjet, distance) { // 1 -> 1 (jusqu'à la même case)
-  const pp = pointsProches(el, distance || 100, 1, nomObjet),
+function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case)
+  const pp = pointsProches(el, distance || 100, 1, symboleType),
     xy = xyFromEl(el);
 
   if (xy && pp.length)
@@ -269,10 +267,10 @@ function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
     return ajouter(xy.x, xy.y, nomNouveau);
 }
 
-function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
+function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
   //console.log(...arguments); //TODO TEST
   const xy = xyFromEl(el),
-    trouveEl = caseEl(xy.x, xy.y, nomObjet);
+    trouveEl = caseEl(xy.x, xy.y, symboleType);
 
   if (trouveEl) {
     // Concatène les possessions
@@ -281,13 +279,13 @@ function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
     el.data.sable = ~~el.data.sable + 1;
     supprimer(trouveEl);
 
-    if (nomObjetFinal)
-      return muer(el, nomObjetFinal);
+    if (symboleTypeFinal)
+      return muer(el, symboleTypeFinal);
   }
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function rencontrer( /*el, nomObjetRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case) //TODO DEVELOPPER
+function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case) //TODO DEVELOPPER
   console.log(...arguments); //TODO TEST
   //const nfo = nomsObjetsFinaux.split(' ');
 }
@@ -302,24 +300,22 @@ function rebuidCases() {
     if (el.data && !el.data.model && // Pas les modèles
       !el.hovered) // Pas si le curseur est au dessus
   {
-    const symboleType = el.innerHTML,
-      nomType = o[symboleType][o[symboleType].length - 1].type,
-      xy = xyFromEl(el),
+    const xy = xyFromEl(el),
       zx = Math.round(xy.x / 4),
       zy = Math.round(xy.y / 4),
       d = {};
 
     // Population des cases
-    caseEl(xy.x, xy.y, symboleType, el);
+    caseEl(xy.x, xy.y, el.innerHTML, el);
 
     // Population des zones
-    if (typeof zones[symboleType] === 'undefined')
-      zones[symboleType] = [];
-    if (typeof zones[symboleType][zx] === 'undefined')
-      zones[symboleType][zx] = [];
-    if (typeof zones[symboleType][zx][zy] === 'undefined')
-      zones[symboleType][zx][zy] = 0;
-    zones[symboleType][zx][zy]++;
+    if (typeof zones[el.innerHTML] === 'undefined')
+      zones[el.innerHTML] = [];
+    if (typeof zones[el.innerHTML][zx] === 'undefined')
+      zones[el.innerHTML][zx] = [];
+    if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
+      zones[el.innerHTML][zx][zy] = 0;
+    zones[el.innerHTML][zx][zy]++;
 
     // Debug
     Object.keys(el.data).forEach(key => {
@@ -328,7 +324,7 @@ function rebuidCases() {
     });
 
     el.setAttribute('title', (
-      nomType + ' ' +
+      o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
       JSON.stringify(d).replace(/\{|"|\}/gu, '') +
       (Object.keys(d).length ? ',' : '') +
       'pos:' + xy.x + ',' + xy.y
@@ -392,13 +388,8 @@ window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
 
 function clickOnDiv(evt) {
-  if (!evt.target.data.model) {
-    if (o[evt.target.innerHTML] &&
-      JSON.stringify(o[evt.target.innerHTML][0] || []).includes('animer'))
-      errer(evt.target);
-    else
-      supprimer(evt.target);
-  }
+  if (!evt.target.data.model)
+    supprimer(evt.target);
 }
 
 /* eslint-disable-next-line one-var */
@@ -449,13 +440,13 @@ document.ondrop = evt => {
     // Création à partir du modèle
     const elN = ajouter(xy.x, xy.y, dragstartInfo.innerHTML);
     if (elN) {
-      document.body.appendChild(elN);
+      // Replace exactement à l'emplacement de la souris
       elN.style.left = left + 'px';
       elN.style.top = top + 'px';
     }
   } else {
-    document.body.appendChild(dragstartInfo.el);
-    dragstartInfo.el.style.left = left + 'px';
+    document.body.appendChild(dragstartInfo.el); // Remets l'élément en visibilité
+    dragstartInfo.el.style.left = left + 'px'; //TODO utiliser deplacer
     dragstartInfo.el.style.top = top + 'px';
   }
 
