@@ -13,6 +13,7 @@ const statsEl = document.getElementById('stats'),
   gigue = () => Math.random() * 4 - 2;
 
 let o = {},
+  dragstartInfo = null,
   noIteration = 0,
   noIterationMax = 0,
   cases = [],
@@ -39,17 +40,15 @@ function pixelsFromXY(x, y) {
   };
 }
 
-function xyFromPixels(left, top) {
+function xyFromPixels(position) {
   return {
-    x: Math.round((left + top / 1.732) / boxSize),
-    y: Math.round(top / 0.866 / boxSize),
+    x: Math.round((position.left + position.top / 1.732) / boxSize),
+    y: Math.round(position.top / 0.866 / boxSize),
   };
 }
 
 function xyFromEl(el) {
-  const rect = el.getBoundingClientRect();
-
-  return xyFromPixels(rect.left, rect.top);
+  return xyFromPixels(el.getBoundingClientRect());
 }
 
 // Get or set case el
@@ -72,13 +71,6 @@ function caseEl(x, y, symboleType, el) {
     cases[x][y][symboleType] = el;
 
   return cases[x][y][symboleType];
-}
-
-function deleteCase(el) {
-  const xy = xyFromEl(el);
-  //TODO delete cases[] & remove from body
-
-  delete caseEl(xy.x, xy.y, el.innerHTML);
 }
 
 function pointsProches(el, distance, limite, searched) {
@@ -152,59 +144,57 @@ function pointsProches(el, distance, limite, searched) {
 function muer(el, symboleType) { // 1 -> 1
   el.innerHTML = symboleType;
   el.classList = o[symboleType][o[symboleType].length - 1].type;
-  el.data.age = 0; // L'âge repart à 0 si l'objet change de type //BEST paramètre
+  el.data.age = 0; // L'âge repart à 0 si l'objet change de type
 
   return true; // Succés
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, nx, ny, p, positionFinale, symboleType, data) { // 1 -> 1
-  const position = p || pixelsFromXY(nx, ny);
-  //TODO ne pas bouger si déjà +1 objet dans la case
-  //TODO la fois suivante rencontrer si déjà 1 objet
-
+function deplacer(el, nx, ny, position) { // 1 -> 1
   if (!caseEl(nx, ny, el.innerHTML)) {
-    // Delete the previous location
-    deleteCase(el);
-
-    el.data = {
-      ...el.data,
-      ...data,
-    };
-
-    if (typeof symboleType === 'string')
-      muer(el, symboleType);
+    //TODO Remove the previous location from the cases
 
     // Register in the grid at the new place
     if (nx && ny)
       caseEl(nx, ny, el.innerHTML, el)
 
-    // Positionne dans la fenêtre
-    el.style.left = position.left + 'px';
-    el.style.top = position.top + 'px';
 
-    // Smoothly move the icon
-    if (typeof positionFinale === 'object')
+    if (position) { // On y va direct
+      el.style.left = position.left + 'px';
+      el.style.top = position.top + 'px';
+    } else {
+      // Smoothly move the icon
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        el.style.left = positionFinale.left + 'px';
-        el.style.top = positionFinale.top + 'px';
+        const positionCase = pixelsFromXY(nx, ny);
+
+        el.style.left = positionCase.left + 'px';
+        el.style.top = positionCase.top + 'px';
       }, 0);
+    }
 
     el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+
+    document.body.appendChild(el); // Mets l'élément en visibilité si nécéssaire
 
     return true;
   }
 }
 
-function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
-  const el = document.createElement('div'),
-    newData = {
-      ...data,
-      ...o[symboleType][o[symboleType].length - 1],
-    };
+function ajouter(x, y, symboleType, position) { // 0 -> 1
+  const el = document.createElement('div');
 
-  delete newData.type;
-  deplacer(el, x, y, position, positionFinale, symboleType, newData); // ajouter
+  el.data = {
+    ...o[symboleType][o[symboleType].length - 1],
+  };
+  delete el.data.type;
+
+  muer(el, symboleType);
+  deplacer(el, x, y, position); // De ajouter
+
+  // Mouse actions
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragstart = dragstart;
+  el.draggable = true;
 
   // Hold moves when hover
   el.onmouseover = () => {
@@ -216,11 +206,6 @@ function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
     el.hovered = false;
   };
 
-  // Mouse actions
-  el.draggable = true;
-  /* eslint-disable-next-line no-use-before-define */
-  el.ondragstart = dragstart;
-
   document.body.appendChild(el);
 
   return el;
@@ -228,7 +213,6 @@ function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
 
 function supprimer(el) { // 1 -> 0
   el.remove();
-  deleteCase(el);
 
   return true;
 }
@@ -238,12 +222,12 @@ function errer(el) { // 1 -> 1
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xn = xy.x + pp[0][0], //TODO en biais
+      xn = xy.x + pp[0][0], //BEST en biais
       yn = xy.y + pp[0][1];
 
     if (pp.length &&
       !Object.keys(caseEl(xn, yn)).length)
-      return deplacer(el, xn, yn);
+      return deplacer(el, xn, yn); // De errer
   }
 }
 
@@ -252,7 +236,8 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
     xy = xyFromEl(el);
 
   if (xy && pp.length)
-    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //BEST en biais
+    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); // De rapprocher
+  //BEST en biais
 }
 
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
@@ -264,7 +249,7 @@ function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
-  //console.log(...arguments); //TODO TEST
+  //console.log(...arguments); //TODO TEST absorber
   const xy = xyFromEl(el),
     trouveEl = caseEl(xy.x, xy.y, symboleType);
 
@@ -282,7 +267,7 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
 
 /* eslint-disable-next-line no-unused-vars */
 function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case) //TODO DEVELOPPER
-  console.log(...arguments); //TODO TEST
+  console.log(...arguments); //TODO TEST rencontrer
   //const nfo = nomsObjetsFinaux.split(' ');
 }
 
@@ -293,7 +278,7 @@ function rebuidCases() {
   cases = [];
   zones = [];
   for (const el of divEls)
-    if (el.data && !el.data.model && // Pas les modèles
+    if (el.data && !el.isModel && // Pas les modèles
       !el.hovered) // Pas si le curseur est au dessus
   {
     const xy = xyFromEl(el),
@@ -322,21 +307,19 @@ function rebuidCases() {
     el.setAttribute('title', (
       o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
       JSON.stringify(d).replace(/\{|"|\}/gu, '') +
-      (Object.keys(d).length ? ',' : '') +
-      'pos:' + xy.x + ',' + xy.y
+      (window.location.search ? ' ' + xy.x + ',' + xy.y : '')
     ));
   }
 }
 
 function iterer() {
-  if (noIteration < noIterationMax) {
+  if (noIteration++ < noIterationMax || !window.location.search) {
     const debut = Date.now(),
       divEls = document.getElementsByTagName('div');
 
     // Exécution des actions
-    noIteration++;
     for (const el of divEls)
-      if (el.data && !el.data.model && // Pas les modèles
+      if (el.data && !el.isModel && // Pas les modèles
         !el.hovered && // Pas si le curseur est au dessus
         el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
     {
@@ -383,26 +366,22 @@ function iterer() {
 window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
 
-/* eslint-disable-next-line one-var */
-let dragstartInfo = null;
-
 function dragstart(evt) {
-  rebuidCases();
-
   dragstartInfo = {
     el: evt.target,
     innerHTML: evt.target.innerHTML,
-    style: {
+    style: { // Clone array
       ...evt.target.style,
     },
     data: evt.target.data,
+    isModel: evt.target.isModel,
     offset: {
       x: evt.offsetX,
       y: evt.offsetY,
     },
   };
 
-  if (!evt.target.data.model)
+  if (!evt.target.isModel)
     // Efface temporairement l'icône de départ
     setTimeout(() => {
       paradisEl.appendChild(evt.target);
@@ -416,23 +395,16 @@ document.ondragover = evt => {
 };
 
 document.ondrop = evt => {
-  const left = evt.x - dragstartInfo.offset.x,
-    top = evt.y - dragstartInfo.offset.y,
-    xy = xyFromPixels(left, top);
+  const position = {
+      left: evt.x - dragstartInfo.offset.x,
+      top: evt.y - dragstartInfo.offset.y,
+    },
+    xy = xyFromPixels(position);
 
-  if (dragstartInfo.data.model) {
-    // Création à partir du modèle
-    const elN = ajouter(xy.x, xy.y, dragstartInfo.innerHTML);
-    if (elN) {
-      // Replace exactement à l'emplacement de la souris
-      elN.style.left = left + 'px';
-      elN.style.top = top + 'px';
-    }
-  } else {
-    document.body.appendChild(dragstartInfo.el); // Remets l'élément en visibilité
-    dragstartInfo.el.style.left = left + 'px'; //TODO utiliser deplacer
-    dragstartInfo.el.style.top = top + 'px';
-  }
+  if (dragstartInfo.isModel)
+    ajouter(xy.x, xy.y, dragstartInfo.innerHTML, position);
+  else
+    deplacer(dragstartInfo.el, xy.x, xy.y, position);
 
   dragstartInfo = null;
 };
@@ -445,14 +417,18 @@ document.ondragend = evt => { // Drag out the window
 };
 
 // Debug
-document.onkeydown = evt => {
-  if (evt.keyCode === 109) noIterationMax = 0;
-  else if (evt.keyCode === 107) noIterationMax = 1000000;
-  else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
-  else noIterationMax = noIteration + evt.keyCode % 48;
-};
+if (window.location.search) {
+  noIterationMax = 0;
+  document.onkeydown = evt => {
+    if (evt.keyCode === 109) noIterationMax = 0;
+    else if (evt.keyCode === 107) noIterationMax = 1000000;
+    else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
+    else noIterationMax = noIteration + evt.keyCode % 48;
+    helpEl.style.display = 'none';
+  };
+}
 
-// SCÉNARIOS
+// SCÉNARII
 //🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽▓ ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
 //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸❀
 /*
@@ -616,38 +592,39 @@ o = {
 // INITIALISATIONS
 // Modèles
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  const el = ajouter(null, null, nomSymbole, {
-    model: true,
-  }, {
-    left: 5,
+  const el = ajouter(0, 0, nomSymbole, {
+    left: 8,
     top: i * 2 * boxSize + 5,
   });
-  el.title = o[el.innerHTML][o[el.innerHTML].length - 1].type;
+
+  el.isModel = true;
 });
 
 // Tests
-ajouter(14, 8, '⛲');
-Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
-  ajouter(12 + i * 3, 8, nomSymbole);
-});
-Object.keys(o).forEach((nomSymbole, i) => {
-  ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
-});
-ajouter(14, 8, '🌽');
-ajouter(22, 8, '⛲');
-ajouter(18, 16, '⛲');
-ajouter(26, 16, '🌽');
+if (window.location.search) {
+  ajouter(14, 8, '💧');
+  Object.keys(o).forEach((nomSymbole, i) => {
+    ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
+  });
+  Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
+    ajouter(12 + i * 3, 8, nomSymbole);
+  });
+  ajouter(14, 8, '🌽');
+  ajouter(22, 8, '⛲');
+  ajouter(18, 16, '⛲');
+  ajouter(26, 16, '🌽');
 
-ajouter(14, 8, '⛲');
-ajouter(14, 9, '🧱');
-ajouter(15, 9, '🧱');
-ajouter(13, 8, '🧱');
-ajouter(13, 7, '🧱');
-ajouter(14, 7, '🧱');
-ajouter(15, 8, '🧱');
+  ajouter(14, 8, '⛲');
+  ajouter(14, 9, '🧱');
+  ajouter(15, 9, '🧱');
+  ajouter(13, 8, '🧱');
+  ajouter(13, 7, '🧱');
+  ajouter(14, 7, '🧱');
+  ajouter(15, 8, '🧱');
 
-Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
-  ajouter(8 + i * 3, 12, nomSymbole);
-});
-/*
- */
+  Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
+    ajouter(8 + i * 3, 12, nomSymbole);
+  });
+  /*
+   */
+}
