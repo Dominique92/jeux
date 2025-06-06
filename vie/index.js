@@ -1,7 +1,7 @@
 const statsEl = document.getElementById('stats'),
   helpEl = document.getElementById('help'),
   paradisEl = document.getElementById('paradis'),
-  deltasProches = [
+  deltasProches = [ //BEST déplacer en biais
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -57,11 +57,15 @@ function caseEl(x, y, symboleType, el) {
   // 7,7,🌿 : returns case
   // 7,7,🌿,el : fill the case
 
-  if (typeof cases[x] === 'undefined')
-    cases[x] = [];
+  if (typeof cases[x] === 'undefined') {
+    if (el) cases[x] = [];
+    else return [];
+  }
 
-  if (typeof cases[x][y] === 'undefined')
-    cases[x][y] = [];
+  if (typeof cases[x][y] === 'undefined') {
+    if (el) cases[x][y] = [];
+    else return [];
+  }
 
   // Liste des objets dans une case
   if (typeof symboleType === 'undefined')
@@ -70,7 +74,7 @@ function caseEl(x, y, symboleType, el) {
   if (typeof el === 'object')
     cases[x][y][symboleType] = el;
 
-  return cases[x][y][symboleType];
+  return [];
 }
 
 function pointsProches(el, distance, limite, searched) {
@@ -104,7 +108,7 @@ function pointsProches(el, distance, limite, searched) {
 
             if ((!searched && !nbCasesN) || // Cases libres
               (searched && elN)) // Le bon type d'objet
-              listeProches.push([...delta, nx, ny]);
+              listeProches.push([...delta, nx, ny, d]);
           }
         }
       });
@@ -151,7 +155,7 @@ function muer(el, symboleType) { // 1 -> 1
 
 // Move el to the x/y position if it's free
 function deplacer(el, nx, ny, position) { // 1 -> 1
-  if (!caseEl(nx, ny, el.innerHTML)) {
+  if (!caseEl(nx, ny, el.innerHTML).length) {
     //TODO Remove the previous location from the cases
 
     // Register in the grid at the new place
@@ -181,7 +185,8 @@ function deplacer(el, nx, ny, position) { // 1 -> 1
 }
 
 function ajouter(x, y, symboleType, position) { // 0 -> 1
-  const el = document.createElement('div');
+  const el = document.createElement('div'),
+    elStyle = window.getComputedStyle(el);
 
   el.data = {
     ...o[symboleType][o[symboleType].length - 1],
@@ -199,8 +204,8 @@ function ajouter(x, y, symboleType, position) { // 0 -> 1
   // Hold moves when hover
   el.onmouseover = () => {
     el.hovered = true;
-    el.style.top = window.getComputedStyle(el).top;
-    el.style.left = window.getComputedStyle(el).left;
+    el.style.top = elStyle.top;
+    el.style.left = elStyle.left;
   };
   el.onmouseout = () => {
     el.hovered = false;
@@ -222,22 +227,28 @@ function errer(el) { // 1 -> 1
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xn = xy.x + pp[0][0], //BEST en biais
+      xn = xy.x + pp[0][0],
       yn = xy.y + pp[0][1];
 
-    if (pp.length &&
-      !Object.keys(caseEl(xn, yn)).length)
+    if (!Object.keys(caseEl(xn, yn)).length)
       return deplacer(el, xn, yn); // De errer
   }
 }
 
-function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case)
-  const pp = pointsProches(el, distance || 100, 1, symboleType),
-    xy = xyFromEl(el);
+function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
+  const pp = pointsProches(el, distance || 100, 1, symboleType);
 
-  if (xy && pp.length)
-    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); // De rapprocher
-  //BEST en biais
+  if (pp.length) {
+    const xy = xyFromEl(el),
+      //caseNel=caseEl(xn, yn),
+      xn = xy.x + pp[0][0],
+      yn = xy.y + pp[0][1];
+
+    //TODO if(caseNel[symboleType ])	  
+    //caseNel.noIteration = noIteration;// Pour éviter qu'il n'évolue lors de la même itération
+
+    return deplacer(el, xn, yn); // De rapprocher
+  }
 }
 
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
@@ -254,14 +265,15 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
     trouveEl = caseEl(xy.x, xy.y, symboleType);
 
   if (trouveEl) {
-    // Concatène les possessions
-    el.data.eau = ~~el.data.eau + 1;
-    el.data.energie = ~~el.data.energie + 1;
-    el.data.sable = ~~el.data.sable + 1;
-    supprimer(trouveEl);
+    for (const property in trouveEl.data) {
+      el.data[property] = ~~el.data[property] + trouveEl.data[property]
+      el.data.age = 0;
 
-    if (symboleTypeFinal)
-      return muer(el, symboleTypeFinal);
+      supprimer(trouveEl);
+
+      if (symboleTypeFinal)
+        return muer(el, symboleTypeFinal);
+    }
   }
 }
 
@@ -410,7 +422,7 @@ document.ondrop = evt => {
 };
 
 document.ondragend = evt => { // Drag out the window
-  if (dragstartInfo)
+  if (dragstartInfo && !evt.target.isModel)
     supprimer(evt.target);
 
   evt.preventDefault();
@@ -447,9 +459,7 @@ o = {
     [ // Action élémentaire du scénario
       [produire, // Verbe à exécuter
         '💧', // Argument
-        () => { // Fonction à exécuter aprés avoir appliqué la règle la règle
-          console.log('Coucou'); //TODO
-        },
+        () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
         () => Math.random() < 0.3 // Test d'applicabilité de la règle
       ],
       { // Init des data quand on crée
@@ -458,13 +468,12 @@ o = {
     ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
-    [rapprocher, '❀', 3],
     [rapprocher, '🌱', 3],
     [rapprocher, '🌿', 3],
     [rapprocher, '🌽', 3],
     [errer], {
       type: 'Eau',
-      eau: 100,
+      eau: 20, //TODO 100,
     },
   ],
   '💦': [
@@ -477,32 +486,25 @@ o = {
   //////////////////////////TODO
   // Cycle des plantes
   '❀': [
-    //[muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
-    //[muer, '🌱', d => d.age > 10],
-    [rapprocher, '💧', 3],
-    [absorber, '💧', '🌱'],
+    [muer, '🌱', d => d.age > 10],
     [rapprocher, '▒', 3],
     [absorber, '▒', '🌱'],
-    [supprimer, d => d.age > 10],
-    [errer],
-    {
+    [errer], {
       type: 'Graine',
-      eau: 40,
     },
   ],
   '🌱': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
-    [muer, '🌿', d => d.age > 20],
-    {
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌿', d => d.age > 20], {
       type: 'Pousse',
     },
   ],
   '🌿': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
+    [muer, '▒', d => d.eau <= 0],
     [muer, '🌽', d => d.age > 20],
     {
       type: 'Plante',
@@ -511,8 +513,9 @@ o = {
   '🌽': [
     [absorber, '💧'],
     [absorber, '💦'],
-    [muer, '▒', d => d.eau <= 0], //TODO sauf si déjà de la terre
-    [produire, '❀', () => Math.random() < 0.3],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '▓', d => d.eau > 100],
+    [produire, '❀', () => Math.random() < 0.2],
     {
       type: 'Mais',
     },
@@ -602,7 +605,11 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 if (window.location.search) {
-  ajouter(14, 8, '💧');
+  ajouter(14, 5, '🧔');
+  ajouter(14, 8, '👩');
+  // ajouter(14, 10, '💀');
+  ajouter(14, 5, '🌽');
+  ajouter(14, 8, '⛲');
   Object.keys(o).forEach((nomSymbole, i) => {
     ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
   });
