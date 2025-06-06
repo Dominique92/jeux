@@ -143,8 +143,8 @@ function pointsProches(el, distance, limite, searched) {
           }
         });
       });
-    if (listeProches)
 
+    if (listeProches)
       return listeProches;
   }
 }
@@ -152,16 +152,20 @@ function pointsProches(el, distance, limite, searched) {
 // VERBES (functions)
 // Transformer un type en un autre
 function muer(el, nomObjet) { // 1 -> 1
+  //TODO seul endroit où on peut changer de type
   el.innerHTML = nomObjet;
   el.classList = o[nomObjet][o[nomObjet].length - 1].type;
-  el.data.age = 0; // L'âge repart à 0 si l'objet change de type //TODO paramètre
+  el.data.age = 0; // L'âge repart à 0 si l'objet change de type //BEST paramètre
 
-  return false;
+  return true; // Succés
 }
 
 // Move el to the x/y position if it's free
 function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -> 1
   const pos = position || pixelsFromXY(nx, ny);
+  //TODO ne pas bouger si déjà +1 objet dans la case
+  //TODO la fois suivante rencontrer si déjà 1 objet
+  //TODO seul endroit où on peut changer de position
 
   if (!caseEl(nx, ny, el.innerHTML)) {
     // Delete the previous location
@@ -191,6 +195,8 @@ function deplacer(el, nx, ny, position, positionFinale, nomObjet, data) { // 1 -
       }, 0);
 
     el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+
+    return true;
   }
 }
 
@@ -229,6 +235,8 @@ function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
 function supprimer(el) { // 1 -> 0
   el.remove();
   deleteCase(el);
+
+  return true;
 }
 
 function errer(el) { // 1 -> 1
@@ -243,7 +251,6 @@ function errer(el) { // 1 -> 1
       !Object.keys(caseEl(xn, yn)).length)
       return deplacer(el, xn, yn);
   }
-  return true;
 }
 
 function rapprocher(el, nomObjet, distance) { // 1 -> 1 (jusqu'à la même case)
@@ -252,20 +259,14 @@ function rapprocher(el, nomObjet, distance) { // 1 -> 1 (jusqu'à la même case)
 
   if (xy && pp.length)
     return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //TODO en biais
-
-  return true;
 }
 
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
   const xy = xyFromEl(el),
     existe = caseEl(xy.x, xy.y, nomNouveau);
 
-  if (!existe) {
-    ajouter(xy.x, xy.y, nomNouveau);
-    return false;
-  }
-
-  return true;
+  if (!existe)
+    return ajouter(xy.x, xy.y, nomNouveau);
 }
 
 function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
@@ -281,11 +282,8 @@ function absorber(el, nomObjet, nomObjetFinal) { // 2 -> 1 (dans la même case)
     supprimer(trouveEl);
 
     if (nomObjetFinal)
-      muer(el, nomObjetFinal);
-
-    return false;
+      return muer(el, nomObjetFinal);
   }
-  return true;
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -372,8 +370,8 @@ function iterer() {
           )
             executionFunction(el.data);
 
-          // Stop when one action is completed & return false
-          return statusExec;
+          // Stop when one action is completed & return
+          return !statusExec; // Continue si l'action à retourné false
         });
       el.data.age = ~~el.data.age + 1;
 
@@ -634,6 +632,7 @@ o = {
 
 // INITIALISATIONS
 // Modèles
+//TODO ajouter title avec nom
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
   ajouter(null, null, nomSymbole, {
     model: true,
@@ -645,10 +644,9 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 ajouter(14, 8, '⛲');
-/*
-  Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
-    ajouter(12 + i * 3, 8, nomSymbole);
-  });
+Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
+  ajouter(12 + i * 3, 8, nomSymbole);
+});
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
 });
@@ -656,16 +654,17 @@ ajouter(14, 8, '🌽');
 ajouter(22, 8, '⛲');
 ajouter(18, 16, '⛲');
 ajouter(26, 16, '🌽');
- 
-  ajouter(14, 8, '⛲');
-  ajouter(14, 9, '🧱');
-  ajouter(15, 9, '🧱');
-  ajouter(13, 8, '🧱');
-  ajouter(13, 7, '🧱');
-  ajouter(14, 7, '🧱');
-  ajouter(15, 8, '🧱');
 
-  Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
-    ajouter(8 + i * 3, 12, nomSymbole);
-  });
-*/
+ajouter(14, 8, '⛲');
+ajouter(14, 9, '🧱');
+ajouter(15, 9, '🧱');
+ajouter(13, 8, '🧱');
+ajouter(13, 7, '🧱');
+ajouter(14, 7, '🧱');
+ajouter(15, 8, '🧱');
+
+Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
+  ajouter(8 + i * 3, 12, nomSymbole);
+});
+/*
+ */
