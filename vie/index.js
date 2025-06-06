@@ -76,6 +76,7 @@ function caseEl(x, y, symboleType, el) {
 
 function deleteCase(el) {
   const xy = xyFromEl(el);
+  //TODO delete cases[] & remove from body
 
   delete caseEl(xy.x, xy.y, el.innerHTML);
 }
@@ -157,8 +158,8 @@ function muer(el, symboleType) { // 1 -> 1
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, nx, ny, position, positionFinale, symboleType, data) { // 1 -> 1
-  const pos = position || pixelsFromXY(nx, ny);
+function deplacer(el, nx, ny, p, positionFinale, symboleType, data) { // 1 -> 1
+  const position = p || pixelsFromXY(nx, ny);
   //TODO ne pas bouger si déjà +1 objet dans la case
   //TODO la fois suivante rencontrer si déjà 1 objet
 
@@ -179,8 +180,8 @@ function deplacer(el, nx, ny, position, positionFinale, symboleType, data) { // 
       caseEl(nx, ny, el.innerHTML, el)
 
     // Positionne dans la fenêtre
-    el.style.left = pos.left + 'px';
-    el.style.top = pos.top + 'px';
+    el.style.left = position.left + 'px';
+    el.style.top = position.top + 'px';
 
     // Smoothly move the icon
     if (typeof positionFinale === 'object')
@@ -219,8 +220,6 @@ function ajouter(x, y, symboleType, data, position, positionFinale) { // 0 -> 1
   el.draggable = true;
   /* eslint-disable-next-line no-use-before-define */
   el.ondragstart = dragstart;
-  /* eslint-disable-next-line no-use-before-define */
-  el.onclick = clickOnDiv;
 
   document.body.appendChild(el);
 
@@ -384,11 +383,6 @@ function iterer() {
 window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
 
-function clickOnDiv(evt) {
-  if (!evt.target.data.model)
-    supprimer(evt.target);
-}
-
 /* eslint-disable-next-line one-var */
 let dragstartInfo = null;
 
@@ -418,14 +412,7 @@ function dragstart(evt) {
 }
 
 document.ondragover = evt => {
-  // Autorise drop partout
-  evt.preventDefault();
-};
-
-document.ondragend = evt => { // Drag error
-  document.body.appendChild(evt.target);
-
-  evt.preventDefault();
+  evt.preventDefault(); // Autorise drop partout
 };
 
 document.ondrop = evt => {
@@ -447,9 +434,17 @@ document.ondrop = evt => {
     dragstartInfo.el.style.top = top + 'px';
   }
 
+  dragstartInfo = null;
+};
+
+document.ondragend = evt => { // Drag out the window
+  if (dragstartInfo)
+    supprimer(evt.target);
+
   evt.preventDefault();
 };
 
+// Debug
 document.onkeydown = evt => {
   if (evt.keyCode === 109) noIterationMax = 0;
   else if (evt.keyCode === 107) noIterationMax = 1000000;
