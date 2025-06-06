@@ -30,9 +30,6 @@ let o = {},
  * Scenario : liste d'actions ou de scenarios à exécuter dans l'ordre.
  *   La première ayant abouti interrompt la liste
  */
-//BEST Init data
-//BEST Flag consommable
-//BEST Consommer / chercher type de ressource + (quantité ?)
 
 // ROUTINES (functions)
 function pixelsFromXY(x, y) {
@@ -256,7 +253,7 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
     xy = xyFromEl(el);
 
   if (xy && pp.length)
-    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //TODO en biais
+    return deplacer(el, xy.x + pp[0][0], xy.y + pp[0][1]); //BEST en biais
 }
 
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
@@ -382,7 +379,7 @@ function iterer() {
 }
 
 // RÉPONSES SOURIS / CLAVIER
-//TODO save/restaure
+//BEST save/restaure
 
 window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
@@ -623,14 +620,14 @@ o = {
 
 // INITIALISATIONS
 // Modèles
-//TODO ajouter title avec nom
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  ajouter(null, null, nomSymbole, {
+  const el = ajouter(null, null, nomSymbole, {
     model: true,
   }, {
     left: 5,
     top: i * 2 * boxSize + 5,
   });
+  el.title = o[el.innerHTML][o[el.innerHTML].length - 1].type;
 });
 
 // Tests
