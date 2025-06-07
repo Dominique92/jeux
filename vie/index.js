@@ -216,9 +216,9 @@ function deplacer(el, p1, p2) { // 1 -> 1
       el.style.top = positionFinale.top + 'px';
     }
 
-    //el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+    //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
-    document.body.appendChild(el); // Mets ou remets l'élément en visibilité si nécéssaire
+    //TODO document.body.appendChild(el); // Mets ou remets l'élément en visibilité si nécéssaire
 
     return true;
   }
@@ -235,7 +235,6 @@ function ajouter(symboleType, p1, p2) { // 0 -> 1
 
   muer(el, symboleType);
   deplacer(el, p1, p2); // De ajouter
-  rebuildCases();
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -336,7 +335,8 @@ function iterer() {
     //TODO &&     el.noIteration < noIteration // Sauf s'il à déjà été traité à partir d'un autre
     {
       if (typeof o[el.innerHTML] === 'object')
-        o[el.innerHTML].slice(0, -1).every(action => {
+        o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
+        .every(action => { // Exécute chaque action tant qu'elle retourne false
           // Condition to the last argument (function)
           const conditionFunction = action[action.length - 1],
             executionFunction = action[action.length - 2];
@@ -347,7 +347,7 @@ function iterer() {
           )
             return true; // On n'exécute pas l'action et on passe à la suivante
 
-          // Execute action
+          // Execute l'action
           /* eslint-disable-next-line one-var */
           const statusExec = action[0](el, ...action.slice(1));
 
@@ -399,7 +399,7 @@ function dragstart(evt) {
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
     setTimeout(() => {
-      evt.target.remove();
+      evt.target.style.display = 'none';
     }, 0);
 
   helpEl.style.display = 'none';
@@ -415,9 +415,10 @@ document.ondrop = evt => {
     top: evt.y - dragstartInfo.offset.y,
   };
 
-  if (dragstartInfo.tagName === 'DIV') // Sauf modèle
+  if (dragstartInfo.tagName === 'DIV') { // Sauf modèle
     deplacer(dragstartInfo.el, position);
-  else // Modèle
+    dragstartInfo.el.style.display = 'initial';
+  } else // Modèle
     ajouter(dragstartInfo.innerHTML, position);
 
   dragstartInfo = null;
@@ -622,6 +623,7 @@ o = {
 // TESTS
 ajouter('🧔', 14, 5, );
 ajouter('👩', 14, 11, );
+/*
 ajouter('🏠', 14, 8, );
 ajouter('💀', 14, 10, );
 ajouter('🌽', 14, 5, );
@@ -638,7 +640,6 @@ ajouter('🧱', 15, 8, );
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4, );
 }, );
-/*
  */
 
 // Debug
