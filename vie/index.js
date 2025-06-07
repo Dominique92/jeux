@@ -2,6 +2,7 @@ const statsEl = document.getElementById('stats'),
   liEls = document.getElementsByTagName('li'),
   helpEl = document.getElementById('help'),
   deltasProches = [ //TODO commenter
+    // [<centre -> départ du côté>, <diraction du parcours du côté>]
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -40,11 +41,11 @@ function pixelsFromXY(x, y) {
   };
 }
 
-function xyFromPixels(position) {
-  if (typeof position === 'object')
+function xyFromPixels(pixels) {
+  if (typeof pixels === 'object')
     return {
-      x: Math.round((position.left + position.top / 1.732) / boxSize),
-      y: Math.round(position.top / 0.866 / boxSize),
+      x: Math.round((pixels.left + pixels.top / 1.732) / boxSize),
+      y: Math.round(pixels.top / 0.866 / boxSize),
     };
 }
 
@@ -100,17 +101,15 @@ function pointsProches(el, distance, limite, searched) {
           const xN = xy.x + d * delta[0] + i * delta[2],
             yN = xy.y + d * delta[1] + i * delta[3],
             pixelEln = pixelsFromXY(xN, yN),
-            nbCasesN = Object.keys(caseEl(xN, yN)).length,
-
-            elN = caseEl(xN, yN, searched);
+            elN = caseEl(xN, yN, searched),
+            nbObjetsCasesN = Object.keys(elN).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
-            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
-
-            if ((!searched && !nbCasesN) || // Cases libres
-              (searched && elN)) // Le bon type d'objet
-              listeProches.push([...delta, xN, yN, d]);
-          }
+            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize && (
+              (searched && nbObjetsCasesN) ||
+              (!searched && !nbObjetsCasesN)
+            ))
+            listeProches.push(delta);
         }
       });
     }
@@ -198,27 +197,25 @@ function muer(el, symboleType) { // 1 -> 1
 function deplacer(el, p1, p2) { // 1 -> 1
   // el, caseX, caseY || el, {left: px, top: px}
 
-  const positionPrecedente = el.getBoundingClientRect(),
-    positionFinale = {
+  const pixelsPrecedents = el.getBoundingClientRect(),
+    pixelsFinaux = {
       ...pixelsFromXY(p1, p2),
       ...p1,
     },
-    xyFinal = xyFromPixels(positionFinale);
+    xyFinal = xyFromPixels(pixelsFinaux);
 
   if (!caseEl(xyFinal.x, xyFinal.y, el.innerHTML).length) {
-    if (positionPrecedente.width)
+    if (pixelsPrecedents.width)
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        el.style.left = positionFinale.left + 'px';
-        el.style.top = positionFinale.top + 'px';
+        el.style.left = pixelsFinaux.left + 'px';
+        el.style.top = pixelsFinaux.top + 'px';
       }, 0);
     else { // On y va direct
-      el.style.left = positionFinale.left + 'px';
-      el.style.top = positionFinale.top + 'px';
+      el.style.left = pixelsFinaux.left + 'px';
+      el.style.top = pixelsFinaux.top + 'px';
     }
 
     //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-
-    //TODO document.body.appendChild(el); // Mets ou remets l'élément en visibilité si nécéssaire
 
     return true;
   }
@@ -410,16 +407,16 @@ document.ondragover = evt => {
 };
 
 document.ondrop = evt => {
-  const position = {
+  const pixels = {
     left: evt.x - dragstartInfo.offset.x,
     top: evt.y - dragstartInfo.offset.y,
   };
 
   if (dragstartInfo.tagName === 'DIV') { // Sauf modèle
-    deplacer(dragstartInfo.el, position);
+    deplacer(dragstartInfo.el, pixels);
     dragstartInfo.el.style.display = 'initial';
   } else // Modèle
-    ajouter(dragstartInfo.innerHTML, position);
+    ajouter(dragstartInfo.innerHTML, pixels);
 
   dragstartInfo = null;
 };
