@@ -18,6 +18,34 @@ div {
   cursor: grab;
 }
 
+ul {
+  margin: 5px 0;
+  padding-left: 10px;
+}
+
+li {
+  display: inline-block;
+  float: left;
+  clear: both;
+  margin: 5px 0;
+  list-style-type: none;
+  cursor: grab;
+}
+
+p>a {
+  display: inline-block;
+  margin: 0 3px;
+}
+
+p>a:first-child {
+  padding: 0 5px;
+  border: 1.5px white solid;
+  border-radius: 4px;
+  color: white;
+  background: #456;
+  font-size: 14px;
+}
+
 #help {
   position: absolute;
   top: 40%;

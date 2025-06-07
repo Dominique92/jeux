@@ -1,4 +1,5 @@
 const statsEl = document.getElementById('stats'),
+  liEls = document.getElementsByTagName('li'),
   helpEl = document.getElementById('help'),
   deltasProches = [ //TODO commenter
     [-1, 0, 0, -1],
@@ -52,8 +53,8 @@ function xyFromEl(el) {
 
 // Get or set case el
 function caseEl(x, y, symboleType, el) {
-  // 7,7 : test case free
-  // 7,7,🌿 : returns case
+  // 7,7 : returns the case contents []
+  // 7,7,🌿 : returns the html element
   // 7,7,🌿,el : fill the case
 
   if (typeof cases[x] === 'undefined') {
@@ -76,6 +77,44 @@ function caseEl(x, y, symboleType, el) {
   return [];
 }
 
+function rebuildCases() {
+  const divEls = document.getElementsByTagName('div');
+
+  cases = [];
+  zones = [];
+  for (const el of divEls)
+    if (el.data && !el.hovered) // Pas si le curseur est au dessus
+  {
+    const xy = xyFromEl(el),
+      zx = Math.round(xy.x / 4),
+      zy = Math.round(xy.y / 4),
+      d = {};
+
+    // Population des cases
+    caseEl(xy.x, xy.y, el.innerHTML, el);
+
+    // Population des zones
+    if (typeof zones[el.innerHTML] === 'undefined')
+      zones[el.innerHTML] = [];
+    if (typeof zones[el.innerHTML][zx] === 'undefined')
+      zones[el.innerHTML][zx] = [];
+    if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
+      zones[el.innerHTML][zx][zy] = 0;
+    zones[el.innerHTML][zx][zy]++;
+
+    // Debug
+    Object.keys(el.data).forEach(key => {
+      if (el.data[key])
+        d[key] = el.data[key];
+    });
+
+    el.title =
+      o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
+      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
+      (window.location.search ? ' ' + xy.x + ',' + xy.y : '');
+  }
+}
+
 function pointsProches(el, distance, limite, searched) {
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
@@ -95,19 +134,19 @@ function pointsProches(el, distance, limite, searched) {
     for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
       deltasProches.forEach(delta => {
         for (let i = 0; i < d && listeProches.length < limite; i++) {
-          const nx = xy.x + d * delta[0] + i * delta[2],
-            ny = xy.y + d * delta[1] + i * delta[3],
-            pixelEln = pixelsFromXY(nx, ny),
-            nbCasesN = Object.keys(caseEl(nx, ny)).length,
+          const xN = xy.x + d * delta[0] + i * delta[2],
+            yN = xy.y + d * delta[1] + i * delta[3],
+            pixelEln = pixelsFromXY(xN, yN),
+            nbCasesN = Object.keys(caseEl(xN, yN)).length,
 
-            elN = caseEl(nx, ny, searched);
+            elN = caseEl(xN, yN, searched);
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
 
             if ((!searched && !nbCasesN) || // Cases libres
               (searched && elN)) // Le bon type d'objet
-              listeProches.push([...delta, nx, ny, d]);
+              listeProches.push([...delta, xN, yN, d]);
           }
         }
       });
@@ -155,29 +194,26 @@ function muer(el, symboleType) { // 1 -> 1
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, nx, ny, position) { // 1 -> 1
-  if (!caseEl(nx, ny, el.innerHTML).length) {
-    //TODO Remove the previous location from the cases
-
-    // Register in the grid at the new place
-    if (nx && ny)
-      caseEl(nx, ny, el.innerHTML, el)
+function deplacer(el, xN, yN, position) { // 1 -> 1
+/*DCMM*/console.log(arguments);
 
 
+  //TODO position || xy || position
+  if (!caseEl(xN, yN, el.innerHTML).length) {
     if (position) { // On y va direct
       el.style.left = position.left + 'px';
       el.style.top = position.top + 'px';
     } else {
       // Smoothly move the icon
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        const positionCase = pixelsFromXY(nx, ny);
+        const positionCase = pixelsFromXY(xN, yN);
 
         el.style.left = positionCase.left + 'px';
         el.style.top = positionCase.top + 'px';
       }, 0);
     }
 
-    el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+    //el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
     document.body.appendChild(el); // Mets l'élément en visibilité si nécéssaire
 
@@ -186,18 +222,18 @@ function deplacer(el, nx, ny, position) { // 1 -> 1
 }
 
 function ajouter(x, y, symboleType, position) { // 0 -> 1
+  //TODO position || xy || position
   const el = document.createElement('div'),
     elStyle = window.getComputedStyle(el);
 
-  if (o[symboleType]) {
-    el.data = {
-      ...o[symboleType][o[symboleType].length - 1],
-    };
-    delete el.data.type;
-  }
+  el.data = {
+    ...o[symboleType][o[symboleType].length - 1],
+  };
+  delete el.data.type;
 
   muer(el, symboleType);
   deplacer(el, x, y, position); // De ajouter
+  rebuildCases();
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -226,15 +262,15 @@ function supprimer(el) { // 1 -> 0
 }
 
 function errer(el) { // 1 -> 1
-  const pp = pointsProches(el, 1, 1); //TODO aussi sur la terre
+  const pp = pointsProches(el, 1, 1);
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xn = xy.x + pp[0][0],
-      yn = xy.y + pp[0][1];
+      xN = xy.x + pp[0][0],
+      yN = xy.y + pp[0][1];
 
-    if (!Object.keys(caseEl(xn, yn)).length)
-      return deplacer(el, xn, yn); // De errer
+    if (!Object.keys(caseEl(xN, yN)).length)
+      return deplacer(el, xN, yN); // De errer
   }
 }
 
@@ -243,14 +279,14 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      //caseNel=caseEl(xn, yn),
-      xn = xy.x + pp[0][0],
-      yn = xy.y + pp[0][1];
+      //caseNel=caseEl(xN, yN),
+      xN = xy.x + pp[0][0],
+      yN = xy.y + pp[0][1];
 
     //TODO if(caseNel[symboleType ])	  
     //caseNel.noIteration = noIteration;// Pour éviter qu'il n'évolue lors de la même itération
 
-    return deplacer(el, xn, yn); // De rapprocher
+    return deplacer(el, xN, yN); // De rapprocher
   }
 }
 
@@ -287,46 +323,6 @@ function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 
 }
 
 // ACTIVATION (functions)
-function rebuidCases() {
-  const divEls = document.getElementsByTagName('div');
-
-  cases = [];
-  zones = [];
-  for (const el of divEls)
-    if (el.data && !el.isModel && // Pas les modèles
-      !el.hovered) // Pas si le curseur est au dessus
-  {
-    const xy = xyFromEl(el),
-      zx = Math.round(xy.x / 4),
-      zy = Math.round(xy.y / 4),
-      d = {};
-
-    // Population des cases
-    caseEl(xy.x, xy.y, el.innerHTML, el);
-
-    // Population des zones
-    if (typeof zones[el.innerHTML] === 'undefined')
-      zones[el.innerHTML] = [];
-    if (typeof zones[el.innerHTML][zx] === 'undefined')
-      zones[el.innerHTML][zx] = [];
-    if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
-      zones[el.innerHTML][zx][zy] = 0;
-    zones[el.innerHTML][zx][zy]++;
-
-    // Debug
-    Object.keys(el.data).forEach(key => {
-      if (el.data[key])
-        d[key] = el.data[key];
-    });
-
-    el.setAttribute('title', (
-      o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
-      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
-      (window.location.search ? ' ' + xy.x + ',' + xy.y : '')
-    ));
-  }
-}
-
 function iterer() {
   if (noIteration++ < noIterationMax || !window.location.search) {
     const debut = Date.now(),
@@ -334,9 +330,8 @@ function iterer() {
 
     // Exécution des actions
     for (const el of divEls)
-      if (el.data && !el.isModel && // Pas les modèles
-        !el.hovered && // Pas si le curseur est au dessus
-        el.noIteration < noIteration) // Sauf s'il à déjà été traité à partir d'un autre
+      if (el.data && !el.hovered) // Pas si le curseur est au dessus
+    //TODO &&     el.noIteration < noIteration // Sauf s'il à déjà été traité à partir d'un autre
     {
       if (typeof o[el.innerHTML] === 'object')
         o[el.innerHTML].slice(0, -1).every(action => {
@@ -346,9 +341,9 @@ function iterer() {
 
           if (action.length > 1 && // S'il y a assez d'arguments
             typeof conditionFunction === 'function' && // Si le dernier est une fonction
-            !conditionFunction(el.data) // Et que le test est négatif
+            !conditionFunction(el.data) // Le test d'elligibilté est négatif
           )
-            return true; // On n'exécute pas l'action et on passe au suivant
+            return true; // On n'exécute pas l'action et on passe à la suivante
 
           // Execute action
           /* eslint-disable-next-line one-var */
@@ -369,33 +364,37 @@ function iterer() {
       if (el.data.energie > 0) el.data.energie--;
     }
 
-    rebuidCases();
+    rebuildCases();
 
     statsEl.innerHTML = noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj';
   }
 }
 
 // RÉPONSES SOURIS / CLAVIER
-
-window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
+window.onload = () => {
+  if (window.location.search === '?start')
+    noIterationMax = 1000000;
+  rebuildCases();
+  iterer();
+};
 
 function dragstart(evt) {
   dragstartInfo = {
     el: evt.target,
     innerHTML: evt.target.innerHTML,
+    tagName: evt.target.tagName,
     style: { // Clone array
       ...evt.target.style,
     },
     data: evt.target.data,
-    isModel: evt.target.isModel,
-    offset: {
+    offset: { // Offset of the mouse over the symbol
       x: evt.offsetX,
       y: evt.offsetY,
     },
   };
 
-  if (!evt.target.isModel)
+  if (evt.target.tagName === 'DIV') // Sauf modele
     // Efface temporairement l'icône de départ
     setTimeout(() => {
       evt.target.remove();
@@ -415,46 +414,37 @@ document.ondrop = evt => {
     },
     xy = xyFromPixels(position);
 
-  if (dragstartInfo.isModel)
-    ajouter(xy.x, xy.y, dragstartInfo.innerHTML, position);
-  else
+  if (dragstartInfo.tagName === 'DIV') // Sauf modele
     deplacer(dragstartInfo.el, xy.x, xy.y, position);
+  else
+    ajouter(xy.x, xy.y, dragstartInfo.innerHTML, position);
 
   dragstartInfo = null;
 };
 
 document.ondragend = evt => { // Drag out the window
-  if (dragstartInfo && !evt.target.isModel)
+  if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modele
     supprimer(evt.target);
 
   evt.preventDefault();
 };
 
 /* eslint-disable-next-line no-unused-vars */
+function help() {
+  helpEl.style.display = 'initial';
+}
+
+/* eslint-disable-next-line no-unused-vars */
 function load() { //TODO
   console.log('load');
 }
+
 /* eslint-disable-next-line no-unused-vars */
 function save() { //TODO
   console.log('save');
 }
 
-// Debug
-if (window.location.search) {
-  helpEl.style.display = 'none';
-  noIterationMax = 0;
-  document.onkeydown = evt => {
-    if (evt.keyCode === 109) noIterationMax = 0;
-    else if (evt.keyCode === 107) noIterationMax = 1000000;
-    else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
-    else noIterationMax = noIteration + evt.keyCode % 48;
-    helpEl.style.display = 'none';
-  };
-}
-
 // SCÉNARII
-//🧔👩👫👪🧍💀  ⛲💧 🌱🌿🌽▓ ▒🧱🏠  🦴🚧🌳🌾🐇🐀🥔🧒👶👷🔥💦
-//🍄🥑🍆🥔🥕🌽🌶️🥒🥬🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥🎕💮🌸❀
 /*
 const consommer = [rapprocher, absorber];
   vivant = [
@@ -497,6 +487,7 @@ o = {
   ],
   //////////////////////////TODO
   // Cycle des plantes
+  //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🌳🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸🎕🌾
   '❀': [
     [muer, '🌱', d => d.age > 10],
     [rapprocher, '▒', 3],
@@ -539,6 +530,7 @@ o = {
     type: 'Herbe',
   }, ],
   // Cycle des humains
+  // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
@@ -546,6 +538,8 @@ o = {
     [errer],
     {
       type: 'Homme',
+      eau: 50,
+      energie: 50,
     },
   ],
   '👩': [
@@ -555,6 +549,8 @@ o = {
     [errer],
     {
       type: 'Femme',
+      eau: 50,
+      energie: 50,
     },
   ],
   '💏': [
@@ -596,31 +592,36 @@ o = {
       type: 'Mort',
     },
   ],
+  // Cycle des travaux
+  // 🚧🔥
   '🧱': [{
     type: 'Briques',
   }, ],
   '🏠': [{
     type: 'Maison',
   }, ],
+  // Cycle des animaux
+  // 🐇🐀🦊🦴
 };
 
 // INITIALISATIONS
 // Modèles
-Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
-  const el = ajouter(0, 0, nomSymbole, {
-    left: 8,
-    top: i * 2 * boxSize + 37,
-  });
+[...liEls].forEach(el => {
+  el.data = {
+    ...o[el.innerHTML][o[el.innerHTML].length - 1],
+  };
+  el.title = el.data.type;
+  delete el.data.type;
 
-  el.isModel = true;
+  el.ondragstart = dragstart;
+  el.draggable = true;
 });
 
-// Tests
-if (window.location.search) {
-  ajouter(14, 15, '🧔👩');
-  /*
-  ajouter(14, 5, '🧔');
-  ajouter(14, 8, '👩');
+// TESTS
+ajouter(14, 5, '🧔');
+/*
+ajouter(14, 11, '👩');
+ajouter(14, 8, '🏠');
   // ajouter(14, 10, '💀');
   ajouter(14, 5, '🌽');
   ajouter(14, 8, '⛲');
@@ -646,5 +647,17 @@ if (window.location.search) {
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouter(8 + i * 3, 12, nomSymbole);
   });
-   */
+*/
+
+// Debug
+if (window.location.search) {
+  helpEl.style.display = 'none';
+  noIterationMax = 0;
+  document.onkeydown = evt => {
+    if (evt.keyCode === 109) noIterationMax = 0;
+    else if (evt.keyCode === 107) noIterationMax = 1000000;
+    else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
+    else noIterationMax = noIteration + evt.keyCode % 48;
+    helpEl.style.display = 'none';
+  };
 }
