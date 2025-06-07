@@ -147,8 +147,10 @@ function pointsProches(el, distance, limite, searched) {
 // Transformer un type en un autre
 function muer(el, symboleType) { // 1 -> 1
   el.innerHTML = symboleType;
-  el.classList = o[symboleType][o[symboleType].length - 1].type;
-  el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+  if (o[symboleType]) {
+    el.classList = o[symboleType][o[symboleType].length - 1].type;
+    el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+  }
 
   return true; // Succés
 }
@@ -188,10 +190,12 @@ function ajouter(x, y, symboleType, position) { // 0 -> 1
   const el = document.createElement('div'),
     elStyle = window.getComputedStyle(el);
 
-  el.data = {
-    ...o[symboleType][o[symboleType].length - 1],
-  };
-  delete el.data.type;
+  if (o[symboleType]) {
+    el.data = {
+      ...o[symboleType][o[symboleType].length - 1],
+    };
+    delete el.data.type;
+  }
 
   muer(el, symboleType);
   deplacer(el, x, y, position); // De ajouter
@@ -428,6 +432,15 @@ document.ondragend = evt => { // Drag out the window
   evt.preventDefault();
 };
 
+/* eslint-disable-next-line no-unused-vars */
+function load() { //TODO
+  console.log('load');
+}
+/* eslint-disable-next-line no-unused-vars */
+function save() { //TODO
+  console.log('save');
+}
+
 // Debug
 if (window.location.search) {
   noIterationMax = 0;
@@ -597,7 +610,7 @@ o = {
 Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
   const el = ajouter(0, 0, nomSymbole, {
     left: 8,
-    top: i * 2 * boxSize + 5,
+    top: i * 2 * boxSize + 37,
   });
 
   el.isModel = true;

@@ -24,9 +24,15 @@ div {
   text-align: center;
 }
 
+p:has(#stats) {
+  margin: 5px 0 0 10px;
+  cursor: pointer;
+}
+
 #stats {
-  margin: 3px 30px;
+  margin: 3px;
   z-index: 10;
+  cursor: ;
 }
 
 #paradis {
