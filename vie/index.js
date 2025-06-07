@@ -41,10 +41,11 @@ function pixelsFromXY(x, y) {
 }
 
 function xyFromPixels(position) {
-  return {
-    x: Math.round((position.left + position.top / 1.732) / boxSize),
-    y: Math.round(position.top / 0.866 / boxSize),
-  };
+  if (typeof position === 'object')
+    return {
+      x: Math.round((position.left + position.top / 1.732) / boxSize),
+      y: Math.round(position.top / 0.866 / boxSize),
+    };
 }
 
 function xyFromEl(el) {
@@ -75,44 +76,6 @@ function caseEl(x, y, symboleType, el) {
     cases[x][y][symboleType] = el;
 
   return [];
-}
-
-function rebuildCases() {
-  const divEls = document.getElementsByTagName('div');
-
-  cases = [];
-  zones = [];
-  for (const el of divEls)
-    if (el.data && !el.hovered) // Pas si le curseur est au dessus
-  {
-    const xy = xyFromEl(el),
-      zx = Math.round(xy.x / 4),
-      zy = Math.round(xy.y / 4),
-      d = {};
-
-    // Population des cases
-    caseEl(xy.x, xy.y, el.innerHTML, el);
-
-    // Population des zones
-    if (typeof zones[el.innerHTML] === 'undefined')
-      zones[el.innerHTML] = [];
-    if (typeof zones[el.innerHTML][zx] === 'undefined')
-      zones[el.innerHTML][zx] = [];
-    if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
-      zones[el.innerHTML][zx][zy] = 0;
-    zones[el.innerHTML][zx][zy]++;
-
-    // Debug
-    Object.keys(el.data).forEach(key => {
-      if (el.data[key])
-        d[key] = el.data[key];
-    });
-
-    el.title =
-      o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
-      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
-      (window.location.search ? ' ' + xy.x + ',' + xy.y : '');
-  }
 }
 
 function pointsProches(el, distance, limite, searched) {
@@ -181,6 +144,44 @@ function pointsProches(el, distance, limite, searched) {
   }
 }
 
+function rebuildCases() {
+  const divEls = document.getElementsByTagName('div');
+
+  cases = [];
+  zones = [];
+  for (const el of divEls)
+    if (el.data && !el.hovered) // Pas si le curseur est au dessus
+  {
+    const xy = xyFromEl(el),
+      zx = Math.round(xy.x / 4),
+      zy = Math.round(xy.y / 4),
+      d = {};
+
+    // Population des cases
+    caseEl(xy.x, xy.y, el.innerHTML, el);
+
+    // Population des zones
+    if (typeof zones[el.innerHTML] === 'undefined')
+      zones[el.innerHTML] = [];
+    if (typeof zones[el.innerHTML][zx] === 'undefined')
+      zones[el.innerHTML][zx] = [];
+    if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
+      zones[el.innerHTML][zx][zy] = 0;
+    zones[el.innerHTML][zx][zy]++;
+
+    // Debug
+    Object.keys(el.data).forEach(key => {
+      if (el.data[key])
+        d[key] = el.data[key];
+    });
+
+    el.title =
+      o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
+      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
+      (window.location.search ? ' ' + xy.x + ',' + xy.y : '');
+  }
+}
+
 // VERBES (functions)
 // Transformer un type en un autre
 function muer(el, symboleType) { // 1 -> 1
@@ -194,35 +195,36 @@ function muer(el, symboleType) { // 1 -> 1
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, xN, yN, position) { // 1 -> 1
-/*DCMM*/console.log(arguments);
+function deplacer(el, p1, p2) { // 1 -> 1
+  // el, caseX, caseY || el, {left: px, top: px}
 
+  const positionPrecedente = el.getBoundingClientRect(),
+    positionFinale = {
+      ...pixelsFromXY(p1, p2),
+      ...p1,
+    },
+    xyFinal = xyFromPixels(positionFinale);
 
-  //TODO position || xy || position
-  if (!caseEl(xN, yN, el.innerHTML).length) {
-    if (position) { // On y va direct
-      el.style.left = position.left + 'px';
-      el.style.top = position.top + 'px';
-    } else {
-      // Smoothly move the icon
+  if (!caseEl(xyFinal.x, xyFinal.y, el.innerHTML).length) {
+    if (positionPrecedente.width)
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        const positionCase = pixelsFromXY(xN, yN);
-
-        el.style.left = positionCase.left + 'px';
-        el.style.top = positionCase.top + 'px';
+        el.style.left = positionFinale.left + 'px';
+        el.style.top = positionFinale.top + 'px';
       }, 0);
+    else { // On y va direct
+      el.style.left = positionFinale.left + 'px';
+      el.style.top = positionFinale.top + 'px';
     }
 
     //el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
 
-    document.body.appendChild(el); // Mets l'élément en visibilité si nécéssaire
+    document.body.appendChild(el); // Mets ou remets l'élément en visibilité si nécéssaire
 
     return true;
   }
 }
 
-function ajouter(x, y, symboleType, position) { // 0 -> 1
-  //TODO position || xy || position
+function ajouter(symboleType, p1, p2) { // 0 -> 1
   const el = document.createElement('div'),
     elStyle = window.getComputedStyle(el);
 
@@ -232,7 +234,7 @@ function ajouter(x, y, symboleType, position) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, x, y, position); // De ajouter
+  deplacer(el, p1, p2); // De ajouter
   rebuildCases();
 
   // Mouse actions
@@ -295,7 +297,7 @@ function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
     existe = caseEl(xy.x, xy.y, nomNouveau);
 
   if (!existe)
-    return ajouter(xy.x, xy.y, nomNouveau);
+    return ajouter(nomNouveau, xy.x, xy.y, );
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
@@ -394,7 +396,7 @@ function dragstart(evt) {
     },
   };
 
-  if (evt.target.tagName === 'DIV') // Sauf modele
+  if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
     setTimeout(() => {
       evt.target.remove();
@@ -409,21 +411,20 @@ document.ondragover = evt => {
 
 document.ondrop = evt => {
   const position = {
-      left: evt.x - dragstartInfo.offset.x,
-      top: evt.y - dragstartInfo.offset.y,
-    },
-    xy = xyFromPixels(position);
+    left: evt.x - dragstartInfo.offset.x,
+    top: evt.y - dragstartInfo.offset.y,
+  };
 
-  if (dragstartInfo.tagName === 'DIV') // Sauf modele
-    deplacer(dragstartInfo.el, xy.x, xy.y, position);
-  else
-    ajouter(xy.x, xy.y, dragstartInfo.innerHTML, position);
+  if (dragstartInfo.tagName === 'DIV') // Sauf modèle
+    deplacer(dragstartInfo.el, position);
+  else // Modèle
+    ajouter(dragstartInfo.innerHTML, position);
 
   dragstartInfo = null;
 };
 
 document.ondragend = evt => { // Drag out the window
-  if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modele
+  if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modèle
     supprimer(evt.target);
 
   evt.preventDefault();
@@ -487,7 +488,8 @@ o = {
   ],
   //////////////////////////TODO
   // Cycle des plantes
-  //🍄🥑🍆🥔🥕🌽🌶️🥒🥬🌳🥦🧄🧅🥜🌰🍄‍🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸🎕🌾
+  // 🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
+  // 🌳🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌾
   '❀': [
     [muer, '🌱', d => d.age > 10],
     [rapprocher, '▒', 3],
@@ -618,36 +620,26 @@ o = {
 });
 
 // TESTS
-ajouter(14, 5, '🧔');
+ajouter('🧔', 14, 5, );
+ajouter('👩', 14, 11, );
+ajouter('🏠', 14, 8, );
+ajouter('💀', 14, 10, );
+ajouter('🌽', 14, 5, );
+ajouter('⛲', 14, 8, );
+
+ajouter('⛲', 14, 8, );
+ajouter('🧱', 14, 9, );
+ajouter('🧱', 15, 9, );
+ajouter('🧱', 13, 8, );
+ajouter('🧱', 13, 7, );
+ajouter('🧱', 14, 7, );
+ajouter('🧱', 15, 8, );
+
+Object.keys(o).forEach((nomSymbole, i) => {
+  ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4, );
+}, );
 /*
-ajouter(14, 11, '👩');
-ajouter(14, 8, '🏠');
-  // ajouter(14, 10, '💀');
-  ajouter(14, 5, '🌽');
-  ajouter(14, 8, '⛲');
-  Object.keys(o).forEach((nomSymbole, i) => {
-    ajouter(10 + i, 8 + i % 3 * 4, nomSymbole);
-  });
-  Array.from('⛲💧🌱🌿🌽▒▓').forEach((nomSymbole, i) => {
-    ajouter(12 + i * 3, 8, nomSymbole);
-  });
-  ajouter(14, 8, '🌽');
-  ajouter(22, 8, '⛲');
-  ajouter(18, 16, '⛲');
-  ajouter(26, 16, '🌽');
-
-  ajouter(14, 8, '⛲');
-  ajouter(14, 9, '🧱');
-  ajouter(15, 9, '🧱');
-  ajouter(13, 8, '🧱');
-  ajouter(13, 7, '🧱');
-  ajouter(14, 7, '🧱');
-  ajouter(15, 8, '🧱');
-
-  Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
-    ajouter(8 + i * 3, 12, nomSymbole);
-  });
-*/
+ */
 
 // Debug
 if (window.location.search) {
