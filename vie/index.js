@@ -1,7 +1,6 @@
 const statsEl = document.getElementById('stats'),
   helpEl = document.getElementById('help'),
-  paradisEl = document.getElementById('paradis'),
-  deltasProches = [ //BEST déplacer en biais
+  deltasProches = [ //TODO commenter
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -377,7 +376,6 @@ function iterer() {
 }
 
 // RÉPONSES SOURIS / CLAVIER
-//BEST save/restaure
 
 window.onload = rebuidCases;
 self.setInterval(iterer, 1000);
@@ -400,7 +398,7 @@ function dragstart(evt) {
   if (!evt.target.isModel)
     // Efface temporairement l'icône de départ
     setTimeout(() => {
-      paradisEl.appendChild(evt.target);
+      evt.target.remove();
     }, 0);
 
   helpEl.style.display = 'none';
@@ -443,6 +441,7 @@ function save() { //TODO
 
 // Debug
 if (window.location.search) {
+  helpEl.style.display = 'none';
   noIterationMax = 0;
   document.onkeydown = evt => {
     if (evt.keyCode === 109) noIterationMax = 0;
@@ -618,6 +617,8 @@ Array.from('🧔👩⛲🌽').forEach((nomSymbole, i) => {
 
 // Tests
 if (window.location.search) {
+  ajouter(14, 15, '🧔👩');
+  /*
   ajouter(14, 5, '🧔');
   ajouter(14, 8, '👩');
   // ajouter(14, 10, '💀');
@@ -645,6 +646,5 @@ if (window.location.search) {
   Array.from('🧔👩💏👫👪🧍💀').forEach((nomSymbole, i) => {
     ajouter(8 + i * 3, 12, nomSymbole);
   });
-  /*
    */
 }
