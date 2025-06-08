@@ -99,23 +99,19 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
       deltasProches.forEach(delta => {
         for (let i = 0;
           (i < d) && (listeProches.length < limite); i++) {
-          const nouvelX = xy.x + d * delta[0] + i * delta[2],
-            nouvelY = xy.y + d * delta[1] + i * delta[3],
-            pixelEln = pixelsFromXY(nouvelX, nouvelY),
-            nouvelleCaseEl = caseEl({
-              x: nouvelX,
-              y: nouvelY
-            }),
-            //nouvelleCaseEl = caseEl({x:nouvelX, y:nouvelY}, symboleTypeRecherche),
-            //nouvelleCaseElwww = caseEl({x:nouvelX, y:nouvelY}, symboleTypeRecherche),
-            nbObjetsNouvelleCase = Object.keys(nouvelleCaseEl).length;
+          const nouvelXY = {
+              x: xy.x + d * delta[0] + i * delta[2],
+              y: xy.y + d * delta[1] + i * delta[3],
+            },
+            pixelEln = pixelsFromXY(nouvelXY.x, nouvelXY.y),
+            nbObjetsNouvelleCase = Object.keys(caseEl(nouvelXY)).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize && (
               (symboleTypeRecherche && nbObjetsNouvelleCase) || // On cherche un symbole
               (!symboleTypeRecherche && !nbObjetsNouvelleCase) // On cheche une case vide
             ))
-            listeProches.push([...delta, nouvelX, nouvelY, ]);
+            listeProches.push([...delta, nouvelXY.x, nouvelXY.y, ]);
         }
       });
     }
@@ -272,18 +268,13 @@ function errer(el) { // 1 -> 1
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      nouvelX = xy.x + pp[0][0],
-      nouvelY = xy.y + pp[0][1];
-    //TODO résorber {x:nouvelX, y:nouvelY}
+      nouvelXY = {
+        x: xy.x + pp[0][0],
+        y: xy.y + pp[0][1],
+      };
 
-    if (!Object.keys(caseEl({
-        x: nouvelX,
-        y: nouvelY
-      })).length)
-      return deplacer(el, {
-        x: nouvelX,
-        y: nouvelY
-      }); // De errer
+    if (!Object.keys(caseEl(nouvelXY)).length)
+      return deplacer(el, nouvelXY); // De errer
   }
 }
 
