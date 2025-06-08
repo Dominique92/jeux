@@ -53,71 +53,78 @@ function xyFromEl(el) {
 }
 
 // Get or set case el
-function caseEl(x, y, symboleType, el) {
+function caseEl(xy, symboleType, el) {
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
   // 7,7,🌿,el : fill the case
 
-  if (typeof cases[x] === 'undefined') {
-    if (el) cases[x] = [];
+  if (typeof cases[xy.x] === 'undefined') {
+    if (el) cases[xy.x] = [];
     else return [];
   }
 
-  if (typeof cases[x][y] === 'undefined') {
-    if (el) cases[x][y] = [];
+  if (typeof cases[xy.x][xy.y] === 'undefined') {
+    if (el) cases[xy.x][xy.y] = [];
     else return [];
   }
 
   // Liste des objets dans une case
   if (typeof symboleType === 'undefined')
-    return cases[x][y];
+    return cases[xy.x][xy.y];
 
+  // Mets l'el dans la case
   if (typeof el === 'object')
-    cases[x][y][symboleType] = el;
+    cases[xy.x][xy.y][symboleType] = el;
 
-  return [];
+  return cases[xy.x][xy.y][symboleType];
 }
 
-function pointsProches(el, distance, limite, searched) {
+function casesProches(el, distance, limite, symboleTypeRecherche) {
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
-  // limite : nombre de points ramenés
-  // searched : type d'objets 🌿 recherchés
+  // limite : nombre de cases ramenées
+  // symboleTypeRecherche : type d'objets 🌿 recherchés (string unicode)
   const xy = xyFromEl(el);
 
   let listeProches = [],
     dMin = 999999;
 
   if (xy) {
-    // Randomize points order array
+    // Randomize search order
     for (let i = Math.random() * deltasProches.length; i > 0; i--)
       deltasProches.push(deltasProches.shift());
 
     // Recherche dans un rayon
     for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
       deltasProches.forEach(delta => {
-        for (let i = 0; i < d && listeProches.length < limite; i++) {
-          const xN = xy.x + d * delta[0] + i * delta[2],
-            yN = xy.y + d * delta[1] + i * delta[3],
-            pixelEln = pixelsFromXY(xN, yN),
-            elN = caseEl(xN, yN, searched),
-            nbObjetsCasesN = Object.keys(elN).length;
+        for (let i = 0;
+          (i < d) && (listeProches.length < limite); i++) {
+          const nouvelX = xy.x + d * delta[0] + i * delta[2],
+            nouvelY = xy.y + d * delta[1] + i * delta[3],
+            pixelEln = pixelsFromXY(nouvelX, nouvelY),
+            nouvelleCaseEl = caseEl({
+              x: nouvelX,
+              y: nouvelY
+            }),
+            //nouvelleCaseEl = caseEl({x:nouvelX, y:nouvelY}, symboleTypeRecherche),
+            //nouvelleCaseElwww = caseEl({x:nouvelX, y:nouvelY}, symboleTypeRecherche),
+            nbObjetsNouvelleCase = Object.keys(nouvelleCaseEl).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize && (
-              (searched && nbObjetsCasesN) ||
-              (!searched && !nbObjetsCasesN)
+              (symboleTypeRecherche && nbObjetsNouvelleCase) || // On cherche un symbole
+              (!symboleTypeRecherche && !nbObjetsNouvelleCase) // On cheche une case vide
             ))
-            listeProches.push(delta);
+            listeProches.push([...delta, nouvelX, nouvelY, ]);
         }
       });
     }
 
     // Recherche éloignés
-    if (distance && distance > 5 &&
-      !listeProches.length &&
-      typeof zones[searched] === 'object')
-      zones[searched].forEach((col, noCol) => {
+    if (!listeProches.length &&
+      distance && distance > 5 &&
+      typeof zones[symboleTypeRecherche] === 'object')
+      zones[symboleTypeRecherche].forEach((col, noCol) => {
         col.forEach((ligne, noLigne) => {
           const deltaCol = noCol - Math.round(xy.x / 4),
             deltaLigne = noLigne - Math.round(xy.y / 4),
@@ -156,7 +163,7 @@ function rebuildCases() {
       d = {};
 
     // Population des cases
-    caseEl(xy.x, xy.y, el.innerHTML, el);
+    caseEl(xy, el.innerHTML, el);
 
     // Population des zones
     if (typeof zones[el.innerHTML] === 'undefined')
@@ -193,37 +200,36 @@ function muer(el, symboleType) { // 1 -> 1
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, p1, p2) { // 1 -> 1
+function deplacer(el, arg1, arg2) { // 1 -> 1
   // el, caseX, caseY || el, {left: px, top: px}
 
   const pixelsPrecedents = el.getBoundingClientRect(),
     pixelsFinaux = {
-      ...pixelsFromXY(p1, p2),
-      ...p1,
-    },
-    //TODO on peut avoir 2 objets différents mais pas plus
-    xyFinal = xyFromPixels(pixelsFinaux),
-    caseFinaleEl = caseEl(xyFinal.x, xyFinal.y, el.innerHTML);
+      ...pixelsFromXY(arg1, arg2),
+      ...arg1,
+    };
+  //xyFinal = xyFromPixels(pixelsFinaux) ;
 
-  if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
-    if (pixelsPrecedents.width) // On part d'une position, bouge lentement
-      setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        el.style.left = pixelsFinaux.left + 'px';
-        el.style.top = pixelsFinaux.top + 'px';
-      }, 0);
-    else { // On y va direct
+  //TODO on peut avoir 2 objets différents mais pas plus
+  //if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
+
+  if (pixelsPrecedents.width) // On part d'une position, bouge lentement
+    setTimeout(() => { // Timeout ensures styles are applied before scrolling
       el.style.left = pixelsFinaux.left + 'px';
       el.style.top = pixelsFinaux.top + 'px';
-    }
-
-    //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-    rebuildCases();
-
-    return true;
+    }, 0);
+  else { // On y va direct
+    el.style.left = pixelsFinaux.left + 'px';
+    el.style.top = pixelsFinaux.top + 'px';
   }
+
+  //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+  rebuildCases();
+
+  return true;
 }
 
-function ajouter(symboleType, p1, p2) { // 0 -> 1
+function ajouter(symboleType, arg1, arg2) { // 0 -> 1
   const el = document.createElement('div'),
     elStyle = window.getComputedStyle(el);
 
@@ -233,7 +239,7 @@ function ajouter(symboleType, p1, p2) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, p1, p2); // De ajouter
+  deplacer(el, arg1, arg2); // De ajouter
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -262,42 +268,51 @@ function supprimer(el) { // 1 -> 0
 }
 
 function errer(el) { // 1 -> 1
-  const pp = pointsProches(el, 1, 1);
+  const pp = casesProches(el, 1, 1);
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xN = xy.x + pp[0][0],
-      yN = xy.y + pp[0][1];
+      nouvelX = xy.x + pp[0][0],
+      nouvelY = xy.y + pp[0][1];
+    //TODO résorber {x:nouvelX, y:nouvelY}
 
-    if (!Object.keys(caseEl(xN, yN)).length)
-      return deplacer(el, xN, yN); // De errer
+    if (!Object.keys(caseEl({
+        x: nouvelX,
+        y: nouvelY
+      })).length)
+      return deplacer(el, {
+        x: nouvelX,
+        y: nouvelY
+      }); // De errer
   }
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
-  const pp = pointsProches(el, distance || 100, 1, symboleType);
+  const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      xN = xy.x + pp[0][0],
-      yN = xy.y + pp[0][1];
+      nouvelX = xy.x + pp[0][0],
+      nouvelY = xy.y + pp[0][1];
 
-    return deplacer(el, xN, yN); // De rapprocher
+    rebuildCases();
+
+    return deplacer(el, nouvelX, nouvelY); // De rapprocher
   }
 }
 
 function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
   const xy = xyFromEl(el),
-    existe = caseEl(xy.x, xy.y, nomNouveau);
+    existe = caseEl(xy, nomNouveau);
 
   if (!existe)
-    return ajouter(nomNouveau, xy.x, xy.y, );
+    return ajouter(nomNouveau, xy.x, xy.y);
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
   //console.log(...arguments); //TODO TEST absorber
   const xy = xyFromEl(el),
-    trouveEl = caseEl(xy.x, xy.y, symboleType);
+    trouveEl = caseEl(xy, symboleType);
 
   if (trouveEl) {
     for (const property in trouveEl.data) {
@@ -370,8 +385,11 @@ function iterer() {
 // RÉPONSES SOURIS / CLAVIER
 self.setInterval(iterer, 1000);
 window.onload = () => {
-  if (window.location.search === '?start')
-    noIterationMax = 10;
+  const arg = window.location.search.match(/[0-9]+/u);
+
+  if (arg)
+    noIterationMax = arg[0];
+
   rebuildCases();
   iterer();
 };
@@ -616,25 +634,26 @@ o = {
 });
 
 // TESTS
-ajouter('🧔', 14, 5, );
-ajouter('👩', 14, 6, );
-/*
-ajouter('🏠', 14, 8, );
-ajouter('💀', 14, 10, );
-ajouter('🌽', 14, 5, );
-ajouter('⛲', 14, 8, );
+ajouter('🧔', 14, 9);
+ajouter('👩', 15, 9);
 
-ajouter('⛲', 14, 8, );
-ajouter('🧱', 14, 9, );
-ajouter('🧱', 15, 9, );
-ajouter('🧱', 13, 8, );
-ajouter('🧱', 13, 7, );
-ajouter('🧱', 14, 7, );
-ajouter('🧱', 15, 8, );
+ajouter('🏠', 14, 8);
+ajouter('💀', 14, 10);
+ajouter('🌽', 14, 5);
+ajouter('⛲', 14, 8);
+
+ajouter('⛲', 14, 8);
+ajouter('🧱', 14, 9);
+ajouter('🧱', 15, 9);
+ajouter('🧱', 13, 8);
+ajouter('🧱', 13, 7);
+ajouter('🧱', 14, 7);
+ajouter('🧱', 15, 8);
 
 Object.keys(o).forEach((nomSymbole, i) => {
-  ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4, );
-}, );
+  ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
+});
+/*
  */
 
 // Debug
