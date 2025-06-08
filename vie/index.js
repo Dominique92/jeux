@@ -1,8 +1,7 @@
 const statsEl = document.getElementById('stats'),
   liEls = document.getElementsByTagName('li'),
   helpEl = document.getElementById('help'),
-  deltasProches = [ //TODO commenter
-    // [<centre -> départ du côté>, <diraction du parcours du côté>]
+  deltasProches = [ // [<centre -> départ du côté>, <direction du parcours du côté>]
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
     [0, 1, -1, -1],
@@ -202,10 +201,12 @@ function deplacer(el, p1, p2) { // 1 -> 1
       ...pixelsFromXY(p1, p2),
       ...p1,
     },
-    xyFinal = xyFromPixels(pixelsFinaux);
+    //TODO on peut avoir 2 objets différents mais pas plus
+    xyFinal = xyFromPixels(pixelsFinaux),
+    caseFinaleEl = caseEl(xyFinal.x, xyFinal.y, el.innerHTML);
 
-  if (!caseEl(xyFinal.x, xyFinal.y, el.innerHTML).length) {
-    if (pixelsPrecedents.width)
+  if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
+    if (pixelsPrecedents.width) // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
         el.style.left = pixelsFinaux.left + 'px';
         el.style.top = pixelsFinaux.top + 'px';
@@ -216,6 +217,7 @@ function deplacer(el, p1, p2) { // 1 -> 1
     }
 
     //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
+    rebuildCases();
 
     return true;
   }
@@ -277,12 +279,8 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
 
   if (pp.length) {
     const xy = xyFromEl(el),
-      //caseNel=caseEl(xN, yN),
       xN = xy.x + pp[0][0],
       yN = xy.y + pp[0][1];
-
-    //TODO if(caseNel[symboleType ])	  
-    //caseNel.noIteration = noIteration;// Pour éviter qu'il n'évolue lors de la même itération
 
     return deplacer(el, xN, yN); // De rapprocher
   }
@@ -328,8 +326,8 @@ function iterer() {
 
     // Exécution des actions
     for (const el of divEls)
-      if (el.data && !el.hovered) // Pas si le curseur est au dessus
-    //TODO &&     el.noIteration < noIteration // Sauf s'il à déjà été traité à partir d'un autre
+      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
+        el.data && !el.hovered) // Si le curseur n'est pas au dessus
     {
       if (typeof o[el.innerHTML] === 'object')
         o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
@@ -358,9 +356,9 @@ function iterer() {
           return !statusExec; // Continue si l'action à retourné false
         });
       el.data.age = ~~el.data.age + 1;
-
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
+      el.noIteration = noIteration; // Marqué déjà traité
     }
 
     rebuildCases();
@@ -373,7 +371,7 @@ function iterer() {
 self.setInterval(iterer, 1000);
 window.onload = () => {
   if (window.location.search === '?start')
-    noIterationMax = 1000000;
+    noIterationMax = 10;
   rebuildCases();
   iterer();
 };
@@ -535,7 +533,7 @@ o = {
     [rapprocher, '👩'],
     [absorber, '👩', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       type: 'Homme',
       eau: 50,
@@ -546,7 +544,7 @@ o = {
     [rapprocher, '🧔'],
     [absorber, '🧔', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       type: 'Femme',
       eau: 50,
@@ -619,7 +617,7 @@ o = {
 
 // TESTS
 ajouter('🧔', 14, 5, );
-ajouter('👩', 14, 11, );
+ajouter('👩', 14, 6, );
 /*
 ajouter('🏠', 14, 8, );
 ajouter('💀', 14, 10, );

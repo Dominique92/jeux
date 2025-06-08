@@ -38,12 +38,13 @@ p>a {
 }
 
 p>a:first-child {
-  padding: 0 5px;
+  /* Picto mode d'emploi */
+  padding: 0 4px;
   border: 1.5px white solid;
   border-radius: 4px;
   color: white;
   background: #456;
-  font-size: 14px;
+  font-size: 10px;
 }
 
 #help {
