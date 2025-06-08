@@ -449,6 +449,7 @@ function load() { //TODO
 function save() { //TODO
   console.log('save');
 }
+//TODO rétablir double clic pour supprimer
 
 // SCÉNARII
 /*

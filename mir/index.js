@@ -2,7 +2,7 @@ const inputEls = document.getElementsByTagName('input'),
   pEls = document.getElementsByTagName('p'),
   divEl = document.getElementsByTagName('div')[0],
   spanEls = document.getElementsByTagName('span'),
-  sPars = location.search.match(/s=([0-9]+)/u) || [null, 4],
+  sPars = location.search.match(/s=([0-9]+)/u) || [null, 8],
   size = parseInt(sPars[1], 10),
   size1 = size + 1,
   dPars = location.search.match(/d=([0-9]+)/u) || [null, 50];
