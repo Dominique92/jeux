@@ -34,10 +34,18 @@ let o = {},
  */
 
 // ROUTINES (functions)
-function pixelsFromXY(x, y) {
+function pixelsFromXY(xy) {
+  /*
+    xy = { //TODO généraliser ?
+      x: a,
+      y: b,
+      ...b,
+    };*/
+  //*DCMM*/console.log(xy);
+
   return {
-    left: (x - y / 2) * boxSize + gigue(),
-    top: y * 0.866 * boxSize + gigue(),
+    left: (xy.x - xy.y / 2) * boxSize + gigue(),
+    top: xy.y * 0.866 * boxSize + gigue(),
   };
 }
 
@@ -104,7 +112,7 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
               x: xy.x + d * delta[0] + i * delta[2],
               y: xy.y + d * delta[1] + i * delta[3],
             },
-            pixelEln = pixelsFromXY(nouvelXY.x, nouvelXY.y),
+            pixelEln = pixelsFromXY(nouvelXY),
             nouvellesCases = caseEl(nouvelXY),
             rechercheCase = caseEl(nouvelXY, symboleTypeRecherche),
             nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
@@ -210,19 +218,23 @@ function muer(el, symboleType) { // 1 -> 1
 }
 
 // Move el to the x/y position if it's free
-function deplacer(el, arg1, arg2) { // 1 -> 1
+function deplacer(el, a, b) { // 1 -> 1
   // el, caseX, caseY || el, {x: caseX, y: caseY} || el, {left: px, top: px}
 
   const pixelsPrecedents = el.getBoundingClientRect(),
     xyFinaux = { //TODO généraliser ?
-      x: arg1,
-      y: arg2,
-      ...arg1,
+      x: a,
+      y: b,
+      ...a,
     },
     pixelsFinaux = {
-      ...pixelsFromXY(xyFinaux.x, xyFinaux.y),
-      ...arg1,
+      ...pixelsFromXY(xyFinaux),
+      ...a,
     };
+  /*DCMM*/
+  console.log(arguments);
+  /*DCMM*/
+  console.log(xyFinaux);
   //TODO enregistrer le n° de la case dans l'element et metre à jour cases ?
 
   //TODO on peut avoir 2 objets différents mais pas plus
@@ -244,7 +256,7 @@ function deplacer(el, arg1, arg2) { // 1 -> 1
   return true;
 }
 
-function ajouter(symboleType, arg1, arg2) { // 0 -> 1
+function ajouter(symboleType, a, b) { // 0 -> 1
   const el = document.createElement('div'),
     elStyle = window.getComputedStyle(el);
 
@@ -254,7 +266,7 @@ function ajouter(symboleType, arg1, arg2) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, arg1, arg2); // Pour ajouter
+  deplacer(el, a, b); // Pour ajouter
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -288,7 +300,7 @@ function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
-    return deplacer(el, pp[0][4].x, pp[0][4].y); // Pour errer
+    return deplacer(el, pp[0][4]); // Pour errer
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
@@ -303,7 +315,10 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
       ~~pp[0][6] === 1) // Seulement à 1 case de distance
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
-    return deplacer(el, nouvelX, nouvelY); // Pour rapprocher
+    return deplacer(el, {
+      x: nouvelX,
+      y: nouvelY,
+    }); // Pour rapprocher
   }
 }
 
@@ -672,6 +687,11 @@ o = {
 });
 
 // TESTS
+
+ajouter('🧔', 14, 9);
+ajouter('👩', 17, 9);
+
+/*
 ajouter('⛲', 14, 8);
 ajouter('🧱', 14, 9);
 ajouter('🧱', 15, 9);
@@ -679,9 +699,6 @@ ajouter('🧱', 13, 8);
 ajouter('🧱', 13, 7);
 ajouter('🧱', 14, 7);
 ajouter('🧱', 15, 8);
-
-ajouter('🧔', 14, 9);
-ajouter('👩', 17, 9);
 
 ajouter('🏠', 14, 8);
 ajouter('💀', 14, 10);
@@ -691,7 +708,6 @@ ajouter('⛲', 14, 8);
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
 });
-/*
  */
 
 // Debug
