@@ -105,16 +105,19 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
               y: xy.y + d * delta[1] + i * delta[3],
             },
             pixelEln = pixelsFromXY(nouvelXY.x, nouvelXY.y),
-            nouvelleCases = caseEl(nouvelXY),
-            nbObjetsNouvelleCase = Object.keys(nouvelleCases).length;
+            nouvellesCases = caseEl(nouvelXY),
+            rechercheCase = caseEl(nouvelXY, symboleTypeRecherche),
+            nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
-            if (symboleTypeRecherche) {
-              if (nbObjetsNouvelleCase)
-                listeProches.push([...delta, nouvelXY, nouvelleCases[symboleTypeRecherche], d]);
-            } else if (!nbObjetsNouvelleCase)
+            if (symboleTypeRecherche) { // On cherche un caractère
+              if (rechercheCase)
+                //TODO BUG : ne compare pas avec symboleTypeRecherche
+                listeProches.push([...delta, nouvelXY, nouvellesCases[symboleTypeRecherche], d]);
+            } else if (!nbObjetsNouvelleCase) { // On cherche une case vide
               listeProches.push([...delta, nouvelXY]);
+            }
           }
         }
       });
@@ -122,7 +125,7 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
 
     // Recherche éloignés
     if (!listeProches.length &&
-      distance && distance > 5 &&
+      ~~distance > 5 &&
       typeof zones[symboleTypeRecherche] === 'object')
       zones[symboleTypeRecherche].forEach((col, noCol) => {
         col.forEach((ligne, noLigne) => {
@@ -220,6 +223,7 @@ function deplacer(el, arg1, arg2) { // 1 -> 1
       ...pixelsFromXY(xyFinaux.x, xyFinaux.y),
       ...arg1,
     };
+  //TODO enregistrer le n° de la case dans l'element et metre à jour cases ?
 
   //TODO on peut avoir 2 objets différents mais pas plus
   //if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
@@ -235,7 +239,7 @@ function deplacer(el, arg1, arg2) { // 1 -> 1
   }
 
   //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-  rebuildCases();
+  rebuildCases(); //TODO façon plus simple de mettre les cases à jour ?
 
   return true;
 }
@@ -295,15 +299,9 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
       nouvelX = xy.x + pp[0][0],
       nouvelY = xy.y + pp[0][1];
 
-    if (pp[0].length > 4 && pp[0][4] === 1) {
-      /* //TODO seulement si 1 case de distance
-      const      cibleEl = caseEl( pp[0][4] ,symboleType);
-
-      console.log( cibleEl,el.innerHTML,cibleEl.innerHTML,nouvelX===pp[0][4].x, nouvelY===pp[0][4].y);
-      if(cibleEl&&   nouvelX===pp[0][4].x&& nouvelY===pp[0][4].y)
-       cibleEl.noIteration=noIteration;
-      */
-    }
+    if (typeof pp[0][5] === 'object' &&
+      ~~pp[0][6] === 1) // Seulement à 1 case de distance
+      pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
     return deplacer(el, nouvelX, nouvelY); // Pour rapprocher
   }
@@ -352,7 +350,7 @@ function iterer() {
 
     // Exécution des actions
     for (const el of divEls)
-      if ( //DCMM ~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
+      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
         el.data && !el.hovered) // Si le curseur n'est pas au dessus
     {
       if (typeof o[el.innerHTML] === 'object')
@@ -384,7 +382,7 @@ function iterer() {
       el.data.age = ~~el.data.age + 1;
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
-      //DCMM el.noIteration = noIteration; // Marqué déjà traité
+      // el.noIteration = noIteration; //TODO Marque déjà traité
     }
 
     rebuildCases();
@@ -473,13 +471,17 @@ function load(evt) {
   reader.readAsText(blob);
   reader.onload = () => {
     const data = JSON.parse(reader.result);
+
     data.forEach(d => {
       const el = ajouter(d.type, d);
+
       el.data = d.data;
     });
 
     rebuildCases();
   };
+
+  helpEl.style.display = 'none';
 }
 
 /* eslint-disable-next-line no-unused-vars, one-var */
@@ -670,15 +672,6 @@ o = {
 });
 
 // TESTS
-ajouter('👩', 17, 9);
-ajouter('🧔', 30, 29);
-/*
-
-ajouter('🏠', 14, 8);
-ajouter('💀', 14, 10);
-ajouter('🌽', 14, 5);
-ajouter('⛲', 14, 8);
-
 ajouter('⛲', 14, 8);
 ajouter('🧱', 14, 9);
 ajouter('🧱', 15, 9);
@@ -687,9 +680,18 @@ ajouter('🧱', 13, 7);
 ajouter('🧱', 14, 7);
 ajouter('🧱', 15, 8);
 
+ajouter('🧔', 14, 9);
+ajouter('👩', 17, 9);
+
+ajouter('🏠', 14, 8);
+ajouter('💀', 14, 10);
+ajouter('🌽', 14, 5);
+ajouter('⛲', 14, 8);
+
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
 });
+/*
  */
 
 // Debug
