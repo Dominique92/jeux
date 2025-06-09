@@ -111,9 +111,8 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
             0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
             if (symboleTypeRecherche) {
-              if (nbObjetsNouvelleCase) {
+              if (nbObjetsNouvelleCase)
                 listeProches.push([...delta, nouvelXY, nouvelleCases[symboleTypeRecherche], d]);
-              }
             } else if (!nbObjetsNouvelleCase)
               listeProches.push([...delta, nouvelXY]);
           }
@@ -297,8 +296,7 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
       nouvelY = xy.y + pp[0][1];
 
     if (pp[0].length > 4 && pp[0][4] === 1) {
-      /*
-      	   //TODO seulement si 1 case de distance
+      /* //TODO seulement si 1 case de distance
       const      cibleEl = caseEl( pp[0][4] ,symboleType);
 
       console.log( cibleEl,el.innerHTML,cibleEl.innerHTML,nouvelX===pp[0][4].x, nouvelY===pp[0][4].y);
@@ -350,6 +348,7 @@ function iterer() {
       divEls = document.getElementsByTagName('div');
 
     noIteration++;
+    rebuildCases(); //TODO revoir quand faire ça (depends des transitions)
 
     // Exécution des actions
     for (const el of divEls)
@@ -487,7 +486,7 @@ function load(evt) {
 const save = async () => {
   const handle = await window.showSaveFilePicker({
       types: [{
-        description: 'Data json',
+        description: 'Sauvegarde jeu de la vie',
         accept: {
           'application/vie': ['.vie']
         },
@@ -671,9 +670,9 @@ o = {
 });
 
 // TESTS
-/*
 ajouter('👩', 17, 9);
-ajouter('🧔', 14, 9);
+ajouter('🧔', 30, 29);
+/*
 
 ajouter('🏠', 14, 8);
 ajouter('💀', 14, 10);
