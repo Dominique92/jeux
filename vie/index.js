@@ -17,7 +17,8 @@ let o = {},
   noIteration = 0,
   noIterationMax = 0,
   cases = [],
-  zones = [];
+  zones = [],
+  dataSav = [];
 
 /*********************
  * Terrain : toute la fenêtre <body>
@@ -151,6 +152,8 @@ function rebuildCases() {
 
   cases = [];
   zones = [];
+  dataSav = [];
+
   for (const el of divEls)
     if (el.data && !el.hovered) // Pas si le curseur est au dessus
   {
@@ -170,6 +173,14 @@ function rebuildCases() {
     if (typeof zones[el.innerHTML][zx][zy] === 'undefined')
       zones[el.innerHTML][zx][zy] = 0;
     zones[el.innerHTML][zx][zy]++;
+
+    // Data to be saved in a file
+    dataSav.push({
+      type: el.innerHTML,
+      left: Math.round(el.getBoundingClientRect().left),
+      top: Math.round(el.getBoundingClientRect().top),
+      data: el.data,
+    });
 
     // Debug
     Object.keys(el.data).forEach(key => {
@@ -340,7 +351,7 @@ function iterer() {
 
     // Exécution des actions
     for (const el of divEls)
-      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
+      if ( //DCMM ~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
         el.data && !el.hovered) // Si le curseur n'est pas au dessus
     {
       if (typeof o[el.innerHTML] === 'object')
@@ -372,7 +383,7 @@ function iterer() {
       el.data.age = ~~el.data.age + 1;
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
-      el.noIteration = noIteration; // Marqué déjà traité
+      //DCMM el.noIteration = noIteration; // Marqué déjà traité
     }
 
     rebuildCases();
@@ -632,15 +643,13 @@ o = {
   };
   el.title = el.data.type;
   delete el.data.type;
-
-  el.ondragstart = dragstart;
-  el.draggable = true;
 });
 
 // TESTS
 ajouter('👩', 17, 9);
 ajouter('🧔', 14, 9);
 
+/*
 ajouter('🏠', 14, 8);
 ajouter('💀', 14, 10);
 ajouter('🌽', 14, 5);
@@ -657,7 +666,6 @@ ajouter('🧱', 15, 8);
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
 });
-/*
  */
 
 // Debug
