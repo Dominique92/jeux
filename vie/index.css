@@ -47,6 +47,14 @@ p>a:first-child {
   font-size: 10px;
 }
 
+label {
+  margin-left: 5px;
+}
+
+input[type=file] {
+  display: none;
+}
+
 #help {
   margin-top: calc(50vh - 60px);
   text-align: center;

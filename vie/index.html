@@ -12,8 +12,11 @@
 <body>
   <p>
     <a onclick="help()" title="Mode d'emploi">?</a>
-    <a onclick="save()" title="Charger un monde">📂</a>
-    <a onclick="load()" title="Sauvegarder votre monde">💾</a>
+    <label class="custom-file-upload">
+      <input type="file" accept=".vie" onchange="load(event)" />
+      📂
+    </label>
+    <a onclick="save()" title="Sauvegarder votre monde">💾</a>
     <span id="stats"></span>
   </p>
 

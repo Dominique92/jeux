@@ -345,9 +345,11 @@ function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 
 
 // ACTIVATION (functions)
 function iterer() {
-  if (noIteration++ < noIterationMax || !window.location.search) {
+  if (noIteration < noIterationMax || !window.location.search) {
     const debut = Date.now(),
       divEls = document.getElementsByTagName('div');
+
+    noIteration++;
 
     // Exécution des actions
     for (const el of divEls)
@@ -445,6 +447,7 @@ document.ondrop = evt => {
     ajouter(dragstartInfo.innerHTML, pixels);
 
   dragstartInfo = null;
+  rebuildCases();
 };
 
 document.ondragend = evt => { // Drag out the window
@@ -464,15 +467,37 @@ function help() {
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function load() { //TODO
-  console.log('load');
+function load(evt) {
+  const blob = evt.target.files[0],
+    reader = new FileReader();
+
+  reader.readAsText(blob);
+  reader.onload = () => {
+    const data = JSON.parse(reader.result);
+    data.forEach(d => {
+      const el = ajouter(d.type, d);
+      el.data = d.data;
+    });
+
+    rebuildCases();
+  };
 }
 
-/* eslint-disable-next-line no-unused-vars */
-function save() { //TODO
-  console.log('save');
+/* eslint-disable-next-line no-unused-vars, one-var */
+const save = async () => {
+  const handle = await window.showSaveFilePicker({
+      types: [{
+        description: 'Data json',
+        accept: {
+          'application/vie': ['.vie']
+        },
+      }, ],
+    }),
+    writer = await handle.createWritable();
+
+  await writer.write(new Blob([JSON.stringify(dataSav)]));
+  await writer.close();
 }
-//TODO rétablir double clic pour supprimer
 
 // SCÉNARII
 /*
@@ -646,10 +671,10 @@ o = {
 });
 
 // TESTS
+/*
 ajouter('👩', 17, 9);
 ajouter('🧔', 14, 9);
 
-/*
 ajouter('🏠', 14, 8);
 ajouter('💀', 14, 10);
 ajouter('🌽', 14, 5);
