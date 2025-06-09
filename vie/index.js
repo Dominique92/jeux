@@ -104,14 +104,18 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
               y: xy.y + d * delta[1] + i * delta[3],
             },
             pixelEln = pixelsFromXY(nouvelXY.x, nouvelXY.y),
-            nbObjetsNouvelleCase = Object.keys(caseEl(nouvelXY)).length;
+            nouvelleCases = caseEl(nouvelXY),
+            nbObjetsNouvelleCase = Object.keys(nouvelleCases).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
-            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize && (
-              (symboleTypeRecherche && nbObjetsNouvelleCase) || // On cherche un symbole
-              (!symboleTypeRecherche && !nbObjetsNouvelleCase) // On cheche une case vide
-            ))
-            listeProches.push([...delta, nouvelXY.x, nouvelXY.y, ]);
+            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
+            if (symboleTypeRecherche) {
+              if (nbObjetsNouvelleCase) {
+                listeProches.push([...delta, nouvelXY, nouvelleCases[symboleTypeRecherche], d]);
+              }
+            } else if (!nbObjetsNouvelleCase)
+              listeProches.push([...delta, nouvelXY]);
+          }
         }
       });
     }
@@ -132,16 +136,13 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
               [
                 Math.sign(deltaCol),
                 Math.sign(deltaLigne),
-                deltaCol,
-                deltaLigne,
               ]
             ];
           }
         });
       });
 
-    if (listeProches)
-      return listeProches;
+    return listeProches;
   }
 }
 
@@ -197,14 +198,18 @@ function muer(el, symboleType) { // 1 -> 1
 
 // Move el to the x/y position if it's free
 function deplacer(el, arg1, arg2) { // 1 -> 1
-  // el, caseX, caseY || el, {left: px, top: px}
+  // el, caseX, caseY || el, {x: caseX, y: caseY} || el, {left: px, top: px}
 
   const pixelsPrecedents = el.getBoundingClientRect(),
+    xyFinaux = { //TODO généraliser ?
+      x: arg1,
+      y: arg2,
+      ...arg1,
+    },
     pixelsFinaux = {
-      ...pixelsFromXY(arg1, arg2),
+      ...pixelsFromXY(xyFinaux.x, xyFinaux.y),
       ...arg1,
     };
-  //xyFinal = xyFromPixels(pixelsFinaux) ;
 
   //TODO on peut avoir 2 objets différents mais pas plus
   //if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
@@ -235,9 +240,11 @@ function ajouter(symboleType, arg1, arg2) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, arg1, arg2); // De ajouter
+  deplacer(el, arg1, arg2); // Pour ajouter
 
   // Mouse actions
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondblclick = dblclick;
   /* eslint-disable-next-line no-use-before-define */
   el.ondragstart = dragstart;
   el.draggable = true;
@@ -266,16 +273,8 @@ function supprimer(el) { // 1 -> 0
 function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
-  if (pp.length) {
-    const xy = xyFromEl(el),
-      nouvelXY = {
-        x: xy.x + pp[0][0],
-        y: xy.y + pp[0][1],
-      };
-
-    if (!Object.keys(caseEl(nouvelXY)).length)
-      return deplacer(el, nouvelXY); // De errer
-  }
+  if (pp.length)
+    return deplacer(el, pp[0][4].x, pp[0][4].y); // Pour errer
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
@@ -286,9 +285,18 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
       nouvelX = xy.x + pp[0][0],
       nouvelY = xy.y + pp[0][1];
 
-    rebuildCases();
+    if (pp[0].length > 4 && pp[0][4] === 1) {
+      /*
+      	   //TODO seulement si 1 case de distance
+      const      cibleEl = caseEl( pp[0][4] ,symboleType);
 
-    return deplacer(el, nouvelX, nouvelY); // De rapprocher
+      console.log( cibleEl,el.innerHTML,cibleEl.innerHTML,nouvelX===pp[0][4].x, nouvelY===pp[0][4].y);
+      if(cibleEl&&   nouvelX===pp[0][4].x&& nouvelY===pp[0][4].y)
+       cibleEl.noIteration=noIteration;
+      */
+    }
+
+    return deplacer(el, nouvelX, nouvelY); // Pour rapprocher
   }
 }
 
@@ -435,6 +443,10 @@ document.ondragend = evt => { // Drag out the window
   evt.preventDefault();
 };
 
+function dblclick(evt) {
+  supprimer(evt.target);
+}
+
 /* eslint-disable-next-line no-unused-vars */
 function help() {
   helpEl.style.display = 'initial';
@@ -533,15 +545,15 @@ o = {
   ],
   '▒': [{
     type: 'Terre',
-  }, ],
+  }],
   '▓': [{
     type: 'Herbe',
-  }, ],
+  }],
   // Cycle des humains
   // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
-    [absorber, '👩', '💏'],
+    //[absorber, '👩', '💏'],
     //...vivant,
     //[errer],
     {
@@ -552,7 +564,7 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    [absorber, '🧔', '💏'],
+    //[absorber, '🧔', '💏'],
     //...vivant,
     //[errer],
     {
@@ -604,10 +616,10 @@ o = {
   // 🚧🔥
   '🧱': [{
     type: 'Briques',
-  }, ],
+  }],
   '🏠': [{
     type: 'Maison',
-  }, ],
+  }],
   // Cycle des animaux
   // 🐇🐀🦊🦴
 };
@@ -626,8 +638,8 @@ o = {
 });
 
 // TESTS
+ajouter('👩', 17, 9);
 ajouter('🧔', 14, 9);
-ajouter('👩', 15, 9);
 
 ajouter('🏠', 14, 8);
 ajouter('💀', 14, 10);
