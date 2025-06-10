@@ -42,11 +42,10 @@ function pixelsFromXY(xy) {
 }
 
 function xyFromPixels(pixels) {
-  if (typeof pixels === 'object')
-    return {
-      x: Math.round((pixels.left + pixels.top / 1.732) / boxSize),
-      y: Math.round(pixels.top / 0.866 / boxSize),
-    };
+  return {
+    x: Math.round((pixels.left + pixels.top / 1.732) / boxSize),
+    y: Math.round(pixels.top / 0.866 / boxSize),
+  };
 }
 
 function xyFromEl(el) {
@@ -70,9 +69,9 @@ function caseEl(xy, symboleType, el) {
   }
 
   // Liste des objets dans une case
-  if (typeof symboleType === 'undefined')
+  if (typeof symboleType === 'undefined') {
     return cases[xy.x][xy.y];
-
+  }
   // Mets l'el dans la case
   if (typeof el === 'object')
     cases[xy.x][xy.y][symboleType] = el;
@@ -147,14 +146,14 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
   }
 }
 
-function rebuildCases() {
+function rebuildCases() { //TODO revoir quand faire ça (depends des transitions)
   const divEls = document.getElementsByTagName('div');
 
   cases = [];
   zones = [];
   dataSav = [];
 
-  for (const el of divEls)
+  for (const el of divEls) //TODO revoir toutes les itérations et .length
     if (el.data && !el.hovered) // Pas si le curseur est au dessus
   {
     const xy = xyFromEl(el),
@@ -210,20 +209,33 @@ function muer(el, symboleType) { // 1 -> 1
 // Move el to the x/y position if it's free
 function deplacer(el, a, b) { // 1 -> 1
   // el, caseX, caseY || el, {x: caseX, y: caseY} || el, {left: px, top: px}
+  // a.accept = '👩' : autorise à aller dans une case où il y a déjà ce type
+
+  rebuildCases();
 
   const pixelsPrecedents = el.getBoundingClientRect(),
-    xyFinaux = {
+    args = {
       x: a,
       y: b,
       ...a,
     },
     pixelsFinaux = {
-      ...pixelsFromXY(xyFinaux),
+      ...pixelsFromXY(args),
       ...a,
-    };
+    },
+    xyFinaux = xyFromPixels(pixelsFinaux),
+    casesFinales = caseEl(xyFinaux),
+    nbCasesFinales = Object.keys(casesFinales).length;
 
-  //TODO on peut avoir 2 objets différents mais pas plus
-  //if (!caseFinaleEl.length) { // On ne peut pas aller vers une case déjà occupée
+  // On ne va pas sur une case occupée sauf par un objet du type accepté
+  if (nbCasesFinales > 1)
+    return;
+
+  if (nbCasesFinales &&
+    typeof casesFinales[args.accept] !== 'object' &&
+    typeof casesFinales['▒'] !== 'object' &&
+    typeof casesFinales['▓'] !== 'object')
+    return;
 
   if (pixelsPrecedents.width) // On part d'une position, bouge lentement
     setTimeout(() => { // Timeout ensures styles are applied before scrolling
@@ -236,7 +248,7 @@ function deplacer(el, a, b) { // 1 -> 1
   }
 
   //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-  rebuildCases(); //TODO façon plus simple de mettre les cases à jour ?
+  rebuildCases();
 
   return true;
 }
@@ -303,16 +315,16 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
     return deplacer(el, {
       x: nouvelX,
       y: nouvelY,
+      accept: symboleType,
     }); // Pour rapprocher
   }
 }
 
-function produire(el, nomNouveau) { // 1 -> 2 (dans la même case)
-  const xy = xyFromEl(el),
-    existe = caseEl(xy, nomNouveau);
+function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
+  const xy = xyFromEl(el);
 
-  if (!existe)
-    return ajouter(nomNouveau, xy.x, xy.y);
+  if (!caseEl(xy, symboleTypeNouveau))
+    return ajouter(symboleTypeNouveau, xy);
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
@@ -346,7 +358,7 @@ function iterer() {
       divEls = document.getElementsByTagName('div');
 
     noIteration++;
-    rebuildCases(); //TODO revoir quand faire ça (depends des transitions)
+    rebuildCases();
 
     // Exécution des actions
     //TODO BUG divEls à reconstruire aprés chaque delete/produit
@@ -596,9 +608,9 @@ o = {
   // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
-    //[absorber, '👩', '💏'],
+    [absorber, '👩', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       type: 'Homme',
       eau: 50,
@@ -607,9 +619,9 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    //[absorber, '🧔', '💏'],
+    [absorber, '🧔', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       type: 'Femme',
       eau: 50,
@@ -679,7 +691,7 @@ o = {
 
 // TESTS
 loadWorld([
-  ["⛲", 14, 8],
+  ["🧔", 14, 8],
   ["🧱", 14, 9],
   ["🧱", 15, 9],
   ["🧱", 13, 8],
@@ -694,8 +706,8 @@ loadWorld([
 ["🌽", 14, 5],
 ["⛲", 14, 8],
 
-Object.keys(o).forEach((nomSymbole, i) => {
-  ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
+Object.keys(o).forEach((symboleType, i) => {
+  ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
  */
 
