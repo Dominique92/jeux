@@ -34,10 +34,10 @@ let o = {},
  */
 
 // ROUTINES (functions)
-function pixelsFromXY(x, y) {
+function pixelsFromXY(xy) {
   return {
-    left: (x - y / 2) * boxSize + gigue(),
-    top: y * 0.866 * boxSize + gigue(),
+    left: (xy.x - xy.y / 2) * boxSize + gigue(),
+    top: xy.y * 0.866 * boxSize + gigue(),
   };
 }
 
@@ -104,7 +104,7 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
               x: xy.x + d * delta[0] + i * delta[2],
               y: xy.y + d * delta[1] + i * delta[3],
             },
-            pixelEln = pixelsFromXY(nouvelXY.x, nouvelXY.y),
+            pixelEln = pixelsFromXY(nouvelXY),
             nouvellesCases = caseEl(nouvelXY),
             nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
 
@@ -212,13 +212,13 @@ function deplacer(el, a, b) { // 1 -> 1
   // el, caseX, caseY || el, {x: caseX, y: caseY} || el, {left: px, top: px}
 
   const pixelsPrecedents = el.getBoundingClientRect(),
-    xyFinaux = { //TODO généraliser ?
+    xyFinaux = {
       x: a,
       y: b,
       ...a,
     },
     pixelsFinaux = {
-      ...pixelsFromXY(xyFinaux.x, xyFinaux.y),
+      ...pixelsFromXY(xyFinaux),
       ...a,
     };
 
@@ -255,10 +255,10 @@ function ajouter(symboleType, a, b) { // 0 -> 1
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
-  el.ondblclick = dblclick;
-  /* eslint-disable-next-line no-use-before-define */
   el.ondragstart = dragstart;
   el.draggable = true;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondblclick = evt => supprimer(evt.target);
 
   // Hold moves when hover
   el.onmouseover = () => {
@@ -285,7 +285,7 @@ function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
-    return deplacer(el, pp[0][4].x, pp[0][4].y); // Pour errer
+    return deplacer(el, pp[0][4]); // Pour errer
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
@@ -349,6 +349,7 @@ function iterer() {
     rebuildCases(); //TODO revoir quand faire ça (depends des transitions)
 
     // Exécution des actions
+    //TODO BUG divEls à reconstruire aprés chaque delete/produit
     for (const el of divEls)
       if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
         el.data && !el.hovered) // Si le curseur n'est pas au dessus
@@ -454,13 +455,26 @@ document.ondragend = evt => { // Drag out the window
   evt.preventDefault();
 };
 
-function dblclick(evt) {
-  supprimer(evt.target);
-}
+function loadWorld(datas) {
+  // Vide le monde
+  for (let divEls = document.getElementsByTagName('div'); divEls.length; divEls = document.getElementsByTagName('div'))
+    divEls[0].remove();
 
-/* eslint-disable-next-line no-unused-vars */
-function help() {
-  helpEl.style.display = 'initial';
+  // Ajoute les objets du json
+  datas.forEach(d => {
+    const dataCompil = {
+        type: d[0],
+        x: d[1],
+        y: d[2],
+        ...d,
+      },
+      el = ajouter(dataCompil.type, dataCompil);
+
+    if (d.data)
+      el.data = dataCompil.data;
+  });
+
+  rebuildCases();
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -469,24 +483,16 @@ function load(evt) {
     reader = new FileReader();
 
   reader.readAsText(blob);
-  reader.onload = () => {
-    const data = JSON.parse(reader.result);
-
-    data.forEach(d => {
-      const el = ajouter(d.type, d);
-
-      el.data = d.data;
-    });
-
-    rebuildCases();
-  };
+  reader.onload = () =>
+    loadWorld(JSON.parse(reader.result));
 
   helpEl.style.display = 'none';
 }
 
 /* eslint-disable-next-line no-unused-vars, one-var */
 const save = async () => {
-  const handle = await window.showSaveFilePicker({
+  const json = JSON.stringify(dataSav).replaceAll('},{', '},\n{'),
+    handle = await window.showSaveFilePicker({
       types: [{
         description: 'Sauvegarde jeu de la vie',
         accept: {
@@ -496,7 +502,7 @@ const save = async () => {
     }),
     writer = await handle.createWritable();
 
-  await writer.write(new Blob([JSON.stringify(dataSav)]));
+  await writer.write(new Blob([json]));
   await writer.close();
 }
 
@@ -672,26 +678,25 @@ o = {
 });
 
 // TESTS
-ajouter('👩', 17, 9);
-ajouter('🧔', 30, 29);
+loadWorld([
+  ["⛲", 14, 8],
+  ["🧱", 14, 9],
+  ["🧱", 15, 9],
+  ["🧱", 13, 8],
+  ["🧱", 13, 7],
+  ["🧱", 14, 7],
+  ["🧱", 15, 8],
+]);
 
-ajouter('🏠', 14, 8);
-ajouter('💀', 14, 10);
-ajouter('🌽', 14, 5);
-ajouter('⛲', 14, 8);
-
-ajouter('⛲', 14, 8);
-ajouter('🧱', 14, 9);
-ajouter('🧱', 15, 9);
-ajouter('🧱', 13, 8);
-ajouter('🧱', 13, 7);
-ajouter('🧱', 14, 7);
-ajouter('🧱', 15, 8);
+/*
+["🏠", 14, 8],
+["💀", 14, 10],
+["🌽", 14, 5],
+["⛲", 14, 8],
 
 Object.keys(o).forEach((nomSymbole, i) => {
   ajouter(nomSymbole, 10 + i, 8 + i % 3 * 4);
 });
-/*
  */
 
 // Debug
@@ -703,6 +708,5 @@ if (window.location.search) {
     else if (evt.keyCode === 107) noIterationMax = 1000000;
     else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
     else noIterationMax = noIteration + evt.keyCode % 48;
-    helpEl.style.display = 'none';
   };
 }

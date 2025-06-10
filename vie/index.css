@@ -57,7 +57,17 @@ input[type=file] {
 
 #help {
   margin-top: calc(50vh - 60px);
+  padding: 5px 0;
   text-align: center;
+  border: 1px solid black;
+  background: white;
+}
+
+@media screen and (min-width: 340px) {
+  #help {
+    margin-left: calc(50% - 170px);
+    width: min(100%, 340px);
+  }
 }
 
 p:has(#stats) {
