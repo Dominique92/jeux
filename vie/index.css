@@ -11,11 +11,15 @@ body {
 div {
   position: absolute;
   transition: left 1s linear, top 1s linear;
-  min-width: 1.5em;
-  min-height: 1.5em;
+  min-width: 24px;
+  min-height: 24px;
   text-align: center;
-  letter-spacing: -8px;
   cursor: grab;
+}
+
+.Dating {
+  min-width: 42px;
+  letter-spacing: -8px;
 }
 
 ul {

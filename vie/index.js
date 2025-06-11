@@ -79,73 +79,6 @@ function caseEl(xy, symboleType, el) {
   return cases[xy.x][xy.y][symboleType];
 }
 
-function casesProches(el, distance, limite, symboleTypeRecherche) {
-  // el : Autour de el
-  // distance : Rayon (nb cases) autour de el
-  // limite : nombre de cases ramenées
-  // symboleTypeRecherche : type d'objets 🌿 recherchés (string unicode)
-  const xy = xyFromEl(el);
-
-  let listeProches = [],
-    dMin = 999999;
-
-  if (xy) {
-    // Randomize search order
-    for (let i = Math.random() * deltasProches.length; i > 0; i--)
-      deltasProches.push(deltasProches.shift());
-
-    // Recherche dans un rayon
-    for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
-      deltasProches.forEach(delta => {
-        for (let i = 0;
-          (i < d) && (listeProches.length < limite); i++) {
-          const nouvelXY = {
-              x: xy.x + d * delta[0] + i * delta[2],
-              y: xy.y + d * delta[1] + i * delta[3],
-            },
-            pixelEln = pixelsFromXY(nouvelXY),
-            nouvellesCases = caseEl(nouvelXY),
-            nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
-
-          if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
-            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
-            if (symboleTypeRecherche) { // On cherche un caractère
-              if (nbObjetsNouvelleCase)
-                listeProches.push([...delta, nouvelXY, nouvellesCases[symboleTypeRecherche], d]);
-            } else if (!nbObjetsNouvelleCase) { // On cherche une case vide
-              listeProches.push([...delta, nouvelXY]);
-            }
-          }
-        }
-      });
-    }
-
-    // Recherche éloignés
-    if (!listeProches.length &&
-      ~~distance > 5 &&
-      typeof zones[symboleTypeRecherche] === 'object')
-      zones[symboleTypeRecherche].forEach((col, noCol) => {
-        col.forEach((ligne, noLigne) => {
-          const deltaCol = noCol - Math.round(xy.x / 4),
-            deltaLigne = noLigne - Math.round(xy.y / 4),
-            dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
-
-          if (dMin > dist && (deltaCol || deltaLigne)) {
-            dMin = dist;
-            listeProches = [
-              [
-                Math.sign(deltaCol),
-                Math.sign(deltaLigne),
-              ]
-            ];
-          }
-        });
-      });
-
-    return listeProches;
-  }
-}
-
 function rebuildCases() { //TODO revoir quand faire ça (depends des transitions)
   const divEls = document.getElementsByTagName('div');
 
@@ -194,110 +127,180 @@ function rebuildCases() { //TODO revoir quand faire ça (depends des transitions
   }
 }
 
-// VERBES (functions)
-// Transformer un type en un autre
-function muer(el, symboleType) { // 1 -> 1
-  el.innerHTML = symboleType;
-  if (o[symboleType]) {
-    el.classList = o[symboleType][o[symboleType].length - 1].type;
-    el.data.age = 0; // L'âge repart à 0 si l'objet change de type
-  }
+function casesProches(el, distance, limite, symboleTypeRecherche) {
+  // el : Autour de el
+  // distance : Rayon (nb cases) autour de el
+  // limite : nombre de cases ramenées
+  // symboleTypeRecherche : type d'objets 🌿 recherchés (string unicode)
+  const xy = xyFromEl(el);
 
-  return true; // Succés
+  let listeProches = [],
+    dMin = 999999;
+
+  if (xy) {
+    // Randomize search order
+    for (let i = Math.random() * deltasProches.length; i > 0; i--)
+      deltasProches.push(deltasProches.shift());
+
+    // Recherche dans un rayon
+    for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
+      deltasProches.forEach(delta => {
+        for (let i = 0;
+          (i < d) && (listeProches.length < limite); i++) {
+          const nouvelXY = {
+              x: xy.x + d * delta[0] + i * delta[2],
+              y: xy.y + d * delta[1] + i * delta[3],
+            },
+            pixelEln = pixelsFromXY(nouvelXY),
+            nouvellesCases = caseEl(nouvelXY),
+            nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
+
+          if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
+            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
+            if (symboleTypeRecherche) { // On cherche un caractère
+              if (nbObjetsNouvelleCase)
+                listeProches.push([...delta, nouvelXY, nouvellesCases[symboleTypeRecherche], d]);
+            } else if (!nbObjetsNouvelleCase) { // On cherche une case vide
+              listeProches.push([...delta, nouvelXY]);
+            }
+          }
+        }
+      });
+    }
+
+    // Recherche éloignés
+    if (!listeProches.length &&
+      ~~distance > 5 &&
+      typeof zones[symboleTypeRecherche] === 'object')
+      zones[symboleTypeRecherche].forEach((col, noCol) => {
+        //TODO recherche concentrique et pas à partir de en haut à gauche
+        col.forEach((ligne, noLigne) => {
+          const deltaCol = noCol - Math.round(xy.x / 4),
+            deltaLigne = noLigne - Math.round(xy.y / 4),
+            dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
+
+          if (dMin > dist && (deltaCol || deltaLigne)) {
+            dMin = dist;
+            listeProches = [
+              [
+                Math.sign(deltaCol),
+                Math.sign(deltaLigne),
+              ]
+            ];
+          }
+        });
+      });
+
+    return listeProches;
+  }
 }
 
-// Move el to the x/y position if it's free
-function deplacer(el, a, b) { // 1 -> 1
-  // el, caseX, caseY || el, {x: caseX, y: caseY} || el, {left: px, top: px}
-  // a.accept = '👩' : autorise à aller dans une case où il y a déjà ce type
+// VERBES (functions)
+// return true : Succés
 
-  rebuildCases();
+// Déplacer el à laposition x/y si elle est libre
+function deplacer(el, a, b, typeMuer, typeAccept) {
+  // La seule fonction habilitée à ajouter / enlever un el dans le body et dans cases[][]
+  // Si dans body, retire de la case
+  // el tout seul : supprime
+  // typeMuer = '👩' : transforme le type
+  // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
 
-  const pixelsPrecedents = el.getBoundingClientRect(),
-    args = {
-      x: a,
-      y: b,
-      ...a,
+  const px = {
+      ...pixelsFromXY({
+        x: a, // caseX, caseY
+        y: b,
+        ...a, // {x: caseX, y: caseY}
+      }),
+      ...a, // {left: px, top: px}
     },
-    pixelsFinaux = {
-      ...pixelsFromXY(args),
-      ...a,
-    },
-    xyFinaux = xyFromPixels(pixelsFinaux),
-    casesFinales = caseEl(xyFinaux),
-    nbCasesFinales = Object.keys(casesFinales).length;
+    els = caseEl(xyFromPixels(px));
 
-  // On ne va pas sur une case occupée sauf par un objet du type accepté
-  if (nbCasesFinales > 1)
+  // Ne peut bouger que dans les cases où il y a des objets autorisés
+  if (Object.keys(els).filter(
+      symbol => !('▒▓' + ~~typeAccept).includes(symbol)
+    ).length)
     return;
 
-  if (nbCasesFinales &&
-    typeof casesFinales[args.accept] !== 'object' &&
-    typeof casesFinales['▒'] !== 'object' &&
-    typeof casesFinales['▓'] !== 'object')
-    return;
-
-  if (pixelsPrecedents.width) // On part d'une position, bouge lentement
-    setTimeout(() => { // Timeout ensures styles are applied before scrolling
-      el.style.left = pixelsFinaux.left + 'px';
-      el.style.top = pixelsFinaux.top + 'px';
-    }, 0);
-  else { // On y va direct
-    el.style.left = pixelsFinaux.left + 'px';
-    el.style.top = pixelsFinaux.top + 'px';
+  // On supprime l'el de la case de départ
+  if (el.parentNode) {
+    delete els[el.innerHTML];
   }
 
-  //TODO el.noIteration = noIteration; // Pour éviter d'être relancé pendant cette itération
-  rebuildCases();
+  if (typeof a === 'undefined') {
+    el.remove();
+    return true;
+  }
 
+  if (typeMuer) {
+    el.innerHTML = typeMuer;
+    if (o[el.innerHTML]) {
+      el.classList = o[el.innerHTML][o[el.innerHTML].length - 1].type;
+      el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+    }
+  }
+
+  // On met l'el dans la case d'arrivée
+  els[el.innerHTML] = el;
+
+  if (el.parentNode) // On part d'une position, bouge lentement
+    setTimeout(() => { // Timeout ensures styles are applied before scrolling
+      el.style.left = px.left + 'px';
+      el.style.top = px.top + 'px';
+    }, 0);
+  else { // On y va direct
+    el.style.left = px.left + 'px';
+    el.style.top = px.top + 'px';
+  }
+
+  document.body.appendChild(el);
   return true;
 }
 
-function ajouter(symboleType, a, b) { // 0 -> 1
-  const el = document.createElement('div'),
-    elStyle = window.getComputedStyle(el);
+// Transformer un type en un autre
+function muer(el, symboleType) { // 1 -> 1
+  return deplacer(el, null, null, symboleType); // muer
+}
 
+function supprimer(el) { // 1 -> 0
+  return deplacer(el); // supprimer
+}
+
+function ajouter(symboleType, a, b) { // 0 -> 1
+  const el = document.createElement('div');
+
+  // Données initiales du modèle
   el.data = {
     ...o[symboleType][o[symboleType].length - 1],
   };
   delete el.data.type;
 
-  muer(el, symboleType);
-  deplacer(el, a, b); // Pour ajouter
+  deplacer(el, a, b, symboleType); // ajouter
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
   el.ondragstart = dragstart;
   el.draggable = true;
-  /* eslint-disable-next-line no-use-before-define */
   el.ondblclick = evt => supprimer(evt.target);
 
   // Hold moves when hover
   el.onmouseover = () => {
     el.hovered = true;
-    el.style.top = elStyle.top;
-    el.style.left = elStyle.left;
+    el.style.top = window.getComputedStyle(el).top;
+    el.style.left = window.getComputedStyle(el).left;
   };
   el.onmouseout = () => {
     el.hovered = false;
   };
 
-  document.body.appendChild(el);
-
   return el;
-}
-
-function supprimer(el) { // 1 -> 0
-  el.remove();
-
-  return true;
 }
 
 function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
-    return deplacer(el, pp[0][4]); // Pour errer
+    return deplacer(el, pp[0][4]); // errer
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
@@ -312,11 +315,9 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
       ~~pp[0][6] === 1) // Seulement à 1 case de distance
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
-    return deplacer(el, {
-      x: nouvelX,
-      y: nouvelY,
-      accept: symboleType,
-    }); // Pour rapprocher
+    return deplacer(el, // rapprocher
+      nouvelX, nouvelY, null,
+      symboleType); // Accepte les cases contanant ce symbole 
   }
 }
 
@@ -441,7 +442,26 @@ function dragstart(evt) {
 }
 
 document.ondragover = evt => {
-  evt.preventDefault(); // Autorise drop partout
+  const divEls = document.getElementsByTagName('div'),
+    px = {
+      left: evt.x - dragstartInfo.offset.x,
+      top: evt.y - dragstartInfo.offset.y,
+    };
+
+  for (const el of divEls) {
+    const bounds = el.getBoundingClientRect();
+
+    // Vérifie s'il y a un element à cet endroit
+    if (
+      px.left > bounds.x + bounds.width * 7 / 18 - 31 &&
+      px.left < bounds.x + bounds.width * 7 / 6 - 7 &&
+      px.top > bounds.y - 20 &&
+      px.top < bounds.y + 20
+    )
+      return;
+  }
+
+  evt.preventDefault(); // Autorise drop
 };
 
 document.ondrop = evt => {
@@ -461,9 +481,10 @@ document.ondrop = evt => {
 };
 
 document.ondragend = evt => { // Drag out the window
-  if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modèle
-    supprimer(evt.target);
-
+  /*
+    if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modèle
+      supprimer(evt.target);
+  */
   evt.preventDefault();
 };
 
@@ -628,6 +649,14 @@ o = {
       energie: 50,
     },
   ],
+  '🧔👩': [
+    //...vivant,
+    [muer, '👫', 5],
+    [errer],
+    {
+      type: 'Dating',
+    },
+  ],
   '💏': [
     //...vivant,
     [muer, '👫', 5],
@@ -691,9 +720,10 @@ o = {
 
 // TESTS
 loadWorld([
+  ["💧", 24, 8],
   ["🧔", 14, 8],
   ["🧱", 14, 9],
-  ["🧱", 15, 9],
+  ["▒", 15, 9],
   ["🧱", 13, 8],
   ["🧱", 13, 7],
   ["🧱", 14, 7],
@@ -701,10 +731,15 @@ loadWorld([
 ]);
 
 /*
+["⛲", 14, 8],
+["▒", 16, 8],
 ["🏠", 14, 8],
 ["💀", 14, 10],
 ["🌽", 14, 5],
-["⛲", 14, 8],
+
+
+  ["🧔👩", 20, 28],
+  ["🌽", 36, 28],
 
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
