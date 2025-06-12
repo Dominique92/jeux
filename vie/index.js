@@ -57,6 +57,8 @@ function caseEl(xy, symboleType, force) {
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
   // 7,7,🌿,force : fill the case
+  // Par case [x][y], un tableau [symbole] = el
+  // Il ne peut y avoir qu'un el de chaque type dans une case
 
   // Pointeur sur une case (array of symboleType: el)
   if (typeof cases[xy.x] === 'undefined') {
@@ -80,7 +82,7 @@ function caseEl(xy, symboleType, force) {
   return cases[xy.x][xy.y][symboleType];
 }
 
-function rebuildCases() { //TODO revoir quand faire ça (depends des transitions)
+function rebuildCases() {
   const divEls = document.getElementsByTagName('div');
 
   cases = [];
@@ -133,6 +135,7 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
   // distance : Rayon (nb cases) autour de el
   // limite : nombre de cases ramenées
   // symboleTypeRecherche : type d'objets 🌿 recherchés (string unicode)
+
   const xy = xyFromEl(el);
 
   let listeProches = [],
@@ -199,10 +202,9 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
 // VERBES (functions)
 // return true : Succés
 
-// Déplacer el à laposition x/y si elle est libre
+// Déplacer el à la position x/y si elle est libre
 function deplacer(el, a, b, typeMuer, typeAccept) {
   // La seule fonction habilitée à ajouter / enlever un el dans le body et dans cases[][]
-  // Si dans body, retire de la case
   // el tout seul : supprime
   // typeMuer = '👩' : transforme le type
   // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
@@ -215,10 +217,10 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
       }),
       ...a, // {left: px, top: px}
     },
-    els = caseEl(xyFromPixels(px));
+    nouvelleCase = caseEl(xyFromPixels(px));
 
   // Ne peut bouger que dans les cases où il y a des objets autorisés
-  if (Object.keys(els).filter(
+  if (Object.keys(nouvelleCase).filter(
       symbol => !('▒▓' + (typeAccept || '')).includes(symbol)
     ).length)
     return false;
@@ -240,7 +242,7 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
   }
 
   // On met l'el dans la case d'arrivée
-  els[el.innerHTML] = el;
+  nouvelleCase[el.innerHTML] = el;
 
   if (el.parentNode) // On part d'une position, bouge lentement
     setTimeout(() => { // Timeout ensures styles are applied before scrolling
@@ -272,6 +274,8 @@ function ajouter(symboleType, a, b) { // 0 -> 1
   el.data = {
     ...o[symboleType][o[symboleType].length - 1],
   };
+  /*DCMM*/
+  console.log(el.data);
   delete el.data.type;
 
   deplacer(el, a, b, symboleType); // ajouter
@@ -302,7 +306,9 @@ function errer(el) { // 1 -> 1
     return deplacer(el, pp[0][4]); // errer
 }
 
+//TODO FIN DES TESTS OK
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
+  //TODO BUG inhiber l'autre !
   const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
@@ -626,7 +632,7 @@ o = {
     [rapprocher, '👩'],
     //[absorber, '👩', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       type: 'Homme',
       eau: 50,
@@ -714,11 +720,11 @@ o = {
 });
 
 // TESTS
-/*
 loadWorld([
   ["🧔", 12, 8],
-  ["👩", 15, 8],
 ]);
+/*
+  ["👩", 15, 8],
 
   ["🧔", 14, 8],
   ["🧱", 14, 9],
@@ -734,15 +740,14 @@ loadWorld([
 ["💀", 14, 10],
 ["🌽", 14, 5],
 
-
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
 
- */
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
 rebuildCases();
+ */
 
 // Debug
 if (window.location.search) {
