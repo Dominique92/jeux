@@ -53,18 +53,21 @@ function xyFromEl(el) {
 }
 
 // Get or set case el
-function caseEl(xy, symboleType, el) {
+function caseEl(xy, symboleType, force) {
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
-  // 7,7,🌿,el : fill the case
+  // 7,7,🌿,force : fill the case
 
+  // Pointeur sur une case (array of symboleType: el)
   if (typeof cases[xy.x] === 'undefined') {
-    if (el) cases[xy.x] = [];
-    else return [];
+    if (force)
+      cases[xy.x] = [];
+    else
+      return [];
   }
 
   if (typeof cases[xy.x][xy.y] === 'undefined') {
-    if (el) cases[xy.x][xy.y] = [];
+    if (force) cases[xy.x][xy.y] = [];
     else return [];
   }
 
@@ -72,10 +75,8 @@ function caseEl(xy, symboleType, el) {
   if (typeof symboleType === 'undefined') {
     return cases[xy.x][xy.y];
   }
-  // Mets l'el dans la case
-  if (typeof el === 'object')
-    cases[xy.x][xy.y][symboleType] = el;
 
+  // L'el d'une case
   return cases[xy.x][xy.y][symboleType];
 }
 
@@ -95,7 +96,7 @@ function rebuildCases() { //TODO revoir quand faire ça (depends des transitions
       d = {};
 
     // Population des cases
-    caseEl(xy, el.innerHTML, el);
+    caseEl(xy)[el.innerHTML] = el;
 
     // Population des zones
     if (typeof zones[el.innerHTML] === 'undefined')
@@ -220,12 +221,10 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
   if (Object.keys(els).filter(
       symbol => !('▒▓' + (typeAccept || '')).includes(symbol)
     ).length)
-    return;
+    return false;
 
   // On supprime l'el de la case de départ
-  if (el.parentNode) {
-    delete els[el.innerHTML];
-  }
+  delete caseEl(xyFromEl(el))[el.innerHTML];
 
   if (typeof a === 'undefined') {
     el.remove();
@@ -413,7 +412,6 @@ window.onload = () => {
   if (arg)
     noIterationMax = arg[0];
 
-  rebuildCases();
   iterer();
 };
 
@@ -481,10 +479,7 @@ document.ondrop = evt => {
 };
 
 document.ondragend = evt => { // Drag out the window
-  /*
-    if (dragstartInfo && evt.target.tagname === 'DIV') // Sauf modèle
-      supprimer(evt.target);
-  */
+
   evt.preventDefault();
 };
 
@@ -719,12 +714,12 @@ o = {
 });
 
 // TESTS
+/*
 loadWorld([
   ["🧔", 12, 8],
   ["👩", 15, 8],
 ]);
 
-/*
   ["🧔", 14, 8],
   ["🧱", 14, 9],
   ["▒", 15, 9],
@@ -743,10 +738,11 @@ loadWorld([
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
 
+ */
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
- */
+rebuildCases();
 
 // Debug
 if (window.location.search) {

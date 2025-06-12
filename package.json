@@ -1,7 +1,7 @@
 {
   "name": "Vie",
   "version": "0.0.0.dev",
-  "description": "Simulateur de vie",
+  "description": "Mes jeux",
   "author": "Dominique Cavailhez",
   "homepage": "https://github.com/Dominique92/jeux#readme",
   "license": "MIT",
@@ -14,7 +14,7 @@
   },
   "type": "module",
   "scripts": {
-    "beautify": "js-beautify -s=2 *.js* */*.js* */*/*.vie *.html */*.html */*.css",
+    "beautify": "js-beautify -s=2 *.js* */*.js* *.html */*.html */*.css",
     "lint": "npx eslint *.js* */*.js*"
   },
   "devDependencies": {
