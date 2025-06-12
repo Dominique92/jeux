@@ -196,10 +196,9 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
 // return true : Succés
 
 // Déplacer el à la position x/y si elle est libre
-function deplacer(el, a, b, typeMuer, typeAccept) {
+function deplacer(el, a, b, typeAccept) {
   // La seule fonction habilitée à ajouter / enlever un el dans le body et dans cases[][]
   // el tout seul : supprime
-  // typeMuer = '👩' : transforme le type
   // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
 
   const newPx = {
@@ -235,7 +234,7 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
     setTimeout(() => { // Timeout ensures styles are applied before scrolling
       el.style.left = newPx.left + 'px';
       el.style.top = newPx.top + 'px';
-    }, 0);
+    }, 50); //TODO il faut attendre un peu ???
   else { // On y va direct
     el.style.left = newPx.left + 'px';
     el.style.top = newPx.top + 'px';
@@ -273,7 +272,7 @@ function ajouter(symboleType, a, b) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, a, b, symboleType); // ajouter
+  deplacer(el, a, b); // ajouter
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -412,6 +411,19 @@ window.onload = () => {
   iterer();
 };
 
+function dragend(evt) {
+  if (dragstartInfo) {
+    // Start from the en drag cursor position
+    dragstartInfo.el.style.left = evt.x + 'px';
+    dragstartInfo.el.style.top = evt.y + 'px';
+    document.body.appendChild(dragstartInfo.el);
+
+    // Then, move slowly to the initial position
+    deplacer(dragstartInfo.el, dragstartInfo.bounds);
+
+  }
+}
+
 function dragstart(evt) {
   dragstartInfo = {
     el: evt.target,
@@ -420,6 +432,10 @@ function dragstart(evt) {
     style: { // Clone array
       ...evt.target.style,
     },
+    bounds: {
+      left: evt.target.getBoundingClientRect().left,
+      top: evt.target.getBoundingClientRect().top,
+    },
     data: evt.target.data,
     offset: { // Offset of the mouse over the symbol
       x: evt.offsetX,
@@ -427,9 +443,11 @@ function dragstart(evt) {
     },
   };
 
+  evt.target.ondragend = dragend;
+
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
-    setTimeout(() => {
+    setTimeout(() => { // Pour avoir le temps que le drag copie l'image
       evt.target.remove();
     }, 0);
 
@@ -472,12 +490,7 @@ document.ondrop = evt => {
     ajouter(dragstartInfo.innerHTML, pixels);
 
   dragstartInfo = null;
-  //TODO ? rebuildCases();
-};
-
-document.ondragend = evt => { // Drag out the window
-
-  evt.preventDefault();
+  rebuildCases();
 };
 
 function loadWorld(datas) {
@@ -712,10 +725,11 @@ o = {
 
 // TESTS
 loadWorld([
-  ["🧔", 12, 8],
+  ["🧔", 4, 4],
+  ["👩", 30, 38],
 ]);
+
 /*
-  ["👩", 15, 8],
 
   ["🧔", 14, 8],
   ["🧱", 14, 9],
@@ -725,11 +739,11 @@ loadWorld([
   ["🧱", 14, 7],
   ["🧱", 15, 8],
 
-["⛲", 14, 8],
-["▒", 16, 8],
-["🏠", 14, 8],
-["💀", 14, 10],
-["🌽", 14, 5],
+  ["⛲", 14, 8],
+  ["▒", 16, 8],
+  ["🏠", 14, 8],
+  ["💀", 14, 10],
+  ["🌽", 14, 5],
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
