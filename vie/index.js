@@ -218,7 +218,7 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
 
   // Ne peut bouger que dans les cases où il y a des objets autorisés
   if (Object.keys(els).filter(
-      symbol => !('▒▓' + ~~typeAccept).includes(symbol)
+      symbol => !('▒▓' + (typeAccept || '')).includes(symbol)
     ).length)
     return;
 
@@ -317,7 +317,7 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
 
     return deplacer(el, // rapprocher
       nouvelX, nouvelY, null,
-      symboleType); // Accepte les cases contanant ce symbole 
+      symboleType); // Accepte les cases contenant ce symbole 
   }
 }
 
@@ -629,9 +629,9 @@ o = {
   // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
-    [absorber, '👩', '💏'],
+    //[absorber, '👩', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       type: 'Homme',
       eau: 50,
@@ -640,9 +640,9 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    [absorber, '🧔', '💏'],
+    //[absorber, '🧔', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       type: 'Femme',
       eau: 50,
@@ -720,7 +720,11 @@ o = {
 
 // TESTS
 loadWorld([
-  ["💧", 24, 8],
+  ["🧔", 12, 8],
+  ["👩", 15, 8],
+]);
+
+/*
   ["🧔", 14, 8],
   ["🧱", 14, 9],
   ["▒", 15, 9],
@@ -728,9 +732,7 @@ loadWorld([
   ["🧱", 13, 7],
   ["🧱", 14, 7],
   ["🧱", 15, 8],
-]);
-
-/*
+  
 ["⛲", 14, 8],
 ["▒", 16, 8],
 ["🏠", 14, 8],
