@@ -48,33 +48,43 @@ function xyFromPixels(pixels) {
   };
 }
 
-// Get case el
-function caseEl(xy, symboleType, force) {
+// Get or set case el
+function caseEl(xy, symboleType, el) {
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
-  // 7,7,🌿,force : force the case to be created
-  // Par case [x][y], un tableau [symbole] = el
+  // 7,7,🌿,el : fill the case
   // Il ne peut y avoir qu'un el de chaque type dans une case
 
-  // Pointeur sur une case (array of symboleType: el)
+  if (typeof xy === 'undefined')
+    return [];
+
+  // Colonne vide
   if (typeof cases[xy.x] === 'undefined') {
-    if (force)
+    if (el)
       cases[xy.x] = [];
     else
       return [];
   }
 
+  // Ligne vide
   if (typeof cases[xy.x][xy.y] === 'undefined') {
-    if (force) cases[xy.x][xy.y] = [];
-    else return [];
+    if (el)
+      cases[xy.x][xy.y] = [];
+    else
+      return [];
   }
 
-  // Liste des objets dans une case
-  if (typeof symboleType === 'undefined') {
+  // array des el dans une case
+  if (typeof symboleType === 'undefined')
     return cases[xy.x][xy.y];
+
+  // Mets l'el dans la case
+  if (typeof el === 'object') {
+    cases[xy.x][xy.y][symboleType] = el;
+    el.xy = xy;
   }
 
-  // L'el d'une case
+  // L'el d'une case pour un type
   return cases[xy.x][xy.y][symboleType];
 }
 
@@ -93,7 +103,7 @@ function rebuildCases() {
       d = {};
 
     // Population des cases
-    caseEl(el.xy)[el.innerHTML] = el;
+    caseEl(el.xy, el.innerHTML, el);
 
     // Population des zones
     if (typeof zones[el.innerHTML] === 'undefined')
@@ -218,8 +228,7 @@ function deplacer(el, a, b, typeAccept) {
     return false;
 
   // On supprime l'el de la case de départ
-  if (el.xy)
-    delete caseEl(el.xy)[el.innerHTML];
+  delete caseEl(el.xy)[el.innerHTML];
 
   if (typeof a === 'undefined') {
     el.remove();
@@ -227,8 +236,7 @@ function deplacer(el, a, b, typeAccept) {
   }
 
   // On met l'el dans la case d'arrivée
-  caseEl(newXY)[el.innerHTML] = el;
-  el.xy = newXY;
+  caseEl(newXY, el.innerHTML, el);
 
   if (el.parentNode) // On part d'une position, bouge lentement
     setTimeout(() => { // Timeout ensures styles are applied before scrolling
@@ -249,8 +257,7 @@ function muer(el, symboleType) { // 1 -> 1
   if (el.innerHTML)
     delete caseEl(el.xy)[el.innerHTML];
 
-  if (el.xy)
-    caseEl(el.xy)[symboleType] = el;
+  caseEl(el.xy, symboleType, el);
   el.innerHTML = symboleType;
   el.classList = o[symboleType][o[symboleType].length - 1].type;
   el.data.age = 0; // L'âge repart à 0 si l'objet change de type
@@ -309,9 +316,11 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
-    if (typeof pp[0][5] === 'object' &&
+    /*
+    if (typeof pp[0][5] === 'object' && // On a retourné un el
       ~~pp[0][6] === 1) // Seulement à 1 case de distance
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
+    */
 
     return deplacer(el, // rapprocher
       nouvelX, nouvelY, null,
@@ -391,7 +400,7 @@ function iterer() {
       el.data.age = ~~el.data.age + 1;
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
-      // el.noIteration = noIteration; //TODO Marque déjà traité
+      //TODO DELETE ??? el.noIteration = noIteration; //TODO Marque déjà traité
     }
 
     rebuildCases();
@@ -636,7 +645,7 @@ o = {
     [rapprocher, '👩'],
     //[absorber, '👩', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       type: 'Homme',
       eau: 50,
@@ -644,10 +653,10 @@ o = {
     },
   ],
   '👩': [
-    [rapprocher, '🧔'],
+    //[rapprocher, '🧔'],
     //[absorber, '🧔', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       type: 'Femme',
       eau: 50,
@@ -657,7 +666,7 @@ o = {
   '🧔👩': [
     //...vivant,
     [muer, '👫', 5],
-    [errer],
+    //[errer],
     {
       type: 'Dating',
     },
@@ -725,8 +734,8 @@ o = {
 
 // TESTS
 loadWorld([
-  ["🧔", 4, 4],
-  ["👩", 30, 38],
+  ["🧔", 14, 14],
+  ["👩", 22, 14],
 ]);
 
 /*
