@@ -95,7 +95,7 @@ function rebuildCases() {
   zones = [];
   dataSav = [];
 
-  for (const el of divEls) //TODO revoir toutes les itérations et .length
+  for (const el of divEls)
     if (el.data && !el.hovered) // Pas si le curseur est au dessus
   {
     const zx = Math.round(el.xy.x / 4),
@@ -309,14 +309,13 @@ function errer(el) { // 1 -> 1
 
 //TODO FIN DES TESTS OK //////////////////////
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
-  //TODO BUG inhiber l'autre !
   const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
-    /*
+    /*//TODO DELETE ??? / alors, delete pp[5] ??
     if (typeof pp[0][5] === 'object' && // On a retourné un el
       ~~pp[0][6] === 1) // Seulement à 1 case de distance
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
@@ -360,17 +359,20 @@ function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 
 function iterer() {
   if (noIteration < noIterationMax || !window.location.search) {
     const debut = Date.now(),
-      divEls = document.getElementsByTagName('div');
+      divEls = document.getElementsByTagName('div'),
+      gameEls = [];
 
     noIteration++;
     rebuildCases();
 
-    // Exécution des actions
-    //TODO BUG divEls à reconstruire aprés chaque delete/produit
     for (const el of divEls)
-      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité
+      if ( //TODO (et autres) ~~el.noIteration < noIteration && // S'il n'a pas déjà été traité
+        el.parentNode && // S'il est affichable
         el.data && !el.hovered) // Si le curseur n'est pas au dessus
-    {
+        gameEls.push(el);
+
+    // Exécution des actions
+    gameEls.forEach(el => {
       if (typeof o[el.innerHTML] === 'object')
         o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
         .every(action => { // Exécute chaque action tant qu'elle retourne false
@@ -401,7 +403,7 @@ function iterer() {
       if (el.data.eau > 0) el.data.eau--;
       if (el.data.energie > 0) el.data.energie--;
       //TODO DELETE ??? el.noIteration = noIteration; //TODO Marque déjà traité
-    }
+    });
 
     rebuildCases();
 
@@ -645,7 +647,7 @@ o = {
     [rapprocher, '👩'],
     //[absorber, '👩', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       type: 'Homme',
       eau: 50,
@@ -653,7 +655,7 @@ o = {
     },
   ],
   '👩': [
-    //[rapprocher, '🧔'],
+    [rapprocher, '🧔'],
     //[absorber, '🧔', '💏'],
     //...vivant,
     [errer],
