@@ -48,15 +48,11 @@ function xyFromPixels(pixels) {
   };
 }
 
-function xyFromEl(el) {
-  return xyFromPixels(el.getBoundingClientRect());
-}
-
-// Get or set case el
+// Get case el
 function caseEl(xy, symboleType, force) {
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
-  // 7,7,🌿,force : fill the case
+  // 7,7,🌿,force : force the case to be created
   // Par case [x][y], un tableau [symbole] = el
   // Il ne peut y avoir qu'un el de chaque type dans une case
 
@@ -92,13 +88,12 @@ function rebuildCases() {
   for (const el of divEls) //TODO revoir toutes les itérations et .length
     if (el.data && !el.hovered) // Pas si le curseur est au dessus
   {
-    const xy = xyFromEl(el),
-      zx = Math.round(xy.x / 4),
-      zy = Math.round(xy.y / 4),
+    const zx = Math.round(el.xy.x / 4),
+      zy = Math.round(el.xy.y / 4),
       d = {};
 
     // Population des cases
-    caseEl(xy)[el.innerHTML] = el;
+    caseEl(el.xy)[el.innerHTML] = el;
 
     // Population des zones
     if (typeof zones[el.innerHTML] === 'undefined')
@@ -126,7 +121,7 @@ function rebuildCases() {
     el.title =
       o[el.innerHTML][o[el.innerHTML].length - 1].type + ' ' +
       JSON.stringify(d).replace(/\{|"|\}/gu, '') +
-      (window.location.search ? ' ' + xy.x + ',' + xy.y : '');
+      (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y : '');
   }
 }
 
@@ -136,12 +131,10 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
   // limite : nombre de cases ramenées
   // symboleTypeRecherche : type d'objets 🌿 recherchés (string unicode)
 
-  const xy = xyFromEl(el);
-
   let listeProches = [],
     dMin = 999999;
 
-  if (xy) {
+  if (el.xy) {
     // Randomize search order
     for (let i = Math.random() * deltasProches.length; i > 0; i--)
       deltasProches.push(deltasProches.shift());
@@ -152,8 +145,8 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
         for (let i = 0;
           (i < d) && (listeProches.length < limite); i++) {
           const nouvelXY = {
-              x: xy.x + d * delta[0] + i * delta[2],
-              y: xy.y + d * delta[1] + i * delta[3],
+              x: el.xy.x + d * delta[0] + i * delta[2],
+              y: el.xy.y + d * delta[1] + i * delta[3],
             },
             pixelEln = pixelsFromXY(nouvelXY),
             nouvellesCases = caseEl(nouvelXY),
@@ -179,8 +172,8 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
       zones[symboleTypeRecherche].forEach((col, noCol) => {
         //TODO recherche concentrique et pas à partir de en haut à gauche
         col.forEach((ligne, noLigne) => {
-          const deltaCol = noCol - Math.round(xy.x / 4),
-            deltaLigne = noLigne - Math.round(xy.y / 4),
+          const deltaCol = noCol - Math.round(el.xy.x / 4),
+            deltaLigne = noLigne - Math.round(el.xy.y / 4),
             dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
 
           if (dMin > dist && (deltaCol || deltaLigne)) {
@@ -209,7 +202,7 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
   // typeMuer = '👩' : transforme le type
   // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
 
-  const px = {
+  const newPx = {
       ...pixelsFromXY({
         x: a, // caseX, caseY
         y: b,
@@ -217,41 +210,35 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
       }),
       ...a, // {left: px, top: px}
     },
-    nouvelleCase = caseEl(xyFromPixels(px));
+    newXY = xyFromPixels(newPx);
 
   // Ne peut bouger que dans les cases où il y a des objets autorisés
-  if (Object.keys(nouvelleCase).filter(
+  if (Object.keys(caseEl(newXY)).filter(
       symbol => !('▒▓' + (typeAccept || '')).includes(symbol)
     ).length)
     return false;
 
   // On supprime l'el de la case de départ
-  delete caseEl(xyFromEl(el))[el.innerHTML];
+  if (el.xy)
+    delete caseEl(el.xy)[el.innerHTML];
 
   if (typeof a === 'undefined') {
     el.remove();
     return true;
   }
 
-  if (typeMuer) {
-    el.innerHTML = typeMuer;
-    if (o[el.innerHTML]) {
-      el.classList = o[el.innerHTML][o[el.innerHTML].length - 1].type;
-      el.data.age = 0; // L'âge repart à 0 si l'objet change de type
-    }
-  }
-
   // On met l'el dans la case d'arrivée
-  nouvelleCase[el.innerHTML] = el;
+  caseEl(newXY)[el.innerHTML] = el;
+  el.xy = newXY;
 
   if (el.parentNode) // On part d'une position, bouge lentement
     setTimeout(() => { // Timeout ensures styles are applied before scrolling
-      el.style.left = px.left + 'px';
-      el.style.top = px.top + 'px';
+      el.style.left = newPx.left + 'px';
+      el.style.top = newPx.top + 'px';
     }, 0);
   else { // On y va direct
-    el.style.left = px.left + 'px';
-    el.style.top = px.top + 'px';
+    el.style.left = newPx.left + 'px';
+    el.style.top = newPx.top + 'px';
   }
 
   document.body.appendChild(el);
@@ -260,7 +247,16 @@ function deplacer(el, a, b, typeMuer, typeAccept) {
 
 // Transformer un type en un autre
 function muer(el, symboleType) { // 1 -> 1
-  return deplacer(el, null, null, symboleType); // muer
+  if (el.innerHTML)
+    delete caseEl(el.xy)[el.innerHTML];
+
+  if (el.xy)
+    caseEl(el.xy)[symboleType] = el;
+  el.innerHTML = symboleType;
+  el.classList = o[symboleType][o[symboleType].length - 1].type;
+  el.data.age = 0; // L'âge repart à 0 si l'objet change de type
+
+  return true;
 }
 
 function supprimer(el) { // 1 -> 0
@@ -274,10 +270,9 @@ function ajouter(symboleType, a, b) { // 0 -> 1
   el.data = {
     ...o[symboleType][o[symboleType].length - 1],
   };
-  /*DCMM*/
-  console.log(el.data);
   delete el.data.type;
 
+  muer(el, symboleType);
   deplacer(el, a, b, symboleType); // ajouter
 
   // Mouse actions
@@ -306,15 +301,14 @@ function errer(el) { // 1 -> 1
     return deplacer(el, pp[0][4]); // errer
 }
 
-//TODO FIN DES TESTS OK
+//TODO FIN DES TESTS OK //////////////////////
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
   //TODO BUG inhiber l'autre !
   const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
-    const xy = xyFromEl(el),
-      nouvelX = xy.x + pp[0][0],
-      nouvelY = xy.y + pp[0][1];
+    const nouvelX = el.xy.x + pp[0][0],
+      nouvelY = el.xy.y + pp[0][1];
 
     if (typeof pp[0][5] === 'object' &&
       ~~pp[0][6] === 1) // Seulement à 1 case de distance
@@ -322,21 +316,18 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
 
     return deplacer(el, // rapprocher
       nouvelX, nouvelY, null,
-      symboleType); // Accepte les cases contenant ce symbole 
+      symboleType); // Accepte les cases contenant ce symbole
   }
 }
 
 function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
-  const xy = xyFromEl(el);
-
-  if (!caseEl(xy, symboleTypeNouveau))
-    return ajouter(symboleTypeNouveau, xy);
+  if (!caseEl(el.xy, symboleTypeNouveau))
+    return ajouter(symboleTypeNouveau, el.xy);
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
   //console.log(...arguments); //TODO TEST absorber
-  const xy = xyFromEl(el),
-    trouveEl = caseEl(xy, symboleType);
+  const trouveEl = caseEl(el.xy, symboleType);
 
   if (trouveEl) {
     for (const property in trouveEl.data) {
@@ -369,7 +360,7 @@ function iterer() {
     // Exécution des actions
     //TODO BUG divEls à reconstruire aprés chaque delete/produit
     for (const el of divEls)
-      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité 
+      if (~~el.noIteration < noIteration && // S'il n'a pas déjà été traité
         el.data && !el.hovered) // Si le curseur n'est pas au dessus
     {
       if (typeof o[el.innerHTML] === 'object')
@@ -439,7 +430,7 @@ function dragstart(evt) {
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
     setTimeout(() => {
-      evt.target.style.display = 'none';
+      evt.target.remove();
     }, 0);
 
   helpEl.style.display = 'none';
@@ -481,7 +472,7 @@ document.ondrop = evt => {
     ajouter(dragstartInfo.innerHTML, pixels);
 
   dragstartInfo = null;
-  rebuildCases();
+  //TODO ? rebuildCases();
 };
 
 document.ondragend = evt => { // Drag out the window
@@ -733,7 +724,7 @@ loadWorld([
   ["🧱", 13, 7],
   ["🧱", 14, 7],
   ["🧱", 15, 8],
-  
+
 ["⛲", 14, 8],
 ["▒", 16, 8],
 ["🏠", 14, 8],
@@ -742,12 +733,13 @@ loadWorld([
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
+ */
 
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
+
 rebuildCases();
- */
 
 // Debug
 if (window.location.search) {
