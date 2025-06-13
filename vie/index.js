@@ -11,7 +11,7 @@ const statsEl = document.getElementById('stats'),
   ],
   boxSize = 16,
   gigue = () => Math.random() * 4 - 2,
-  trace = true;
+  trace = false;
 
 let o = {},
   dragstartInfo = null,
@@ -35,6 +35,13 @@ let o = {},
  */
 
 // ROUTINES (functions)
+function xyFromPixels(pixels) {
+  return {
+    x: Math.round((pixels.left + pixels.top / 1.732) / boxSize),
+    y: Math.round(pixels.top / 0.866 / boxSize),
+  };
+}
+
 function pixelsFromXY(xy) {
   return {
     left: (xy.x - xy.y / 2) * boxSize + gigue(),
@@ -42,10 +49,10 @@ function pixelsFromXY(xy) {
   };
 }
 
-function xyFromPixels(pixels) {
+function pixelsFromEl(el) {
   return {
-    x: Math.round((pixels.left + pixels.top / 1.732) / boxSize),
-    y: Math.round(pixels.top / 0.866 / boxSize),
+    left: el.getBoundingClientRect().left,
+    top: el.getBoundingClientRect().top,
   };
 }
 
@@ -211,10 +218,10 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
 
 // Déplacer el à la position x/y si elle est libre
 function deplacer(el, a, b, typeAccept) {
+  if (trace) console.log('deplacer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
   // La seule fonction habilitée à ajouter / enlever un el dans le body et dans cases[][]
   // el tout seul : supprime
   // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
-  if (trace) console.log('deplacer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
 
   const newPx = {
       ...pixelsFromXY({
@@ -258,8 +265,8 @@ function deplacer(el, a, b, typeAccept) {
   return true;
 }
 
-// Transformer un type en un autre
-function muer(el, nouveauSymbole) { // 1 -> 1 //TODO DELETE -> transformer
+//TODO DELETE -> placer ce code ailleurs
+function muer(el, nouveauSymbole) { // 1 -> 1
   if (trace) console.log('muer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
 
   // Retire de la case actuelle
@@ -308,13 +315,14 @@ function ajouter(symboleType, a, b, typeAccept) { // 0 -> 1
   return el;
 }
 
+////////////TODO END TEST OK
 // Transformer un type en un autre
 function transformer(el, nouveauSymbole, symbolesCrees /*,action*/ ) { // 1 -> 1
+  if (trace) console.log('transformer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
   // el : supprimer
   // el, '💧' : muer
   // el, '⛲', '💧 🧔👩' : symboles des objets à produire
   // el, '⛲', '', action : action à exécuter à la fin
-  if (trace) console.log('transformer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
 
   const scs = (symbolesCrees || '').split(' '); // Séparés par un espace
 
@@ -327,10 +335,7 @@ function transformer(el, nouveauSymbole, symbolesCrees /*,action*/ ) { // 1 -> 1
 
   if (symbolesCrees)
     scs.forEach(sym => {
-      ajouter(sym, {
-        left: el.getBoundingClientRect().left, //TODO factoriser
-        top: el.getBoundingClientRect().top,
-      }, null, el.innerHTML);
+      ajouter(sym, pixelsFromEl(el), null, el.innerHTML);
     });
 
   //TODO action
@@ -491,10 +496,7 @@ function dragstart(evt) {
     style: { // Clone array
       ...evt.target.style,
     },
-    bounds: {
-      left: evt.target.getBoundingClientRect().left,
-      top: evt.target.getBoundingClientRect().top,
-    },
+    bounds: pixelsFromEl(evt.target),
     data: evt.target.data,
     offset: { // Offset of the mouse over the symbol
       x: evt.offsetX,
@@ -520,10 +522,10 @@ document.ondragover = evt => {
       top: evt.y - dragstartInfo.offset.y,
     };
 
+  // Vérifie s'il y a un element à cet endroit
   for (const el of divEls) {
     const bounds = el.getBoundingClientRect();
 
-    // Vérifie s'il y a un element à cet endroit
     if (
       px.left > bounds.x + bounds.width * 7 / 18 - 31 &&
       px.left < bounds.x + bounds.width * 7 / 6 - 7 &&
@@ -618,7 +620,6 @@ o = {
   // Cycle de l'eau
   '⛲': // Scénario du type d'objet
     [ // Action élémentaire du scénario
-      [transformer, '⛲', '💧'],
       [produire, // Verbe à exécuter
         '💧', // Argument
         () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
@@ -629,8 +630,8 @@ o = {
       },
     ],
   '💧': [
-    [transformer, '⛲'],
-    [muer, '💦', d => d.eau < 10],
+    [transformer, '💦'],
+    //[muer, '💦', d => d.eau < 10],
     [rapprocher, '🌱', 3],
     [rapprocher, '🌿', 3],
     [rapprocher, '🌽', 3],
@@ -813,11 +814,11 @@ loadWorld([
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
+ */
 
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
- */
 
 rebuildCases();
 
