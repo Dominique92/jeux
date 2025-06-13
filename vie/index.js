@@ -10,7 +10,8 @@ const statsEl = document.getElementById('stats'),
     [-1, -1, 1, 0],
   ],
   boxSize = 16,
-  gigue = () => Math.random() * 4 - 2;
+  gigue = () => Math.random() * 4 - 2,
+  trace = true;
 
 let o = {},
   dragstartInfo = null,
@@ -50,6 +51,7 @@ function xyFromPixels(pixels) {
 
 // Get or set case el
 function caseEl(xy, symboleType, el) {
+  //TODO voir vocabulaire symbole, type, objet
   // 7,7 : returns the case contents []
   // 7,7,🌿 : returns the html element
   // 7,7,🌿,el : fill the case
@@ -212,6 +214,7 @@ function deplacer(el, a, b, typeAccept) {
   // La seule fonction habilitée à ajouter / enlever un el dans le body et dans cases[][]
   // el tout seul : supprime
   // typeAccept = '👩💧💦' : autorise à aller dans une case où il y a déjà ce type
+  if (trace) console.log('deplacer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
 
   const newPx = {
       ...pixelsFromXY({
@@ -256,23 +259,24 @@ function deplacer(el, a, b, typeAccept) {
 }
 
 // Transformer un type en un autre
-function muer(el, symboleType) { // 1 -> 1
+function muer(el, nouveauSymbole) { // 1 -> 1 //TODO DELETE -> transformer
+  if (trace) console.log('muer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
+  // Retire de la case actuelle
   if (el.innerHTML)
     delete caseEl(el.xy)[el.innerHTML];
 
-  caseEl(el.xy, symboleType, el);
-  el.innerHTML = symboleType;
-  el.classList = o[symboleType][o[symboleType].length - 1].type;
+  caseEl(el.xy, nouveauSymbole, el);
+  el.innerHTML = nouveauSymbole;
+  el.classList = o[nouveauSymbole][o[nouveauSymbole].length - 1].type;
   el.data.age = 0; // L'âge repart à 0 si l'objet change de type
 
   return true;
 }
 
-function supprimer(el) { // 1 -> 0
-  return deplacer(el); // supprimer
-}
-
 function ajouter(symboleType, a, b, typeAccept) { // 0 -> 1
+  if (trace) console.log('ajouter', arguments); //TODO trace
+
   const el = document.createElement('div');
 
   // Données initiales du modèle
@@ -289,7 +293,7 @@ function ajouter(symboleType, a, b, typeAccept) { // 0 -> 1
   /* eslint-disable-next-line no-use-before-define */
   el.ondragstart = dragstart;
   el.draggable = true;
-  el.ondblclick = evt => supprimer(evt.target);
+  el.ondblclick = evt => deplacer(evt.target); // supprimer
 
   // Hold moves when hover
   el.onmouseover = () => {
@@ -304,7 +308,39 @@ function ajouter(symboleType, a, b, typeAccept) { // 0 -> 1
   return el;
 }
 
+// Transformer un type en un autre
+function transformer(el, nouveauSymbole, symbolesCrees /*,action*/ ) { // 1 -> 1
+  // el : supprimer
+  // el, '💧' : muer
+  // el, '⛲', '💧 🧔👩' : symboles des objets à produire
+  // el, '⛲', '', action : action à exécuter à la fin
+  if (trace) console.log('transformer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
+  const scs = (symbolesCrees || '').split(' '); // Séparés par un espace
+
+  if (!nouveauSymbole) //TODO TEST
+    return deplacer(el); // supprimer
+
+  // Remplace le type actuel
+  if (el.innerHTML !== nouveauSymbole)
+    muer(el, nouveauSymbole);
+
+  if (symbolesCrees)
+    scs.forEach(sym => {
+      ajouter(sym, {
+        left: el.getBoundingClientRect().left, //TODO factoriser
+        top: el.getBoundingClientRect().top,
+      }, null, el.innerHTML);
+    });
+
+  //TODO action
+
+  return true;
+}
+
 function errer(el) { // 1 -> 1
+  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
@@ -312,6 +348,8 @@ function errer(el) { // 1 -> 1
 }
 
 function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case)
+  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
   const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
@@ -330,6 +368,8 @@ function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même ca
 }
 
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
+  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
   const trouveEl = caseEl(el.xy, symboleType);
 
   if (trouveEl) {
@@ -337,7 +377,7 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
       el.data[property] = ~~el.data[property] + trouveEl.data[property]
       el.data.age = 0;
 
-      supprimer(trouveEl);
+      deplacer(trouveEl); //supprimer
 
       if (symboleTypeFinal)
         return muer(el, symboleTypeFinal);
@@ -346,15 +386,16 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
 }
 
 function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
+  if (trace) console.log('produire', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
   if (!caseEl(el.xy, symboleTypeNouveau))
     return ajouter(symboleTypeNouveau, el.xy, null, el.innerHTML);
 }
 
-//TODO FIN DES TESTS OK //////////////////////
-/* eslint-disable-next-line no-unused-vars */
-function rencontrer(el, /*symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case)
-  console.log('rencontrer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO DEVELOPPER TEST rencontrer
-  //const nfo = nomsObjetsFinaux.split(' ');
+function rencontrer(el, symboleTypeRencontre, symbolObjetsFinaux) { // 2 -> 2 (dans la même case)
+  if (trace) console.log('rencontrer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO DEVELOPPER TEST rencontrer
+  const nfo = symbolObjetsFinaux.split(' '); // Séparés par un espace
+  console.log(nfo); //TODO trace
 }
 
 // ACTIVATION (functions)
@@ -430,6 +471,7 @@ window.onload = () => {
 };
 
 function dragend(evt) {
+  //TODO BUG ne marche pas en dehors de la fenêtre
   if (dragstartInfo) {
     // Start from the en drag cursor position
     dragstartInfo.el.style.left = evt.x + 'px';
@@ -438,7 +480,6 @@ function dragend(evt) {
 
     // Then, move slowly to the initial position
     deplacer(dragstartInfo.el, dragstartInfo.bounds);
-
   }
 }
 
@@ -577,6 +618,7 @@ o = {
   // Cycle de l'eau
   '⛲': // Scénario du type d'objet
     [ // Action élémentaire du scénario
+      [transformer, '⛲', '💧'],
       [produire, // Verbe à exécuter
         '💧', // Argument
         () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
@@ -587,6 +629,7 @@ o = {
       },
     ],
   '💧': [
+    [transformer, '⛲'],
     [muer, '💦', d => d.eau < 10],
     [rapprocher, '🌱', 3],
     [rapprocher, '🌿', 3],
@@ -597,7 +640,7 @@ o = {
     },
   ],
   '💦': [
-    [supprimer, d => d.eau <= 0],
+    [transformer, d => d.eau <= 0],
     [errer],
     {
       type: 'Eau',
@@ -652,7 +695,8 @@ o = {
   // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
-    [absorber, '👩', '💏'],
+    //[absorber, '👩', '💏'],
+    [rencontrer, '👩', '🏠'],
     //...vivant,
     [errer],
     {
@@ -663,8 +707,9 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    [absorber, '🧔', '💏'],
-    [absorber, '🧔', '💏'],
+    [rencontrer, '🧔', '🏠'],
+    //    [absorber, '🧔', '💏'],
+    //    [absorber, '🧔', '💏'],
     //...vivant,
     [errer],
     {
@@ -744,10 +789,11 @@ o = {
 
 // TESTS
 loadWorld([
-  ["⛲", 16, 12],
+  ["💧", 16, 12],
 ]);
 
 /*
+  ["⛲", 16, 12],
   ["🧔", 14, 14],
   ["👩", 17, 14],
 
