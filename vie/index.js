@@ -221,11 +221,12 @@ function deplacer(el, a, b, typeAccept) {
       }),
       ...a, // {left: px, top: px}
     },
-    newXY = xyFromPixels(newPx);
+    newXY = xyFromPixels(newPx),
+    tas = '▒▓' + (typeAccept || '');
 
-  // Ne peut bouger que dans les cases où il y a des objets autorisés
+  // Ne peut bouger que dans les cases où il y a que des objets autorisés
   if (Object.keys(caseEl(newXY)).filter(
-      symbol => !('▒▓' + (typeAccept || '')).includes(symbol)
+      symbol => !tas.includes(symbol)
     ).length)
     return false;
 
@@ -271,7 +272,7 @@ function supprimer(el) { // 1 -> 0
   return deplacer(el); // supprimer
 }
 
-function ajouter(symboleType, a, b) { // 0 -> 1
+function ajouter(symboleType, a, b, typeAccept) { // 0 -> 1
   const el = document.createElement('div');
 
   // Données initiales du modèle
@@ -282,7 +283,7 @@ function ajouter(symboleType, a, b) { // 0 -> 1
   delete el.data.type;
 
   muer(el, symboleType);
-  deplacer(el, a, b); // ajouter
+  deplacer(el, a, b, typeAccept); // ajouter
 
   // Mouse actions
   /* eslint-disable-next-line no-use-before-define */
@@ -344,16 +345,15 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
   }
 }
 
-//TODO FIN DES TESTS OK //////////////////////
 function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
-  console.log('produire', arguments); //TODO TEST rencontrer
   if (!caseEl(el.xy, symboleTypeNouveau))
-    return ajouter(symboleTypeNouveau, el.xy);
+    return ajouter(symboleTypeNouveau, el.xy, null, el.innerHTML);
 }
 
+//TODO FIN DES TESTS OK //////////////////////
 /* eslint-disable-next-line no-unused-vars */
-function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case)
-  console.log('rencontrer', arguments); //TODODEVELOPPER TEST rencontrer
+function rencontrer(el, /*symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case)
+  console.log('rencontrer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO DEVELOPPER TEST rencontrer
   //const nfo = nomsObjetsFinaux.split(' ');
 }
 
@@ -744,11 +744,12 @@ o = {
 
 // TESTS
 loadWorld([
-  ["🧔", 14, 14],
-  ["👩", 17, 14],
+  ["⛲", 16, 12],
 ]);
 
 /*
+  ["🧔", 14, 14],
+  ["👩", 17, 14],
 
   ["🧔", 14, 8],
   ["🧱", 14, 9],
