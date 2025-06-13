@@ -163,7 +163,8 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
             nbObjetsNouvelleCase = Object.keys(nouvellesCases).length;
 
           if (0 <= pixelEln.left && pixelEln.left < window.innerWidth - boxSize &&
-            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize) {
+            0 <= pixelEln.top && pixelEln.top < window.innerHeight - boxSize
+          ) {
             if (symboleTypeRecherche) { // On cherche un caractère
               if (nbObjetsNouvelleCase)
                 listeProches.push([...delta, nouvelXY, nouvellesCases[symboleTypeRecherche], d]);
@@ -178,7 +179,8 @@ function casesProches(el, distance, limite, symboleTypeRecherche) {
     // Recherche éloignés
     if (!listeProches.length &&
       ~~distance > 5 &&
-      typeof zones[symboleTypeRecherche] === 'object')
+      typeof zones[symboleTypeRecherche] === 'object'
+    )
       zones[symboleTypeRecherche].forEach((col, noCol) => {
         //TODO recherche concentrique et pas à partir de en haut à gauche
         col.forEach((ligne, noLigne) => {
@@ -273,6 +275,7 @@ function ajouter(symboleType, a, b) { // 0 -> 1
   const el = document.createElement('div');
 
   // Données initiales du modèle
+  el.noIteration = noIteration;
   el.data = {
     ...o[symboleType][o[symboleType].length - 1],
   };
@@ -307,33 +310,25 @@ function errer(el) { // 1 -> 1
     return deplacer(el, pp[0][4]); // errer
 }
 
-//TODO FIN DES TESTS OK //////////////////////
-function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case) //TODO TEST
+function rapprocher(el, symboleType, distance) { // 1 -> 1 (jusqu'à la même case)
   const pp = casesProches(el, distance || 100, 1, symboleType);
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
-    /*//TODO DELETE ??? / alors, delete pp[5] ??
     if (typeof pp[0][5] === 'object' && // On a retourné un el
-      ~~pp[0][6] === 1) // Seulement à 1 case de distance
+      ~~pp[0][6] === 1 // Seulement à 1 case de distance
+    )
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
-    */
 
     return deplacer(el, // rapprocher
-      nouvelX, nouvelY, null,
+      nouvelX, nouvelY,
       symboleType); // Accepte les cases contenant ce symbole
   }
 }
 
-function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
-  if (!caseEl(el.xy, symboleTypeNouveau))
-    return ajouter(symboleTypeNouveau, el.xy);
-}
-
 function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même case)
-  //console.log(...arguments); //TODO TEST absorber
   const trouveEl = caseEl(el.xy, symboleType);
 
   if (trouveEl) {
@@ -349,9 +344,16 @@ function absorber(el, symboleType, symboleTypeFinal) { // 2 -> 1 (dans la même 
   }
 }
 
+//TODO FIN DES TESTS OK //////////////////////
+function produire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
+  console.log('produire', arguments); //TODO TEST rencontrer
+  if (!caseEl(el.xy, symboleTypeNouveau))
+    return ajouter(symboleTypeNouveau, el.xy);
+}
+
 /* eslint-disable-next-line no-unused-vars */
-function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case) //TODO DEVELOPPER
-  console.log(...arguments); //TODO TEST rencontrer
+function rencontrer( /*el, symboleTypeRencontre, nomsObjetsFinaux*/ ) { // 2 -> 2 (dans la même case)
+  console.log('rencontrer', arguments); //TODODEVELOPPER TEST rencontrer
   //const nfo = nomsObjetsFinaux.split(' ');
 }
 
@@ -366,43 +368,48 @@ function iterer() {
     rebuildCases();
 
     for (const el of divEls)
-      if ( //TODO (et autres) ~~el.noIteration < noIteration && // S'il n'a pas déjà été traité
-        el.parentNode && // S'il est affichable
-        el.data && !el.hovered) // Si le curseur n'est pas au dessus
-        gameEls.push(el);
+      gameEls.push(el);
 
     // Exécution des actions
     gameEls.forEach(el => {
-      if (typeof o[el.innerHTML] === 'object')
-        o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
-        .every(action => { // Exécute chaque action tant qu'elle retourne false
-          // Condition to the last argument (function)
-          const conditionFunction = action[action.length - 1],
-            executionFunction = action[action.length - 2];
+      if (el.noIteration < noIteration && // S'il n'a pas déjà été traité
+        el.parentNode && // S'il est affichable
+        el.data && !el.hovered // Si le curseur n'est pas au dessus
+      ) {
+        if (typeof o[el.innerHTML] === 'object')
+          o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
+          .every(action => // Exécute chaque action tant qu'elle retourne false
+            {
+              // Condition to the last argument (function)
+              const conditionFunction = action[action.length - 1],
+                executionFunction = action[action.length - 2];
 
-          if (action.length > 1 && // S'il y a assez d'arguments
-            typeof conditionFunction === 'function' && // Si le dernier est une fonction
-            !conditionFunction(el.data) // Le test d'elligibilté est négatif
-          )
-            return true; // On n'exécute pas l'action et on passe à la suivante
+              if (action.length > 1 && // S'il y a assez d'arguments
+                typeof conditionFunction === 'function' && // Si le dernier est une fonction
+                !conditionFunction(el.data) // Le test d'elligibilté est négatif
+              )
+                return true; // On n'exécute pas l'action et on passe à la suivante
 
-          // Execute l'action
-          /* eslint-disable-next-line one-var */
-          const statusExec = action[0](el, ...action.slice(1));
+              // Execute l'action
+              /* eslint-disable-next-line one-var */
+              const statusExec = action[0](el, ...action.slice(1));
 
-          if (statusExec &&
-            action.length > 2 &&
-            typeof executionFunction === 'function'
-          )
-            executionFunction(el.data);
+              if (statusExec &&
+                action.length > 2 &&
+                typeof executionFunction === 'function'
+              )
+                executionFunction(el.data);
 
-          // Stop when one action is completed & return
-          return !statusExec; // Continue si l'action à retourné false
-        });
-      el.data.age = ~~el.data.age + 1;
-      if (el.data.eau > 0) el.data.eau--;
-      if (el.data.energie > 0) el.data.energie--;
-      //TODO DELETE ??? el.noIteration = noIteration; //TODO Marque déjà traité
+              // Stop when one action is completed & return
+              return !statusExec; // Continue si l'action à retourné false
+            });
+        el.noIteration = noIteration; // Marque déjà traité
+        el.data.age = ~~el.data.age + 1;
+        if (el.data.eau > 0)
+          el.data.eau--;
+        if (el.data.energie > 0)
+          el.data.energie--;
+      }
     });
 
     rebuildCases();
@@ -645,7 +652,7 @@ o = {
   // 🧒👶👷
   '🧔': [
     [rapprocher, '👩'],
-    //[absorber, '👩', '💏'],
+    [absorber, '👩', '💏'],
     //...vivant,
     [errer],
     {
@@ -656,7 +663,8 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    //[absorber, '🧔', '💏'],
+    [absorber, '🧔', '💏'],
+    [absorber, '🧔', '💏'],
     //...vivant,
     [errer],
     {
@@ -737,7 +745,7 @@ o = {
 // TESTS
 loadWorld([
   ["🧔", 14, 14],
-  ["👩", 22, 14],
+  ["👩", 17, 14],
 ]);
 
 /*
@@ -758,11 +766,11 @@ loadWorld([
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
- */
 
 Object.keys(o).forEach((symboleType, i) => {
   ajouter(symboleType, 10 + i, 8 + i % 3 * 4);
 });
+ */
 
 rebuildCases();
 
@@ -771,9 +779,13 @@ if (window.location.search) {
   helpEl.style.display = 'none';
   noIterationMax = 0;
   document.onkeydown = evt => {
-    if (evt.keyCode === 109) noIterationMax = 0;
-    else if (evt.keyCode === 107) noIterationMax = 1000000;
-    else if (evt.keyCode === 32) noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
-    else noIterationMax = noIteration + evt.keyCode % 48;
+    if (evt.keyCode === 109)
+      noIterationMax = 0;
+    else if (evt.keyCode === 107)
+      noIterationMax = 1000000;
+    else if (evt.keyCode === 32)
+      noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
+    else
+      noIterationMax = noIteration + evt.keyCode % 48;
   };
 }
