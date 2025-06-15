@@ -70,16 +70,27 @@ function caseEl(xy, catSym, el) {
   // 7,7,🌿,el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
 
+  const xyZ = {
+    x: Math.round(xy.x / 4),
+    y: Math.round(xy.y / 4),
+  };
+
   if (typeof xy === 'undefined')
     return [];
 
+  // Zone vide
+  if (el && catSym && typeof zones[catSym] === 'undefined')
+    zones[catSym] = [];
+
   // Colonne vide
   if (typeof cases[xy.x] === 'undefined') {
-    if (el)
+    if (el) // Si élément à placer
       cases[xy.x] = [];
     else
       return [];
   }
+  if (el && catSym && typeof zones[catSym][xyZ.x] === 'undefined')
+    zones[catSym][xyZ.x] = [];
 
   // Ligne vide
   if (typeof cases[xy.x][xy.y] === 'undefined') {
@@ -88,14 +99,17 @@ function caseEl(xy, catSym, el) {
     else
       return [];
   }
+  if (el && catSym && typeof zones[catSym][xyZ.x][xyZ.y] === 'undefined')
+    zones[catSym][xyZ.x][xyZ.y] = [];
 
   // array des el dans une case
   if (typeof catSym === 'undefined')
     return cases[xy.x][xy.y];
 
-  // Mets l'el dans la case
+  // Mets l'el dans la case et la zone
   if (typeof el === 'object') {
     cases[xy.x][xy.y][catSym] = el;
+    zones[catSym][xyZ.x][xyZ.y] = true;
     el.xy = xy;
   }
 
@@ -113,40 +127,27 @@ function rebuildCases() {
   for (const el of divEls)
     if (el.data && !el.hovered) // Pas si le curseur est au dessus
   {
-    const xZ = Math.round(el.xy.x / 4),
-      yZ = Math.round(el.xy.y / 4),
-      d = {};
+    const filteredData = Object.fromEntries(
+      Object.entries(el.data)
+      .filter(v => v[1])
+    );
 
     // Population des cases
     caseEl(el.xy, el.innerHTML, el);
 
-    // Population des zones
-    if (typeof zones[el.innerHTML] === 'undefined')
-      zones[el.innerHTML] = [];
-    if (typeof zones[el.innerHTML][xZ] === 'undefined')
-      zones[el.innerHTML][xZ] = [];
-    if (typeof zones[el.innerHTML][xZ][yZ] === 'undefined')
-      zones[el.innerHTML][xZ][yZ] = 0;
-    zones[el.innerHTML][xZ][yZ]++;
-
-    // Data to be saved in a file
-    dataSav.push({
-      cat: el.innerHTML,
-      left: Math.round(el.getBoundingClientRect().left),
-      top: Math.round(el.getBoundingClientRect().top),
-      data: el.data,
-    });
-
-    // Debug
-    Object.keys(el.data).forEach(key => {
-      if (el.data[key])
-        d[key] = el.data[key];
-    });
-
+    // Figurines title
     el.title =
       o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
-      JSON.stringify(d).replace(/\{|"|\}/gu, '') +
+      JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
       (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y : '');
+
+    // Data to be saved in a file
+    dataSav.push([
+      el.innerHTML,
+      Math.round(el.getBoundingClientRect().left),
+      Math.round(el.getBoundingClientRect().top),
+      filteredData,
+    ]);
   }
 }
 
@@ -669,9 +670,10 @@ function loadWorld(datas) {
 
   // Ajoute les objets du json
   datas.forEach(d => {
-    const el = d.type ?
-      transformer(null, d.type, d) :
-      transformer(null, d[0], d[1], d[2]);
+    const el = transformer(null, d[0], {
+      left: d[1],
+      top: d[2]
+    });
 
     if (d.data)
       el.data = d[4];
@@ -694,8 +696,7 @@ function load(evt) {
 
 /* eslint-disable-next-line no-unused-vars, one-var */
 const save = async () => {
-  const json = JSON.stringify(dataSav).replaceAll('},{', '},\n{'),
-    handle = await window.showSaveFilePicker({
+  const handle = await window.showSaveFilePicker({
       types: [{
         description: 'Sauvegarde jeu de la vie',
         accept: {
@@ -705,7 +706,12 @@ const save = async () => {
     }),
     writer = await handle.createWritable();
 
-  await writer.write(new Blob([json]));
+  await writer.write(new Blob([
+    JSON.stringify(dataSav)
+    .replace(/\],\[/gu, '],\n[')
+    .replace(/,\{\}/gu, '')
+  ]));
+
   await writer.close();
 }
 
@@ -899,7 +905,7 @@ o = {
 
 // TESTS
 loadWorld([
-  ["⛲", 16, 12],
+  ["⛲", 160, 160],
 ]);
 
 /*
@@ -923,11 +929,14 @@ loadWorld([
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
+ */
 
 Object.keys(o).forEach((catSym, i) => {
-  wwwWajouter(catSym, 10 + i, 8 + i % 3 * 4);
+  transformer(null, catSym, {
+    left: 70 + Math.floor(i / 4) * 70,
+    top: 70 + i % 4 * 70
+  });
 });
- */
 
 rebuildCases();
 
