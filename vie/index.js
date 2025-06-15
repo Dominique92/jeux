@@ -10,6 +10,8 @@ const statsEl = document.getElementById('stats'),
     [-1, -1, 1, 0],
   ],
   boxSize = 16,
+  rayonRechercheMax = 3,
+  tailleZone = rayonRechercheMax + 1,
   gigue = () => Math.random() * 4 - 2,
   trace = window.location.search.match(/trace/u);
 
@@ -17,8 +19,7 @@ let o = {},
   dragstartInfo = null,
   noIteration = 0,
   noIterationMax = 0,
-  cases = [],
-  zones = [],
+  cases = [], // 0 : cases, 1 : zones (pavé de 4)
   dataSav = [];
 
 /*********************
@@ -30,8 +31,8 @@ let o = {},
  * data : tableau de valeurs associé à une figurine
  * Element / el : <div> tag affichant la figurine
  *
- * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
- * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
+ * cases[0] : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
+ * cases[1] : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
  * xy : position de la figurine dans le tableau des cases (x, y)
  * px : position de la figurine en pixels (left, top)
  *
@@ -71,57 +72,57 @@ function caseEl(xy, catSym, el) {
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
 
   const xyZ = {
-    x: Math.round(xy.x / 4),
-    y: Math.round(xy.y / 4),
+    x: Math.round(xy.x / tailleZone),
+    y: Math.round(xy.y / tailleZone),
   };
 
   if (typeof xy === 'undefined')
     return [];
 
   // Zone vide
-  if (el && catSym && typeof zones[catSym] === 'undefined')
-    zones[catSym] = [];
+  for (let z = 0; z < 2; z++)
+    if (typeof cases[z] === 'undefined')
+      cases[z] = [];
 
   // Colonne vide
-  if (typeof cases[xy.x] === 'undefined') {
+  if (typeof cases[0][xy.x] === 'undefined') {
     if (el) // Si élément à placer
-      cases[xy.x] = [];
+      cases[0][xy.x] = [];
     else
       return [];
   }
-  if (el && catSym && typeof zones[catSym][xyZ.x] === 'undefined')
-    zones[catSym][xyZ.x] = [];
+  if (el && typeof cases[1][xyZ.x] === 'undefined')
+    cases[1][xyZ.x] = [];
 
   // Ligne vide
-  if (typeof cases[xy.x][xy.y] === 'undefined') {
+  if (typeof cases[0][xy.x][xy.y] === 'undefined') {
     if (el)
-      cases[xy.x][xy.y] = [];
+      cases[0][xy.x][xy.y] = [];
     else
       return [];
   }
-  if (el && catSym && typeof zones[catSym][xyZ.x][xyZ.y] === 'undefined')
-    zones[catSym][xyZ.x][xyZ.y] = [];
+  if (el && typeof cases[1][xyZ.x][xyZ.y] === 'undefined')
+    cases[1][xyZ.x][xyZ.y] = [];
 
   // array des el dans une case
   if (typeof catSym === 'undefined')
-    return cases[xy.x][xy.y];
+    return cases[0][xy.x][xy.y];
 
   // Mets l'el dans la case et la zone
   if (typeof el === 'object') {
-    cases[xy.x][xy.y][catSym] = el;
-    zones[catSym][xyZ.x][xyZ.y] = true;
+    cases[0][xy.x][xy.y][catSym] = el;
+    cases[1][xyZ.x][xyZ.y][catSym] = true;
     el.xy = xy;
   }
 
   // L'el d'une case pour une catéorie
-  return cases[xy.x][xy.y][catSym];
+  return cases[0][xy.x][xy.y][catSym];
 }
 
 function rebuildCases() {
   const divEls = document.getElementsByTagName('div');
 
   cases = [];
-  zones = [];
   dataSav = [];
 
   for (const el of divEls)
@@ -157,65 +158,38 @@ function casesProches(el, distance, limite, catSym) {
   // limite : nombre de cases ramenées
   // catSym : catégorie de figurines 🌿 recherchés (string unicode)
 
-  let listeProches = [],
-    dMin = 999999;
+  const listeProches = [];
 
-  if (el.xy) {
-    // Randomize search order
-    for (let i = Math.random() * deltasProches.length; i > 0; i--)
-      deltasProches.push(deltasProches.shift());
+  // Randomize search order
+  for (let i = Math.random() * deltasProches.length; i > 0; i--)
+    deltasProches.push(deltasProches.shift());
 
-    // Recherche dans un rayon
-    for (let d = 1; d < Math.min(~~distance, 5) + 1 && listeProches.length < limite; d++) {
-      deltasProches.forEach(delta => {
-        for (let i = 0;
-          (i < d) && (listeProches.length < limite); i++) {
-          const XYnew = {
-              x: el.xy.x + d * delta[0] + i * delta[2],
-              y: el.xy.y + d * delta[1] + i * delta[3],
-            },
-            pxNew = pxFromXY(XYnew),
-            nouvellesCases = caseEl(XYnew),
-            nbFigNewCase = Object.keys(nouvellesCases).length;
+  if (el.xy)
+    // cases / zones
+    for (let z = 0; z < 2; z++)
+      // Recherche dans un rayon donné
+      for (let d = 1; d < Math.min(~~distance, rayonRechercheMax) + 1 && listeProches.length < limite; d++)
+        // Pour chacune des 6 directions
+        deltasProches.forEach(delta => {
+          // On parcours le côté
+          for (let i = 0; i < d && listeProches.length < limite; i++) {
+            const tz = z ? tailleZone : 1, // Zones / Cases
+              XYrech = {
+                x: Math.round(el.xy.x / tz) + d * delta[0] + i * delta[2],
+                y: Math.round(el.xy.y / tz) + d * delta[1] + i * delta[3],
+              },
+              nbFigCaseRech = Object.keys(caseEl(XYrech)).length;
 
-          if (0 <= pxNew.left && pxNew.left < window.innerWidth - boxSize &&
-            0 <= pxNew.top && pxNew.top < window.innerHeight - boxSize
-          ) {
-            if (catSym) { // On cherche un caractère
-              if (nbFigNewCase)
-                listeProches.push([...delta, XYnew, nouvellesCases[catSym], d]);
-            } else if (!nbFigNewCase) { // On cherche une case vide
-              listeProches.push([...delta, XYnew]);
-            }
-          }
-        }
-      });
-    }
-
-    // Recherche éloignés
-    if (!listeProches.length &&
-      ~~distance > 5 &&
-      typeof zones[catSym] === 'object'
-    )
-      zones[catSym].forEach((col, noCol) => {
-        //TODO recherche concentrique et pas à partir de en haut à gauche
-        col.forEach((ligne, noLigne) => {
-          const deltaCol = noCol - Math.round(el.xy.x / 4),
-            deltaLigne = noLigne - Math.round(el.xy.y / 4),
-            dist = deltaCol * deltaCol + deltaLigne * deltaLigne;
-
-          if (dMin > dist && (deltaCol || deltaLigne)) {
-            dMin = dist;
-            listeProches = [
-              [
-                Math.sign(deltaCol),
-                Math.sign(deltaLigne),
-              ]
-            ];
-          }
+            if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
+              (!catSym && !nbFigCaseRech)) // On cherche une case vide
+              listeProches.push([
+                ...delta,
+                XYrech,
+                z ? null : caseEl(XYrech, catSym),
+              ]);
+          };
         });
-      });
-  }
+
   return listeProches;
 }
 
@@ -296,17 +270,17 @@ function transformer(elA, ncsA, pos, pos2) {
     el.style.top = newPx.top + 'px';
   }
 
-  // Re-affiche figurine dans la fenêtre
+  // Re-affiche la figurine dans la fenêtre
   document.body.appendChild(el);
 
-  // Met à jour la catégorie
+  // Met à jour la catégorie dans l'el
   if (catSym !== el.innerHTML) {
     el.innerHTML = catSym;
     el.classList = o[catSym][o[catSym].length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 
-  // On crée les nouveaux
+  // On crée les nouvelles figurines
   newCatSyms.forEach(cs => {
     transformer(null, cs, el.xy);
   });
@@ -320,7 +294,6 @@ function wwwWdeplacer(el, a, b, acceptCatSyms) {
   // el tout seul : supprime
   // acceptCatSyms = '👩💧💦' : autorise à aller dans une case où il y a déjà cette catégorie
   if (trace) console.log('wwwWdeplacer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   const newPx = {
       ...pxFromXY({
@@ -367,7 +340,6 @@ function wwwWdeplacer(el, a, b, acceptCatSyms) {
 //TODO DELETE -> placer ce code ailleurs
 function wwwWmuer(el, newCatSym) { // 1 -> 1
   if (trace) console.log('wwwWmuer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   // Retire de la case actuelle
   if (el.innerHTML)
@@ -385,7 +357,6 @@ function wwwWajouter(catSym, a, b, acceptCatSyms) { // 0 -> 1
   // el : supprimer
   // el, '⛲', pos : wwwWajouter
   if (trace) console.log('wwwWajouter', arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   const el = document.createElement('div');
 
@@ -423,7 +394,6 @@ function wwwTransformer(el, newCatSyms /*,action*/ ) { // 1 -> 1
   // el, '💧' : wwwWmuer
   // el, '⛲ 💧 🧔👩' : wwwWmuer vers ⛲ et wwwWajouter 💧 et 🧔👩
   if (trace) console.log('wwwTransformer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   // Supprimer
   if (typeof newCatSyms === 'undefined')
@@ -449,6 +419,7 @@ function errer(el) { // 1 -> 1
   if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
 
   const pp = casesProches(el, 1, 1);
+  /*DCMM*/console.log('errer', pp);
 
   if (pp.length)
     return transformer(el, null, pp[0][4]); // errer
@@ -456,7 +427,6 @@ function errer(el) { // 1 -> 1
 
 function wwwWrapprocher(el, catSym, distance) { // 1 -> 1 (jusqu'à la même case)
   if (trace) console.log('wwwWrapprocher', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   const pp = casesProches(el, distance || 100, 1, catSym);
 
@@ -477,7 +447,6 @@ function wwwWrapprocher(el, catSym, distance) { // 1 -> 1 (jusqu'à la même cas
 
 function wwwWabsorber(el, catSym, symboleTypeFinal) { // 2 -> 1 (dans la même case)
   if (trace) console.log('wwwWabsorber', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   const trouveEl = caseEl(el.xy, catSym);
 
@@ -496,7 +465,6 @@ function wwwWabsorber(el, catSym, symboleTypeFinal) { // 2 -> 1 (dans la même c
 
 function wwwWproduire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
   if (trace) console.log('wwwWproduire', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-  console.log(new Error().stack); //DCMM
 
   if (!caseEl(el.xy, symboleTypeNouveau))
     return wwwWajouter(symboleTypeNouveau, el.xy, null, el.innerHTML);
@@ -504,7 +472,6 @@ function wwwWproduire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
 
 function wwwWrencontrer(el, symboleTypeRencontre, symbolObjetsFinaux) { // 2 -> 2 (dans la même case)
   if (trace) console.log('wwwWrencontrer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO DEVELOPPER TEST wwwWrencontrer
-  console.log(new Error().stack); //DCMM
 
   const nfo = symbolObjetsFinaux.split(' '); // Séparés par un espace
   console.log(nfo); //TODO trace
@@ -539,7 +506,7 @@ function iterer() {
 
               if ( /*parametresAction.length > 1 &&*/ // S'il y a assez d'arguments
                 typeof conditionFunction === 'function') { // Si le dernier argument est une fonction
-                parametresAction.pop(); /////TODO BUG BUG BUG BUG 
+                parametresAction.pop();
 
                 if (!conditionFunction(el.data)) // Le test d'elligibilté est négatif
                   return true; // On n'exécute pas l'action et on passe à la suivante
@@ -550,13 +517,13 @@ function iterer() {
               const statusExec = parametresAction[0](el, ...parametresAction.slice(1));
 
               /*//TODO const executionFunction = parametresAction[parametresAction.length - 2];
-                            if (statusExec &&
-                              parametresAction.length > 2 &&
-                              typeof executionFunction === 'function'
-                            ) {
-                              //parametresAction.pop();
-                              executionFunction(el.data);
-                            }*/
+              if (statusExec &&
+                parametresAction.length > 2 &&
+                typeof executionFunction === 'function'
+              ) {
+                //parametresAction.pop();
+                executionFunction(el.data);
+              }*/
 
               // Stop when one action is completed & return
               return !statusExec; // Continue si l'action à retourné false
@@ -905,7 +872,7 @@ o = {
 
 // TESTS
 loadWorld([
-  ["⛲", 160, 160],
+  ["💧", 160, 160],
 ]);
 
 /*
@@ -929,7 +896,6 @@ loadWorld([
 
   ["🧔👩", 20, 28],
   ["🌽", 36, 28],
- */
 
 Object.keys(o).forEach((catSym, i) => {
   transformer(null, catSym, {
@@ -937,6 +903,7 @@ Object.keys(o).forEach((catSym, i) => {
     top: 70 + i % 4 * 70
   });
 });
+ */
 
 rebuildCases();
 
