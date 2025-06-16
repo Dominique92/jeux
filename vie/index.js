@@ -168,7 +168,7 @@ function casesProches(el, distance, limite, catSym) {
     // cases / zones
     for (let z = 0; z < 2; z++)
       // Recherche dans un rayon donné
-      for (let d = 1; d < Math.min(~~distance, rayonRechercheMax) + 1 && listeProches.length < limite; d++)
+      for (let d = 1; d < Math.min(distance, rayonRechercheMax) + 1 && listeProches.length < limite; d++)
         // Pour chacune des 6 directions
         deltasProches.forEach(delta => {
           // On parcours le côté
@@ -219,7 +219,7 @@ function transformer(elA, ncsA, pos, pos2) {
     },
     newXY = xyFromPx(newPx);
 
-  if (trace) console.log('transformer', arguments, noIteration, catSym, newPx, newXY, newCatSyms); //TODO trace
+  if (trace) console.log('transformer', arguments, noIteration, catSym, newPx, newXY, newCatSyms); //DCM trace
 
   if (el === null) { // On créee une nouvelle figurine
     el = document.createElement('div');
@@ -293,7 +293,7 @@ function wwwWdeplacer(el, a, b, acceptCatSyms) {
   // La seule fonction habilitée à wwwWajouter / enlever un el dans le body et dans cases[][]
   // el tout seul : supprime
   // acceptCatSyms = '👩💧💦' : autorise à aller dans une case où il y a déjà cette catégorie
-  if (trace) console.log('wwwWdeplacer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+  if (trace) console.log('wwwWdeplacer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
 
   const newPx = {
       ...pxFromXY({
@@ -339,7 +339,7 @@ function wwwWdeplacer(el, a, b, acceptCatSyms) {
 
 //TODO DELETE -> placer ce code ailleurs
 function wwwWmuer(el, newCatSym) { // 1 -> 1
-  if (trace) console.log('wwwWmuer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+  if (trace) console.log('wwwWmuer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
 
   // Retire de la case actuelle
   if (el.innerHTML)
@@ -353,128 +353,13 @@ function wwwWmuer(el, newCatSym) { // 1 -> 1
   return true;
 }
 
-function wwwWajouter(catSym, a, b, acceptCatSyms) { // 0 -> 1
-  // el : supprimer
-  // el, '⛲', pos : wwwWajouter
-  if (trace) console.log('wwwWajouter', arguments); //TODO trace
-
-  const el = document.createElement('div');
-
-  // Données initiales du modèle
-  el.noIteration = noIteration;
-  el.data = {
-    ...o[catSym][o[catSym].length - 1],
-  };
-  delete el.data.cat;
-
-  wwwWmuer(el, catSym);
-  wwwWdeplacer(el, a, b, acceptCatSyms); // wwwWajouter
-
-  // Mouse actions
-  /* eslint-disable-next-line no-use-before-define */
-  el.ondragstart = dragstart;
-  el.draggable = true;
-  el.ondblclick = evt => wwwWdeplacer(evt.target); // supprimer
-
-  // Hold moves when hover
-  el.onmouseover = () => {
-    el.hovered = true;
-    el.style.top = window.getComputedStyle(el).top;
-    el.style.left = window.getComputedStyle(el).left;
-  };
-  el.onmouseout = () => {
-    el.hovered = false;
-  };
-
-  return el;
-}
-
-// Transformer une catégorie en une autre
-function wwwTransformer(el, newCatSyms /*,action*/ ) { // 1 -> 1
-  // el, '💧' : wwwWmuer
-  // el, '⛲ 💧 🧔👩' : wwwWmuer vers ⛲ et wwwWajouter 💧 et 🧔👩
-  if (trace) console.log('wwwTransformer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-
-  // Supprimer
-  if (typeof newCatSyms === 'undefined')
-    return wwwWdeplacer(el); // supprimer
-
-  const nsbls = newCatSyms.split(' '), // Séparés par un espace
-    newCatSym = nsbls.shift();
-
-  // Remplace le cat actuel
-  if (el.innerHTML !== newCatSym)
-    wwwWmuer(el, newCatSym);
-
-  nsbls.forEach(sym => {
-    wwwWajouter(sym, pxFromEl(el), null, el.innerHTML + newCatSyms);
-  });
-
-  //TODO action
-
-  return true;
-}
-
 function errer(el) { // 1 -> 1
-  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
 
   const pp = casesProches(el, 1, 1);
-  /*DCMM*/console.log('errer', pp);
 
   if (pp.length)
     return transformer(el, null, pp[0][4]); // errer
-}
-
-function wwwWrapprocher(el, catSym, distance) { // 1 -> 1 (jusqu'à la même case)
-  if (trace) console.log('wwwWrapprocher', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-
-  const pp = casesProches(el, distance || 100, 1, catSym);
-
-  if (pp.length) {
-    const nouvelX = el.xy.x + pp[0][0],
-      nouvelY = el.xy.y + pp[0][1];
-
-    if (typeof pp[0][5] === 'object' && // On a retourné un el
-      ~~pp[0][6] === 1 // Seulement à 1 case de distance
-    )
-      pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
-
-    return wwwWdeplacer(el, // wwwWrapprocher
-      nouvelX, nouvelY,
-      catSym); // Accepte les cases contenant ce symbole
-  }
-}
-
-function wwwWabsorber(el, catSym, symboleTypeFinal) { // 2 -> 1 (dans la même case)
-  if (trace) console.log('wwwWabsorber', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-
-  const trouveEl = caseEl(el.xy, catSym);
-
-  if (trouveEl) {
-    for (const property in trouveEl.data) {
-      el.data[property] = ~~el.data[property] + trouveEl.data[property]
-      el.data.age = 0;
-
-      wwwWdeplacer(trouveEl); //supprimer
-
-      if (symboleTypeFinal)
-        return wwwWmuer(el, symboleTypeFinal);
-    }
-  }
-}
-
-function wwwWproduire(el, symboleTypeNouveau) { // 1 -> 2 (dans la même case)
-  if (trace) console.log('wwwWproduire', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
-
-  if (!caseEl(el.xy, symboleTypeNouveau))
-    return wwwWajouter(symboleTypeNouveau, el.xy, null, el.innerHTML);
-}
-
-function wwwWrencontrer(el, symboleTypeRencontre, symbolObjetsFinaux) { // 2 -> 2 (dans la même case)
-  if (trace) console.log('wwwWrencontrer', el.innerHTML, el.noIteration, noIteration, arguments); //TODO DEVELOPPER TEST wwwWrencontrer
-
-  const nfo = symbolObjetsFinaux.split(' '); // Séparés par un espace
-  console.log(nfo); //TODO trace
 }
 
 // ACTIVATION (functions)
@@ -504,7 +389,7 @@ function iterer() {
               const parametresAction = [...a],
                 conditionFunction = parametresAction[parametresAction.length - 1];
 
-              if ( /*parametresAction.length > 1 &&*/ // S'il y a assez d'arguments
+              if (parametresAction.length > 1 && // S'il y a assez d'arguments
                 typeof conditionFunction === 'function') { // Si le dernier argument est une fonction
                 parametresAction.pop();
 
@@ -556,7 +441,6 @@ window.onload = () => {
 };
 
 function dragend(evt) {
-  //TODO BUG ne marche pas en dehors de la fenêtre
   if (dragstartInfo) {
     // Start from the en drag cursor position
     dragstartInfo.el.style.left = evt.x + 'px';
@@ -694,7 +578,6 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 */
 
 o = {
-  ////////////TODO TEST
   // Cycle de l'eau
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
@@ -703,6 +586,7 @@ o = {
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
         () => Math.random() < 0.2 // Test d'applicabilité de la règle
       ],
+      //TODO BUG déplace un peu ⛲ la premi-re fois qu'on produit 💧
       { // Init des data quand on crée
         cat: 'Fontaine',
       },
@@ -719,6 +603,7 @@ o = {
       eau: 20, //TODO 100,
     },
   ],
+  ////////////TODO TEST
   '💦': [
     //[wwwTransformer, d => d.eau <= 100],
     [errer],
