@@ -261,6 +261,7 @@ function transformer(elA, ncsA, pos, pos2) {
   }
 
   if (!newCatSyms.length) {
+    //TODO BUG se déplace aprés avoir muer
     if (el.parentNode)
       // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
@@ -292,22 +293,6 @@ function transformer(elA, ncsA, pos, pos2) {
 
   return true;
 }
-
-//TODO DELETE -> placer ce code ailleurs
-/*function wwwWmuer(el, newCatSym) { // 1 -> 1
-  if (trace) console.log('wwwWmuer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
-
-  // Retire de la case actuelle
-  if (el.innerHTML)
-    delete caseEl(el.xy)[el.innerHTML];
-
-  caseEl(el.xy, newCatSym, el);
-  el.innerHTML = newCatSym;
-  el.classList = o[newCatSym][o[newCatSym].length - 1].cat;
-  el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
-
-  return true;
-}*/
 
 function errer(el) { // 1 -> 1
   if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
@@ -535,9 +520,7 @@ o = {
       },
     ],
   '💧': [
-    //[wwwTransformer, '💦 ❀ 🧔👩'],
-    //[transformer, '💦', d => d.eau < 10],
-    //[transformer, '💦'],
+    [transformer, '💦', d => d.eau < 10],
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌿', 3],
     //[wwwWrapprocher, '🌽', 3],
@@ -546,9 +529,8 @@ o = {
       eau: 20, //TODO 100,
     },
   ],
-  ////////////TODO TEST
   '💦': [
-    //[wwwTransformer, d => d.eau <= 100],
+    [transformer, d => d.eau <= 0],
     [errer],
     {
       cat: 'Eau',
@@ -558,7 +540,7 @@ o = {
   // 🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
   // 🌳🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌾
   '❀': [
-    //[wwwWmuer, '🌱', d => d.age > 10],
+    [transformer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
     [errer], {
@@ -568,8 +550,8 @@ o = {
   '🌱': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[wwwWmuer, '▒', d => d.eau <= 0],
-    //[wwwWmuer, '🌿', d => d.age > 20],
+    //[transformer, '▒', d => d.eau <= 0],
+    [transformer, '🌿', d => d.age > 10],
     {
       cat: 'Pousse',
     },
@@ -577,8 +559,8 @@ o = {
   '🌿': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[wwwWmuer, '▒', d => d.eau <= 0],
-    //[wwwWmuer, '🌽', d => d.age > 20],
+    //[transformer, '▒', d => d.eau <= 0],
+    [transformer, '🌽', d => d.age > 10],
     {
       cat: 'Plante',
     },
@@ -586,13 +568,14 @@ o = {
   '🌽': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[wwwWmuer, '▒', d => d.eau <= 0],
-    //[wwwWmuer, '▓', d => d.eau > 100],
-    //[wwwWproduire, '❀', () => Math.random() < 0.2],
+    //[transformer, '▒', d => d.eau <= 0],
+    //[transformer, '▓', d => d.eau > 100],
+    [transformer, '🌽 ❀', () => Math.random() < 0.2],
     {
       cat: 'Mais',
     },
   ],
+  ////////////TODO TEST
   '▒': [{
     cat: 'Terre',
   }],
@@ -628,7 +611,7 @@ o = {
   ],
   '🧔👩': [
     //...vivant,
-    //[wwwWmuer, '👫', 5],
+    //[transformer, '👫', 5],
     //[errer],
     {
       cat: 'Dating',
@@ -636,7 +619,7 @@ o = {
   ],
   '💏': [
     //...vivant,
-    //[wwwWmuer, '👫', 5],
+    //[transformer, '👫', 5],
     [errer],
     {
       cat: 'Amoureux',
@@ -644,7 +627,7 @@ o = {
   ],
   '👫': [
     //...vivant,
-    //[wwwWmuer, '👪', 5],
+    //[transformer, '👪', 5],
     [errer],
     {
       cat: 'Couple',
@@ -652,7 +635,7 @@ o = {
   ],
   '👪': [
     //...vivant,
-    //[wwwWmuer, '👫', 15],
+    //[transformer, '👫', 15],
     //TODO wwwWproduire enfant
     [errer],
     {
@@ -661,14 +644,14 @@ o = {
   ],
   '🧍': [
     //...vivant,
-    //TODO wwwWmuer 50% 🧔 50% 👩
+    //TODO transformer 50% 🧔 50% 👩
     [errer],
     {
       cat: 'Enfant',
     },
   ],
   '💀': [
-    //[wwwWmuer, '▒', 15],
+    //[transformer, '▒', 15],
     {
       cat: 'Mort',
     },
@@ -700,10 +683,12 @@ o = {
 
 // TESTS
 loadWorld([
-  ['⛲', 120, 100],
+  //['⛲', 120, 100],
   //['💧', 200, 160],
-  ['🧔', 120, 200],
-  ['👩', 240, 200],
+  //['❀', 120, 100],
+  ['🌽', 120, 100],
+  //['🧔', 120, 200],
+  //['👩', 240, 200],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
