@@ -260,28 +260,30 @@ function transformer(elA, ncsA, pos, pos2) {
     }
   }
 
-  // Re-positionne la figurine
-  caseEl(newXY, catSym, el); // On la re-met dans la case
-
-  if (el.parentNode) // On part d'une position, bouge lentement
-    setTimeout(() => { // Timeout ensures styles are applied before scrolling
+  if (!newCatSyms.length) {
+    if (el.parentNode)
+      // On part d'une position, bouge lentement
+      setTimeout(() => { // Timeout ensures styles are applied before scrolling
+        el.style.left = newPx.left + 'px';
+        el.style.top = newPx.top + 'px';
+      }, 50); //TODO il faut attendre un peu ???
+    else {
+      // On y va direct
       el.style.left = newPx.left + 'px';
       el.style.top = newPx.top + 'px';
-    }, 50); //TODO il faut attendre un peu ???
-  else { // On y va direct
-    el.style.left = newPx.left + 'px';
-    el.style.top = newPx.top + 'px';
+    }
   }
 
-  // Re-affiche la figurine dans la fenêtre
-  document.body.appendChild(el);
-
-  // Met à jour la catégorie dans l'el
-  if (catSym !== el.innerHTML) {
+  if (catSym !== el.innerHTML) { // Si on change de symbole
+    // Met à jour la catégorie dans l'el
     el.innerHTML = catSym;
     el.classList = o[catSym][o[catSym].length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
+
+  // Re-affiche la figurine dans la fenêtre
+  caseEl(newXY, catSym, el);
+  document.body.appendChild(el);
 
   // On crée les nouvelles figurines
   newCatSyms.forEach(cs => {
@@ -291,57 +293,8 @@ function transformer(elA, ncsA, pos, pos2) {
   return true;
 }
 
-// Déplacer el à la position x/y si elle est libre
-function wwwWdeplacer(el, a, b, acceptCatSyms) {
-  // La seule fonction habilitée à wwwWajouter / enlever un el dans le body et dans cases[][]
-  // el tout seul : supprime
-  // acceptCatSyms = '👩💧💦' : autorise à aller dans une case où il y a déjà cette catégorie
-  if (trace) console.log('wwwWdeplacer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
-
-  const newPx = {
-      ...pxFromXY({
-        x: a, // caseX, caseY
-        y: b,
-        ...a, // {x: caseX, y: caseY}
-      }),
-      ...a, // {left: px, top: px}
-    },
-    newXY = xyFromPx(newPx),
-    tas = '▒▓' + (acceptCatSyms || '');
-
-  // Ne peut bouger que dans les cases où il y a que des objets autorisés
-  if (Object.keys(caseEl(newXY)).filter(
-      symbol => !tas.includes(symbol)
-    ).length)
-    return false;
-
-  // On supprime l'el de la case de départ
-  delete caseEl(el.xy)[el.innerHTML];
-
-  if (typeof a === 'undefined') {
-    el.remove();
-    return true;
-  }
-
-  // On met l'el dans la case d'arrivée
-  caseEl(newXY, el.innerHTML, el);
-
-  if (el.parentNode) // On part d'une position, bouge lentement
-    setTimeout(() => { // Timeout ensures styles are applied before scrolling
-      el.style.left = newPx.left + 'px';
-      el.style.top = newPx.top + 'px';
-    }, 50); //TODO il faut attendre un peu ???
-  else { // On y va direct
-    el.style.left = newPx.left + 'px';
-    el.style.top = newPx.top + 'px';
-  }
-
-  document.body.appendChild(el);
-  return true;
-}
-
 //TODO DELETE -> placer ce code ailleurs
-function wwwWmuer(el, newCatSym) { // 1 -> 1
+/*function wwwWmuer(el, newCatSym) { // 1 -> 1
   if (trace) console.log('wwwWmuer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
 
   // Retire de la case actuelle
@@ -354,7 +307,7 @@ function wwwWmuer(el, newCatSym) { // 1 -> 1
   el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
 
   return true;
-}
+}*/
 
 function errer(el) { // 1 -> 1
   if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
@@ -577,7 +530,6 @@ o = {
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
         () => Math.random() < 0.2 // Test d'applicabilité de la règle
       ],
-      //TODO BUG déplace un peu ⛲ la premi-re fois qu'on produit 💧
       { // Init des data quand on crée
         cat: 'Fontaine',
       },
@@ -748,38 +700,18 @@ o = {
 
 // TESTS
 loadWorld([
-  ["💧", 160, 160],
+  ['⛲', 120, 100],
+  //['💧', 200, 160],
+  ['🧔', 120, 200],
+  ['👩', 240, 200],
 ]);
 
-/*
-  ["⛲", 16, 12],
-  ["🧔", 14, 14],
-  ["👩", 17, 14],
-
-  ["🧔", 14, 8],
-  ["🧱", 14, 9],
-  ["▒", 15, 9],
-  ["🧱", 13, 8],
-  ["🧱", 13, 7],
-  ["🧱", 14, 7],
-  ["🧱", 15, 8],
-
-  ["⛲", 14, 8],
-  ["▒", 16, 8],
-  ["🏠", 14, 8],
-  ["💀", 14, 10],
-  ["🌽", 14, 5],
-
-  ["🧔👩", 20, 28],
-  ["🌽", 36, 28],
-
-Object.keys(o).forEach((catSym, i) => {
+/*Object.keys(o).forEach((catSym, i) => {
   transformer(null, catSym, {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });
-});
- */
+});*/
 
 rebuildCases();
 
@@ -795,7 +727,9 @@ if (window.location.search) {
       noIterationMax = 1000000;
     else if (evt.keyCode === 32)
       noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
-    else
+    else if (96 < evt.keyCode && evt.keyCode < 106)
       noIterationMax = noIteration + evt.keyCode % 48;
+    else
+      noIterationMax = 0;
   };
 }
