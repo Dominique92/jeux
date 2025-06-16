@@ -16,7 +16,7 @@ const statsEl = document.getElementById('stats'),
   trace = window.location.search.match(/trace/u);
 
 let o = {},
-  dragstartInfo = null,
+  dragInfo = null,
   noIteration = 0,
   noIterationMax = 0,
   cases = [], // 0 : cases, 1 : zones (pavé de 4)
@@ -166,7 +166,7 @@ function casesProches(el, distance, limite, catSym) {
 
   if (el.xy)
     // cases / zones
-    for (let z = 0; z < 2; z++)
+    for (let z = 0; z < 2; z++) //TODO TEST distance > rayonRechercheMax
       // Recherche dans un rayon donné
       for (let d = 1; d < Math.min(distance, rayonRechercheMax) + 1 && listeProches.length < limite; d++)
         // Pour chacune des 6 directions
@@ -200,7 +200,7 @@ function casesProches(el, distance, limite, catSym) {
 function transformer(elA, ncsA, pos, pos2) {
   // null, '💧', (px || xy || x,y) : crée la figurine
   // el tout seul : supprime la figurine
-  // el, null, (px || xy || x,y) : déplace la figurine
+  // el, '<même sym>', (px || xy || x,y) : déplace la figurine
   // el, '💧' : transforme en cette catégorie
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
@@ -232,9 +232,11 @@ function transformer(elA, ncsA, pos, pos2) {
     delete el.data.cat;
 
     // Mouse actions
+    el.draggable = true;
     /* eslint-disable-next-line no-use-before-define */
     el.ondragstart = dragstart;
-    el.draggable = true;
+    /* eslint-disable-next-line no-use-before-define */
+    el.ondragend = dragend;
     el.ondblclick = evt => transformer(evt.target); // supprimer
 
     // Hold moves when hover
@@ -248,10 +250,11 @@ function transformer(elA, ncsA, pos, pos2) {
     };
   } else {
     // On retire l'el de la case de départ
-    delete caseEl(el.xy)[el.innerHTML];
+    if (el.xy)
+      delete caseEl(el.xy)[el.innerHTML];
 
     // Supprime et c'est tout
-    if (typeof ncsA === 'undefined') {
+    if (typeof ncsA !== 'string') {
       el.remove();
       return true;
     }
@@ -359,7 +362,7 @@ function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
-    return transformer(el, null, pp[0][4]); // errer
+    return transformer(el, el.innerHTML, pp[0][4]); // errer
 }
 
 // ACTIVATION (functions)
@@ -425,7 +428,8 @@ function iterer() {
 
     rebuildCases();
 
-    statsEl.innerHTML = noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj';
+    if (window.location.search)
+      statsEl.innerHTML = noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj';
   }
 }
 
@@ -440,20 +444,10 @@ window.onload = () => {
   iterer();
 };
 
-function dragend(evt) {
-  if (dragstartInfo) {
-    // Start from the en drag cursor position
-    dragstartInfo.el.style.left = evt.x + 'px';
-    dragstartInfo.el.style.top = evt.y + 'px';
-    document.body.appendChild(dragstartInfo.el);
-
-    // Then, move slowly to the initial position
-    transformer(dragstartInfo.el, null, dragstartInfo.bounds)
-  }
-}
-
 function dragstart(evt) {
-  dragstartInfo = {
+  if (trace) console.log('dragstart', evt); //DCM trace
+
+  dragInfo = {
     el: evt.target,
     innerHTML: evt.target.innerHTML,
     tagName: evt.target.tagName,
@@ -468,8 +462,6 @@ function dragstart(evt) {
     },
   };
 
-  evt.target.ondragend = dragend;
-
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
     setTimeout(() => { // Pour avoir le temps que le drag copie l'image
@@ -480,39 +472,38 @@ function dragstart(evt) {
 }
 
 document.ondragover = evt => {
-  const divEls = document.getElementsByTagName('div'),
-    px = {
-      left: evt.x - dragstartInfo.offset.x,
-      top: evt.y - dragstartInfo.offset.y,
-    };
+  const el = document.elementFromPoint(evt.x, evt.y);
 
-  // Vérifie s'il y a un element à cet endroit
-  for (const el of divEls) {
-    const bounds = el.getBoundingClientRect();
-
-    if (
-      px.left > bounds.x + bounds.width * 7 / 18 - 31 &&
-      px.left < bounds.x + bounds.width * 7 / 6 - 7 &&
-      px.top > bounds.y - 20 &&
-      px.top < bounds.y + 20
-    )
-      return;
-  }
-
-  evt.preventDefault(); // Autorise drop
-};
+  if (el.tagName === 'HTML') // Il n'y a rien en dessous
+    evt.preventDefault(); // Autorise drop
+}
 
 document.ondrop = evt => {
+  if (trace) console.log('ondrop', evt); //DCM trace
+
   transformer(
-    dragstartInfo.tagName === 'LI' ? null : dragstartInfo.el,
-    dragstartInfo.el.innerHTML, {
-      left: evt.x - dragstartInfo.offset.x,
-      top: evt.y - dragstartInfo.offset.y,
+    dragInfo.tagName === 'LI' ? null : dragInfo.el,
+    dragInfo.el.innerHTML, {
+      left: evt.x - dragInfo.offset.x,
+      top: evt.y - dragInfo.offset.y,
     });
 
-  dragstartInfo = null;
+  dragInfo = null;
   rebuildCases();
 };
+
+function dragend(evt) {
+  if (dragInfo) {
+    if (trace) console.log('dragend', evt); //DCM trace
+
+    // Start from the end drag cursor position
+    dragInfo.el.style.left = evt.x + 'px';
+    dragInfo.el.style.top = evt.y + 'px';
+    document.body.appendChild(dragInfo.el);
+    // Then, move slowly to the initial position
+    transformer(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
+  }
+}
 
 function loadWorld(datas) {
   // Vide le monde
