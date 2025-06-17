@@ -14,13 +14,14 @@ const statsEl = document.getElementById('stats'),
   tailleZone = rayonRechercheMax + 1,
   gigue = () => Math.random() * 4 - 2,
   recurrence = 1000, // ms
-  longueurMaxIteration = 40, // ms
+  longueurMaxIteration = 100, // ms
   trace = window.location.search.match(/trace/u); // Debug
 
 let o = {},
   dragInfo = null,
   noIteration = 0,
   noIterationMax = 0,
+  longueurActions = 0,
   longueurIteration = 0,
   cases = [], // 0 : cases, 1 : zones (pavé de 4)
   dataSav = [];
@@ -68,18 +69,19 @@ function pxFromEl(el) {
 }
 
 // Get / set case el
-function caseEl(xy, catSym, el) {
+function caseEl(xy, catSym, el, zone) {
   // 7,7 : returns the case contents []
-  // 7,7,🌿 : returns the html element
+  // 7,7,🌿 : return the html element
   // 7,7,🌿,el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
+  // zone : cases[0] / cases[1]
 
   const xyZ = {
     x: Math.round(xy.x / tailleZone),
     y: Math.round(xy.y / tailleZone),
   };
 
-  if (typeof xy === 'undefined')
+  if (typeof xy !== 'object')
     return [];
 
   // Zone vide
@@ -88,38 +90,43 @@ function caseEl(xy, catSym, el) {
       cases[z] = [];
 
   // Colonne vide
-  if (typeof cases[0][xy.x] === 'undefined') {
+  if (!zone && typeof cases[0][xy.x] === 'undefined') {
     if (el) // Si élément à placer
       cases[0][xy.x] = [];
     else
       return [];
   }
-  if (el && typeof cases[1][xyZ.x] === 'undefined')
+  if (typeof cases[1][xyZ.x] === 'undefined')
     cases[1][xyZ.x] = [];
 
   // Ligne vide
-  if (typeof cases[0][xy.x][xy.y] === 'undefined') {
+  if (!zone && typeof cases[0][xy.x][xy.y] === 'undefined') {
     if (el)
       cases[0][xy.x][xy.y] = [];
     else
       return [];
   }
-  if (el && typeof cases[1][xyZ.x][xyZ.y] === 'undefined')
+  if (typeof cases[1][xyZ.x][xyZ.y] === 'undefined')
     cases[1][xyZ.x][xyZ.y] = [];
 
   // array des el dans une case
-  if (typeof catSym === 'undefined')
-    return cases[0][xy.x][xy.y];
+  if (typeof catSym !== 'string')
+    return zone ?
+      cases[1][xyZ.x][xyZ.y] :
+      cases[0][xy.x][xy.y];
 
   // Mets l'el dans la case et la zone
-  if (typeof el === 'object') {
+  if (!zone && typeof el === 'object') {
     cases[0][xy.x][xy.y][catSym] = el;
     cases[1][xyZ.x][xyZ.y][catSym] = true;
     el.xy = xy;
+    el.z = xyZ; // Debug
   }
 
   // L'el d'une case pour une catéorie
-  return cases[0][xy.x][xy.y][catSym];
+  return zone ?
+    cases[1][xyZ.x][xyZ.y][catSym] :
+    cases[0][xy.x][xy.y][catSym];
 }
 
 function rebuildCases() {
@@ -129,33 +136,34 @@ function rebuildCases() {
   dataSav = [];
 
   for (const el of divEls)
-    if (el.data && !el.hovered) // Pas si le curseur est au dessus
-  {
-    const filteredData = Object.fromEntries(
-      Object.entries(el.data)
-      .filter(v => v[1])
-    );
+    if (el.data && !el.hovered) { // Pas si le curseur est au dessus
+      const filteredData = Object.fromEntries(
+        Object.entries(el.data)
+        .filter(v => v[1])
+      );
 
-    // Population des cases
-    caseEl(el.xy, el.innerHTML, el);
+      // Population des cases
+      caseEl(el.xy, el.innerHTML, el);
 
-    // Figurines title
-    el.title =
-      o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
-      JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
-      (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y : '');
+      // Figurines title
+      el.title =
+        o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
+        JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
+        (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y + ',' + el.z.x + ',' + el.z.y : '');
 
-    // Data to be saved in a file
-    dataSav.push([
-      el.innerHTML,
-      Math.round(el.getBoundingClientRect().left),
-      Math.round(el.getBoundingClientRect().top),
-      filteredData,
-    ]);
-  }
+      // Data to be saved in a file
+      dataSav.push([
+        el.innerHTML,
+        Math.round(el.getBoundingClientRect().left),
+        Math.round(el.getBoundingClientRect().top),
+        filteredData,
+      ]);
+    }
 }
 
 function casesProches(el, distance, limite, catSym) {
+  if (trace) console.log('casesProches', el.innerHTML, arguments); //TODO trace
+
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
   // limite : nombre de cases ramenées
@@ -181,7 +189,8 @@ function casesProches(el, distance, limite, catSym) {
                 x: Math.round(el.xy.x / tz) + d * delta[0] + i * delta[2],
                 y: Math.round(el.xy.y / tz) + d * delta[1] + i * delta[3],
               },
-              nbFigCaseRech = Object.keys(caseEl(XYrech)).length;
+              nbFigCaseRech = Object.keys(caseEl(XYrech, null, null, 1)).length;
+            //TODO BUG rechercher dans cases[1]
 
             if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
               (!catSym && !nbFigCaseRech)) // On cherche une case vide
@@ -298,7 +307,7 @@ function muter(elA, ncsA, pos, pos2) {
   return true;
 }
 
-function errer(el) { // 1 -> 1
+function errer(el) {
   if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
 
   const pp = casesProches(el, 1, 1);
@@ -306,6 +315,48 @@ function errer(el) { // 1 -> 1
   if (pp.length)
     return muter(el, el.innerHTML, pp[0][4]); // errer
 }
+
+function rapprocher(el, symboleType) { // Jusqu'à la même case
+  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
+  const pp = casesProches(el, rayonRechercheMax, 1, symboleType, 1);
+
+  if (pp.length) {
+    const nouvelX = el.xy.x + pp[0][0],
+      nouvelY = el.xy.y + pp[0][1];
+
+    /*//TODO Seulement à 1 case de distance
+        if (typeof pp[0][5] === 'object' && // On a retourné un el
+          ~~pp[0][6] === 1 // Seulement à 1 case de distance
+        )
+          pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
+    */
+
+    return muter(el, // rapprocher
+      el.innerHTML,
+      nouvelX, nouvelY,
+    ); // Accepte les cases contenant ce symbole
+  }
+}
+
+/*//TODO function absorber
+function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
+  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+
+  const trouveEl = caseEl(el.xy, symboleType);
+
+  if (trouveEl) {
+    for (const property in trouveEl.data) {
+      el.data[property] = ~~el.data[property] + trouveEl.data[property]
+      el.data.age = 0;
+
+      deplacer(trouveEl); //supprimer
+
+      if (symboleTypeFinal)
+        return muer(el, symboleTypeFinal);
+    }
+  }
+}*/
 
 // ACTIVATION (functions)
 function iterer() {
@@ -367,14 +418,16 @@ function iterer() {
       }
     });
 
+    longueurActions = Date.now() - debut;
     rebuildCases();
     longueurIteration = Date.now() - debut;
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
-      divEls.length + ' obj / ' +
-      longueurIteration + ' ms / ' +
-      Math.round(longueurIteration / divEls.length * 10) / 10 + ' ms/obj';
+      divEls.length + 'obj &nbsp; a=' +
+      longueurActions + 'ms &nbsp; r=' +
+      (longueurIteration - longueurActions) + 'ms &nbsp; ' +
+      Math.round(longueurIteration / divEls.length * 10) / 10 + 'ms/obj';
   }
 }
 
@@ -593,11 +646,11 @@ o = {
   // Cycle des humains
   // 🧒👶👷
   '🧔': [
-    //[wwwWrapprocher, '👩'],
+    [rapprocher, '👩'],
     //[wwwWabsorber, '👩', '💏'],
     //[wwwWrencontrer, '👩', '🏠'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       cat: 'Homme',
       eau: 50,
@@ -605,12 +658,12 @@ o = {
     },
   ],
   '👩': [
-    //[wwwWrapprocher, '🧔'],
+    //[rapprocher, '🧔'],
     //[wwwWrencontrer, '🧔', '🏠'],
     //[wwwWabsorber, '🧔', '💏'],
     //[wwwWabsorber, '🧔', '💏'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       cat: 'Femme',
       eau: 50,
@@ -691,12 +744,12 @@ o = {
 
 // TESTS
 loadWorld([
-  ['⛲', 120, 100],
+  //['⛲', 120, 100],
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
-  //['🧔', 120, 200],
-  //['👩', 240, 200],
+  ['🧔', 120, 200],
+  ['👩', 220, 200],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
