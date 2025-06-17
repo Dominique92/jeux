@@ -13,12 +13,15 @@ const statsEl = document.getElementById('stats'),
   rayonRechercheMax = 3,
   tailleZone = rayonRechercheMax + 1,
   gigue = () => Math.random() * 4 - 2,
-  trace = window.location.search.match(/trace/u);
+  recurrence = 1000, // ms
+  longueurMaxIteration = 40, // ms
+  trace = window.location.search.match(/trace/u); // Debug
 
 let o = {},
   dragInfo = null,
   noIteration = 0,
   noIterationMax = 0,
+  longueurIteration = 0,
   cases = [], // 0 : cases, 1 : zones (pavé de 4)
   dataSav = [];
 
@@ -197,7 +200,7 @@ function casesProches(el, distance, limite, catSym) {
 // return true : Succés
 
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ...
-function transformer(elA, ncsA, pos, pos2) {
+function muter(elA, ncsA, pos, pos2) {
   // null, '💧', (px || xy || x,y) : crée la figurine
   // el tout seul : supprime la figurine
   // el, '<même sym>', (px || xy || x,y) : déplace la figurine
@@ -219,9 +222,11 @@ function transformer(elA, ncsA, pos, pos2) {
     },
     newXY = xyFromPx(newPx);
 
-  if (trace) console.log('transformer', arguments, noIteration, catSym, newPx, newXY, newCatSyms); //DCM trace
+  if (trace) console.log('muter', arguments, noIteration, catSym, newPx, newXY, newCatSyms); //DCM trace
 
   if (el === null) { // On créee une nouvelle figurine
+    if (longueurIteration > longueurMaxIteration) return; // S'il y a de la ressource
+
     el = document.createElement('div');
 
     // Données initiales du modèle
@@ -237,9 +242,9 @@ function transformer(elA, ncsA, pos, pos2) {
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
     el.ondragend = dragend;
-    el.ondblclick = evt => transformer(evt.target); // supprimer
+    el.ondblclick = evt => muter(evt.target); // supprimer
 
-    // Hold moves when hover
+    // Hold transition moves when hover
     el.onmouseover = () => {
       el.hovered = true;
       el.style.top = window.getComputedStyle(el).top;
@@ -261,13 +266,12 @@ function transformer(elA, ncsA, pos, pos2) {
   }
 
   if (!newCatSyms.length) {
-    //TODO BUG se déplace aprés avoir muer
     if (el.parentNode)
       // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
         el.style.left = newPx.left + 'px';
         el.style.top = newPx.top + 'px';
-      }, 50); //TODO il faut attendre un peu ???
+      }, 50); //TODO pourquoi faut-il attendre un peu ???
     else {
       // On y va direct
       el.style.left = newPx.left + 'px';
@@ -288,7 +292,7 @@ function transformer(elA, ncsA, pos, pos2) {
 
   // On crée les nouvelles figurines
   newCatSyms.forEach(cs => {
-    transformer(null, cs, el.xy);
+    muter(null, cs, el.xy);
   });
 
   return true;
@@ -300,7 +304,7 @@ function errer(el) { // 1 -> 1
   const pp = casesProches(el, 1, 1);
 
   if (pp.length)
-    return transformer(el, el.innerHTML, pp[0][4]); // errer
+    return muter(el, el.innerHTML, pp[0][4]); // errer
 }
 
 // ACTIVATION (functions)
@@ -311,7 +315,6 @@ function iterer() {
       gameEls = [];
 
     noIteration++;
-    rebuildCases();
 
     for (const el of divEls)
       gameEls.push(el);
@@ -365,14 +368,18 @@ function iterer() {
     });
 
     rebuildCases();
+    longueurIteration = Date.now() - debut;
 
     if (window.location.search)
-      statsEl.innerHTML = noIteration + ': ' + (Date.now() - debut) + ' ms / ' + divEls.length + ' obj';
+      statsEl.innerHTML = noIteration + ': ' +
+      divEls.length + ' obj / ' +
+      longueurIteration + ' ms / ' +
+      Math.round(longueurIteration / divEls.length * 10) / 10 + ' ms/obj';
   }
 }
 
 // RÉPONSES SOURIS / CLAVIER
-self.setInterval(iterer, 1000);
+self.setInterval(iterer, recurrence);
 window.onload = () => {
   const arg = window.location.search.match(/[0-9]+/u);
 
@@ -419,7 +426,7 @@ document.ondragover = evt => {
 document.ondrop = evt => {
   if (trace) console.log('ondrop', evt); //DCM trace
 
-  transformer(
+  muter(
     dragInfo.tagName === 'LI' ? null : dragInfo.el,
     dragInfo.el.innerHTML, {
       left: evt.x - dragInfo.offset.x,
@@ -431,6 +438,7 @@ document.ondrop = evt => {
 };
 
 function dragend(evt) {
+  //TODO en dehors fenêtre : supprimer
   if (dragInfo) {
     if (trace) console.log('dragend', evt); //DCM trace
 
@@ -439,7 +447,7 @@ function dragend(evt) {
     dragInfo.el.style.top = evt.y + 'px';
     document.body.appendChild(dragInfo.el);
     // Then, move slowly to the initial position
-    transformer(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
+    muter(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
   }
 }
 
@@ -450,7 +458,7 @@ function loadWorld(datas) {
 
   // Ajoute les objets du json
   datas.forEach(d => {
-    const el = transformer(null, d[0], {
+    const el = muter(null, d[0], {
       left: d[1],
       top: d[2]
     });
@@ -510,27 +518,27 @@ o = {
   // Cycle de l'eau
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
-      [transformer, // Verbe à exécuter
+      [muter, // Verbe à exécuter
         '⛲ 💧', // Symboles pour remplacer et créer
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
-        () => Math.random() < 0.2 // Test d'applicabilité de la règle
+        //() => Math.random() < 0.2 // Test d'applicabilité de la règle
       ],
       { // Init des data quand on crée
         cat: 'Fontaine',
       },
     ],
   '💧': [
-    [transformer, '💦', d => d.eau < 10],
+    [muter, '💦', d => d.eau < 10],
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌿', 3],
     //[wwwWrapprocher, '🌽', 3],
     [errer], {
       cat: 'Eau',
-      eau: 20, //TODO 100,
+      eau: 100,
     },
   ],
   '💦': [
-    [transformer, d => d.eau <= 0],
+    [muter, d => d.eau <= 0],
     [errer],
     {
       cat: 'Eau',
@@ -540,7 +548,7 @@ o = {
   // 🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
   // 🌳🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌾
   '❀': [
-    [transformer, '🌱', d => d.age > 10],
+    [muter, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
     [errer], {
@@ -550,8 +558,8 @@ o = {
   '🌱': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    [transformer, '🌿', d => d.age > 10],
+    //[muter, '▒', d => d.eau <= 0],
+    [muter, '🌿', d => d.age > 10],
     {
       cat: 'Pousse',
     },
@@ -559,8 +567,8 @@ o = {
   '🌿': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    [transformer, '🌽', d => d.age > 10],
+    //[muter, '▒', d => d.eau <= 0],
+    [muter, '🌽', d => d.age > 10],
     {
       cat: 'Plante',
     },
@@ -568,9 +576,9 @@ o = {
   '🌽': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    //[transformer, '▓', d => d.eau > 100],
-    [transformer, '🌽 ❀', () => Math.random() < 0.2],
+    //[muter, '▒', d => d.eau <= 0],
+    //[muter, '▓', d => d.eau > 100],
+    [muter, '🌽 ❀', () => Math.random() < 0.2],
     {
       cat: 'Mais',
     },
@@ -611,7 +619,7 @@ o = {
   ],
   '🧔👩': [
     //...vivant,
-    //[transformer, '👫', 5],
+    //[muter, '👫', 5],
     //[errer],
     {
       cat: 'Dating',
@@ -619,7 +627,7 @@ o = {
   ],
   '💏': [
     //...vivant,
-    //[transformer, '👫', 5],
+    //[muter, '👫', 5],
     [errer],
     {
       cat: 'Amoureux',
@@ -627,7 +635,7 @@ o = {
   ],
   '👫': [
     //...vivant,
-    //[transformer, '👪', 5],
+    //[muter, '👪', 5],
     [errer],
     {
       cat: 'Couple',
@@ -635,7 +643,7 @@ o = {
   ],
   '👪': [
     //...vivant,
-    //[transformer, '👫', 15],
+    //[muter, '👫', 15],
     //TODO wwwWproduire enfant
     [errer],
     {
@@ -644,14 +652,14 @@ o = {
   ],
   '🧍': [
     //...vivant,
-    //TODO transformer 50% 🧔 50% 👩
+    //TODO muter 50% 🧔 50% 👩
     [errer],
     {
       cat: 'Enfant',
     },
   ],
   '💀': [
-    //[transformer, '▒', 15],
+    //[muter, '▒', 15],
     {
       cat: 'Mort',
     },
@@ -683,16 +691,16 @@ o = {
 
 // TESTS
 loadWorld([
-  //['⛲', 120, 100],
+  ['⛲', 120, 100],
   //['💧', 200, 160],
+  //['🌽', 120, 100],
   //['❀', 120, 100],
-  ['🌽', 120, 100],
   //['🧔', 120, 200],
   //['👩', 240, 200],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
-  transformer(null, catSym, {
+  muter(null, catSym, {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });

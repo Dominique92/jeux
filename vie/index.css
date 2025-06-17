@@ -80,8 +80,10 @@ p:has(#stats) {
 }
 
 #stats {
-  margin: 3px;
-  z-index: 10;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 10px;
 }
 
 .Graine {
