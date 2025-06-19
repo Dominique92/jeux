@@ -22,7 +22,7 @@ const trace = window.location.search.match(/trace/u),
 let o = {},
   dragInfo = null,
   noIteration = 0,
-  noIterationMax = 0,
+  noIterationMax = 1000000, // Starts immediately
   dureeActions = 0,
   dureeIteration = 0,
   cases = [],
@@ -79,30 +79,31 @@ function xyzFromXY(xy) {
 }
 
 // Get / set case el
-function caseEl(zone, xy, catSym, el) {
-  // zone : cases[] / zones[]
+function caseEl(tableau, xy, catSym, el) {
+  // tableau : cases[] / zones[]
   // 7,7 : returns the case contents []
   // 7,7,🌿 : return the html element
   // 7,7,🌿,el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
 
-  if (typeof cases[xy.x] === 'undefined')
-    cases[xy.x] = [];
-  if (typeof cases[xy.x][xy.y] === 'undefined')
-    cases[xy.x][xy.y] = [];
+  if (typeof tableau[xy.x] === 'undefined')
+    tableau[xy.x] = [];
+  if (typeof tableau[xy.x][xy.y] === 'undefined')
+    tableau[xy.x][xy.y] = [];
 
   // Array des el dans une case
   if (typeof catSym !== 'string')
-    return cases[xy.x][xy.y];
+    return tableau[xy.x][xy.y];
 
-  // Met l'el dans la case et la zone
+  // Met l'el dans la case et la tableau
   if (typeof el === 'object') {
-    cases[xy.x][xy.y][catSym] = el;
-    el.xy = xy;
+    tableau[xy.x][xy.y][catSym] = el;
+    if (tableau === cases)
+      el.xy = xy;
   }
 
   // L'el d'une case pour une catéorie
-  return cases[xy.x][xy.y][catSym];
+  return tableau[xy.x][xy.y][catSym];
 }
 
 function rebuildCases() {
@@ -536,7 +537,6 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 */
 
 o = {
-  ////////////TODO TEST
   // Cycle de l'eau
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
@@ -566,6 +566,7 @@ o = {
       cat: 'Eau',
     },
   ],
+  ////////////TODO TEST
   // Cycle des plantes
   // 🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
   // 🌳🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌾
@@ -731,6 +732,7 @@ loadWorld([
 if (window.location.search) {
   helpEl.style.display = 'none';
   statsEl.style.display = 'block';
+
   noIterationMax = debugInit ? parseInt(debugInit[0], 10) : 0; // Debug avec quelques iterations au début
 
   document.onkeydown = evt => {
