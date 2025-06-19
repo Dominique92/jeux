@@ -55,6 +55,7 @@ label {
   margin-left: 5px;
 }
 
+#stats,
 input[type=file] {
   display: none;
 }

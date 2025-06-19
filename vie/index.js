@@ -1,4 +1,7 @@
-const statsEl = document.getElementById('stats'),
+const trace = window.location.search.match(/trace/u),
+  debugInit = window.location.search.match(/[0-9]+/u),
+  divEls = document.getElementsByTagName('div'),
+  statsEl = document.getElementById('stats'),
   liEls = document.getElementsByTagName('li'),
   helpEl = document.getElementById('help'),
   deltasProches = [ // [<centre -> départ du côté>, <direction du parcours du côté>]
@@ -14,16 +17,16 @@ const statsEl = document.getElementById('stats'),
   tailleZone = rayonRechercheMax + 1,
   gigue = () => Math.random() * 4 - 2,
   recurrence = 1000, // ms
-  longueurMaxIteration = 100, // ms
-  trace = window.location.search.match(/trace/u); // Debug
+  dureeMaxIteration = 100; // ms
 
 let o = {},
   dragInfo = null,
   noIteration = 0,
   noIterationMax = 0,
-  longueurActions = 0,
-  longueurIteration = 0,
-  cases = [], // 0 : cases, 1 : zones (pavé de 4)
+  dureeActions = 0,
+  dureeIteration = 0,
+  cases = [],
+  zones = [],
   dataSav = [];
 
 /*********************
@@ -35,10 +38,10 @@ let o = {},
  * data : tableau de valeurs associé à une figurine
  * Element / el : <div> tag affichant la figurine
  *
- * cases[0] : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
- * cases[1] : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
+ * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
+ * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
  * xy : position de la figurine dans le tableau des cases (x, y)
- * px : position de la figurine en pixels (left, top)
+ * pix : position de la figurine en pixels (left, top)
  *
  * Routine : fonction qui manipule les données du programme
  * Verbe : fonction à exécuter qui réalise une action sur une figurine
@@ -47,109 +50,83 @@ let o = {},
  */
 
 // ROUTINES (functions)
-function xyFromPx(px) {
+function xyFromPix(pix) {
   return {
-    x: Math.round((px.left + px.top / 1.732) / boxSize),
-    y: Math.round(px.top / 0.866 / boxSize),
+    x: Math.round((pix.left + pix.top / 1.732) / boxSize),
+    y: Math.round(pix.top / 0.866 / boxSize),
   };
 }
 
-function pxFromXY(xy) {
+function pixFromXY(xy) {
   return {
     left: (xy.x - xy.y / 2) * boxSize + gigue(),
     top: xy.y * 0.866 * boxSize + gigue(),
   };
 }
 
-function pxFromEl(el) {
+function pixFromEl(el) {
   return {
     left: el.getBoundingClientRect().left,
     top: el.getBoundingClientRect().top,
   };
 }
 
+function xyzFromXY(xy) {
+  return {
+    x: Math.round(xy.x / tailleZone),
+    y: Math.round(xy.y / tailleZone),
+  };
+}
+
 // Get / set case el
-function caseEl(xy, catSym, el, zone) {
+function caseEl(zone, xy, catSym, el) {
+  // zone : cases[] / zones[]
   // 7,7 : returns the case contents []
   // 7,7,🌿 : return the html element
   // 7,7,🌿,el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
-  // zone : cases[0] / cases[1]
 
-  const xyZ = {
-    x: Math.round(xy.x / tailleZone),
-    y: Math.round(xy.y / tailleZone),
-  };
+  if (typeof cases[xy.x] === 'undefined')
+    cases[xy.x] = [];
+  if (typeof cases[xy.x][xy.y] === 'undefined')
+    cases[xy.x][xy.y] = [];
 
-  if (typeof xy !== 'object')
-    return [];
-
-  // Zone vide
-  for (let z = 0; z < 2; z++)
-    if (typeof cases[z] === 'undefined')
-      cases[z] = [];
-
-  // Colonne vide
-  if (!zone && typeof cases[0][xy.x] === 'undefined') {
-    if (el) // Si élément à placer
-      cases[0][xy.x] = [];
-    else
-      return [];
-  }
-  if (typeof cases[1][xyZ.x] === 'undefined')
-    cases[1][xyZ.x] = [];
-
-  // Ligne vide
-  if (!zone && typeof cases[0][xy.x][xy.y] === 'undefined') {
-    if (el)
-      cases[0][xy.x][xy.y] = [];
-    else
-      return [];
-  }
-  if (typeof cases[1][xyZ.x][xyZ.y] === 'undefined')
-    cases[1][xyZ.x][xyZ.y] = [];
-
-  // array des el dans une case
+  // Array des el dans une case
   if (typeof catSym !== 'string')
-    return zone ?
-      cases[1][xyZ.x][xyZ.y] :
-      cases[0][xy.x][xy.y];
+    return cases[xy.x][xy.y];
 
-  // Mets l'el dans la case et la zone
-  if (!zone && typeof el === 'object') {
-    cases[0][xy.x][xy.y][catSym] = el;
-    cases[1][xyZ.x][xyZ.y][catSym] = true;
+  // Met l'el dans la case et la zone
+  if (typeof el === 'object') {
+    cases[xy.x][xy.y][catSym] = el;
     el.xy = xy;
-    el.z = xyZ; // Debug
   }
 
   // L'el d'une case pour une catéorie
-  return zone ?
-    cases[1][xyZ.x][xyZ.y][catSym] :
-    cases[0][xy.x][xy.y][catSym];
+  return cases[xy.x][xy.y][catSym];
 }
 
 function rebuildCases() {
-  const divEls = document.getElementsByTagName('div');
-
   cases = [];
+  zones = [];
   dataSav = [];
 
   for (const el of divEls)
     if (el.data && !el.hovered) { // Pas si le curseur est au dessus
+      // Uniquement les données de valeur # 0
       const filteredData = Object.fromEntries(
         Object.entries(el.data)
         .filter(v => v[1])
       );
 
       // Population des cases
-      caseEl(el.xy, el.innerHTML, el);
+      caseEl(cases, el.xy, el.innerHTML, el);
+      caseEl(zones, xyzFromXY(el.xy), el.innerHTML, el);
 
       // Figurines title
       el.title =
         o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
         JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
-        (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y + ',' + el.z.x + ',' + el.z.y : '');
+        (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y : '');
 
       // Data to be saved in a file
       dataSav.push([
@@ -161,8 +138,8 @@ function rebuildCases() {
     }
 }
 
-function casesProches(el, distance, limite, catSym) {
-  if (trace) console.log('casesProches', el.innerHTML, arguments); //TODO trace
+function casesProches(zone, el, distance, limite, catSym) {
+  if (trace) console.log('casesProches', el.innerHTML, [arguments]); //TODO trace
 
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
@@ -175,32 +152,31 @@ function casesProches(el, distance, limite, catSym) {
   for (let i = Math.random() * deltasProches.length; i > 0; i--)
     deltasProches.push(deltasProches.shift());
 
-  if (el.xy)
-    // cases / zones
-    for (let z = 0; z < 2; z++) //TODO TEST distance > rayonRechercheMax
-      // Recherche dans un rayon donné
-      for (let d = 1; d < Math.min(distance, rayonRechercheMax) + 1 && listeProches.length < limite; d++)
-        // Pour chacune des 6 directions
-        deltasProches.forEach(delta => {
-          // On parcours le côté
-          for (let i = 0; i < d && listeProches.length < limite; i++) {
-            const tz = z ? tailleZone : 1, // Zones / Cases
-              XYrech = {
-                x: Math.round(el.xy.x / tz) + d * delta[0] + i * delta[2],
-                y: Math.round(el.xy.y / tz) + d * delta[1] + i * delta[3],
-              },
-              nbFigCaseRech = Object.keys(caseEl(XYrech, null, null, 1)).length;
-            //TODO BUG rechercher dans cases[1]
+  //TODO ??? if (el.xy)
+  // Recherche dans un rayon donné
+  for (let d = 1; d < distance + 1 && listeProches.length < limite; d++)
+    // Pour chacune des 6 directions
+    deltasProches.forEach(delta => {
+      // On parcours le côté
+      for (let i = 0; i < d && listeProches.length < limite; i++) {
+        const XYrech = {
+            x: el.xy.x + d * delta[0] + i * delta[2],
+            y: el.xy.y + d * delta[1] + i * delta[3],
+          },
+          nbFigCaseRech = Object.keys(caseEl(zone, XYrech)).length;
 
-            if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
-              (!catSym && !nbFigCaseRech)) // On cherche une case vide
-              listeProches.push([
-                ...delta,
-                XYrech,
-                z ? null : caseEl(XYrech, catSym),
-              ]);
-          };
-        });
+        if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
+          (!catSym && !nbFigCaseRech)) // On cherche une case vide
+          listeProches.push([
+            ...delta,
+            XYrech,
+            caseEl(cases, XYrech, catSym),
+          ]);
+      };
+    });
+
+  if (!listeProches && distance > rayonRechercheMax)
+    return casesProches(zones, el, distance - rayonRechercheMax, limite, catSym);
 
   return listeProches;
 }
@@ -208,11 +184,12 @@ function casesProches(el, distance, limite, catSym) {
 // VERBES : function(el, ...)
 // return true : Succés
 
-// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ...
+// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
+// Change la position
 function muter(elA, ncsA, pos, pos2) {
-  // null, '💧', (px || xy || x,y) : crée la figurine
+  // null, '💧', (pix || xy || x,y) : crée la figurine
   // el tout seul : supprime la figurine
-  // el, '<même sym>', (px || xy || x,y) : déplace la figurine
+  // el, '<même sym>', (pix || xy || x,y) : déplace la figurine
   // el, '💧' : transforme en cette catégorie
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
@@ -221,21 +198,19 @@ function muter(elA, ncsA, pos, pos2) {
   const newCatSyms = (typeof ncsA === 'string' ? ncsA : el.innerHTML)
     .split(' '), // Séparés par un espace
     catSym = newCatSyms.shift(),
-    newPx = {
-      ...pxFromXY({
+    newPix = {
+      ...pixFromXY({
         x: pos, // caseX, caseY
         y: pos2,
         ...pos || el.xy, // {x: caseX, y: caseY}
       }),
-      ...pos, // {left: px, top: px}
+      ...pos, // {left: ..px, top: ..px}
     },
-    newXY = xyFromPx(newPx);
+    newXY = xyFromPix(newPix);
 
-  if (trace) console.log('muter', arguments, noIteration, catSym, newPx, newXY, newCatSyms); //DCM trace
+  if (trace) console.log('muter', catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TODO trace
 
-  if (el === null) { // On créee une nouvelle figurine
-    if (longueurIteration > longueurMaxIteration) return; // S'il y a de la ressource
-
+  if (typeof el === 'object') { // On créee une nouvelle figurine
     el = document.createElement('div');
 
     // Données initiales du modèle
@@ -265,26 +240,30 @@ function muter(elA, ncsA, pos, pos2) {
   } else {
     // On retire l'el de la case de départ
     if (el.xy)
-      delete caseEl(el.xy)[el.innerHTML];
+      delete caseEl(cases, el.xy)[el.innerHTML];
 
     // Supprime et c'est tout
     if (typeof ncsA !== 'string') {
       el.remove();
-      return true;
+      return el;
     }
   }
+
+  // Re-affiche la figurine dans la fenêtre
+  document.body.appendChild(el);
+  caseEl(cases, newXY, catSym, el);
 
   if (!newCatSyms.length) {
     if (el.parentNode)
       // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        el.style.left = newPx.left + 'px';
-        el.style.top = newPx.top + 'px';
+        el.style.left = newPix.left + 'px';
+        el.style.top = newPix.top + 'px';
       }, 50); //TODO pourquoi faut-il attendre un peu ???
     else {
       // On y va direct
-      el.style.left = newPx.left + 'px';
-      el.style.top = newPx.top + 'px';
+      el.style.left = newPix.left + 'px';
+      el.style.top = newPix.top + 'px';
     }
   }
 
@@ -295,31 +274,29 @@ function muter(elA, ncsA, pos, pos2) {
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 
-  // Re-affiche la figurine dans la fenêtre
-  caseEl(newXY, catSym, el);
-  document.body.appendChild(el);
-
   // On crée les nouvelles figurines
-  newCatSyms.forEach(cs => {
-    muter(null, cs, el.xy);
-  });
+  if (dureeIteration < dureeMaxIteration) // S'il y a de la ressource
+    newCatSyms.forEach(cs => {
+      muter(null, cs, el.xy);
+    });
 
   return true;
 }
 
 function errer(el) {
-  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, arguments); //DCM trace
+  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
 
-  const pp = casesProches(el, 1, 1);
+  const pp = casesProches(cases, el, 1, 1);
 
   if (pp.length)
     return muter(el, el.innerHTML, pp[0][4]); // errer
 }
 
+/* eslint-disable-next-line no-unused-vars */
 function rapprocher(el, symboleType) { // Jusqu'à la même case
-  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
 
-  const pp = casesProches(el, rayonRechercheMax, 1, symboleType, 1);
+  const pp = casesProches(cases, el, rayonRechercheMax, 1, symboleType, 1);
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
@@ -339,11 +316,12 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
   }
 }
 
-/*//TODO function absorber
+/* eslint-disable-next-line no-unused-vars */
 function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
-  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, arguments); //TODO trace
+  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
 
-  const trouveEl = caseEl(el.xy, symboleType);
+  /*
+  const trouveEl = caseEl(cases,el.xy, symboleType);
 
   if (trouveEl) {
     for (const property in trouveEl.data) {
@@ -356,16 +334,15 @@ function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
         return muer(el, symboleTypeFinal);
     }
   }
-}*/
+  */
+}
+
 
 // ACTIVATION (functions)
 function iterer() {
-  if (noIteration < noIterationMax || !window.location.search) {
+  if (noIteration < noIterationMax /*//TODO || !window.location.search*/ ) {
     const debut = Date.now(),
-      divEls = document.getElementsByTagName('div'),
       gameEls = [];
-
-    noIteration++;
 
     for (const el of divEls)
       gameEls.push(el);
@@ -393,9 +370,10 @@ function iterer() {
               }
 
               // Execute l'action
-              /* eslint-disable-next-line one-var */
-              const statusExec = parametresAction[0](el, ...parametresAction.slice(1));
+              // Stop when one action is completed & return
+              return !parametresAction[0](el, ...parametresAction.slice(1));
 
+              // Continue si l'action à retourné false
               /*//TODO const executionFunction = parametresAction[parametresAction.length - 2];
               if (statusExec &&
                 parametresAction.length > 2 &&
@@ -405,8 +383,6 @@ function iterer() {
                 executionFunction(el.data);
               }*/
 
-              // Stop when one action is completed & return
-              return !statusExec; // Continue si l'action à retourné false
             });
 
         el.noIteration = noIteration; // Marque déjà traité
@@ -418,32 +394,24 @@ function iterer() {
       }
     });
 
-    longueurActions = Date.now() - debut;
+    dureeActions = Date.now() - debut;
     rebuildCases();
-    longueurIteration = Date.now() - debut;
+    dureeIteration = Date.now() - debut;
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
       divEls.length + 'obj &nbsp; a=' +
-      longueurActions + 'ms &nbsp; r=' +
-      (longueurIteration - longueurActions) + 'ms &nbsp; ' +
-      Math.round(longueurIteration / divEls.length * 10) / 10 + 'ms/obj';
+      dureeActions + 'ms &nbsp; r=' +
+      (dureeIteration - dureeActions) + 'ms &nbsp; ' +
+      Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
+
+    noIteration++;
   }
 }
 
 // RÉPONSES SOURIS / CLAVIER
-self.setInterval(iterer, recurrence);
-window.onload = () => {
-  const arg = window.location.search.match(/[0-9]+/u);
-
-  if (arg)
-    noIterationMax = arg[0];
-
-  iterer();
-};
-
 function dragstart(evt) {
-  if (trace) console.log('dragstart', evt); //DCM trace
+  if (trace) console.log('dragstart', evt); //TODO trace
 
   dragInfo = {
     el: evt.target,
@@ -452,7 +420,7 @@ function dragstart(evt) {
     style: { // Clone array
       ...evt.target.style,
     },
-    bounds: pxFromEl(evt.target),
+    bounds: pixFromEl(evt.target),
     data: evt.target.data,
     offset: { // Offset of the mouse over the symbol
       x: evt.offsetX,
@@ -477,7 +445,7 @@ document.ondragover = evt => {
 }
 
 document.ondrop = evt => {
-  if (trace) console.log('ondrop', evt); //DCM trace
+  if (trace) console.log('ondrop', evt); //TODO trace
 
   muter(
     dragInfo.tagName === 'LI' ? null : dragInfo.el,
@@ -493,7 +461,7 @@ document.ondrop = evt => {
 function dragend(evt) {
   //TODO en dehors fenêtre : supprimer
   if (dragInfo) {
-    if (trace) console.log('dragend', evt); //DCM trace
+    if (trace) console.log('dragend', evt); //TODO trace
 
     // Start from the end drag cursor position
     dragInfo.el.style.left = evt.x + 'px';
@@ -506,8 +474,10 @@ function dragend(evt) {
 
 function loadWorld(datas) {
   // Vide le monde
-  for (let divEls = document.getElementsByTagName('div'); divEls.length; divEls = document.getElementsByTagName('div'))
-    divEls[0].remove();
+  //TODO REDO Vide le monde !!!
+  /*  for (let divEls = document.getElementsByTagName('div');
+    divEls.length; divEls = document.getElementsByTagName('div'))
+      divEls[0].remove();*/
 
   // Ajoute les objets du json
   datas.forEach(d => {
@@ -516,7 +486,7 @@ function loadWorld(datas) {
       top: d[2]
     });
 
-    if (d.data)
+    if (el && d.data)
       el.data = d[4];
   });
 
@@ -556,6 +526,8 @@ const save = async () => {
   await writer.close();
 }
 
+self.setInterval(iterer, recurrence);
+
 // SCÉNARII
 /*
 const consommer = [wwwWrapprocher, wwwWabsorber];
@@ -568,6 +540,7 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 */
 
 o = {
+  ////////////TODO TEST
   // Cycle de l'eau
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
@@ -636,7 +609,6 @@ o = {
       cat: 'Mais',
     },
   ],
-  ////////////TODO TEST
   '▒': [{
     cat: 'Terre',
   }],
@@ -646,11 +618,11 @@ o = {
   // Cycle des humains
   // 🧒👶👷
   '🧔': [
-    [rapprocher, '👩'],
+    //[rapprocher, '👩'],
     //[wwwWabsorber, '👩', '💏'],
     //[wwwWrencontrer, '👩', '🏠'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       cat: 'Homme',
       eau: 50,
@@ -749,7 +721,7 @@ loadWorld([
   //['🌽', 120, 100],
   //['❀', 120, 100],
   ['🧔', 120, 200],
-  ['👩', 220, 200],
+  //['👩', 220, 200],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
@@ -759,23 +731,18 @@ loadWorld([
   });
 });*/
 
-rebuildCases();
-
 // Debug
 if (window.location.search) {
   helpEl.style.display = 'none';
-  noIterationMax = 0;
+  statsEl.style.display = 'block';
+  noIterationMax = debugInit ? parseInt(debugInit[0], 10) : 0; // Debug avec quelques iterations au début
 
   document.onkeydown = evt => {
-    if (evt.keyCode === 109)
-      noIterationMax = 0;
-    else if (evt.keyCode === 107)
-      noIterationMax = 1000000;
-    else if (evt.keyCode === 32)
-      noIterationMax = noIteration < noIterationMax ? 0 : 1000000;
-    else if (96 < evt.keyCode && evt.keyCode < 106)
-      noIterationMax = noIteration + evt.keyCode % 48;
-    else
-      noIterationMax = 0;
+    if (96 < evt.keyCode && evt.keyCode < 106) // Keypad numérique 1 à 9
+      noIterationMax = noIteration + evt.keyCode % 48; // Relance n itérations
+    else if (evt.keyCode === 32) // Espace
+      noIterationMax = noIteration < noIterationMax ? 0 : 1000000; // Toggle 
+    else // Autre touche
+      noIterationMax = 0; // Arrêt
   };
 }
