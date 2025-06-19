@@ -139,7 +139,7 @@ function rebuildCases() {
 }
 
 function casesProches(zone, el, distance, limite, catSym) {
-  if (trace) console.log('casesProches', el.innerHTML, [arguments]); //TODO trace
+  if (trace) console.log('casesProches', el.innerHTML, [arguments]); //TEST trace
 
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
@@ -193,7 +193,7 @@ function muter(elA, ncsA, pos, pos2) {
   // el, '💧' : transforme en cette catégorie
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
-  let el = elA;
+  let el = elA || {};
 
   const newCatSyms = (typeof ncsA === 'string' ? ncsA : el.innerHTML)
     .split(' '), // Séparés par un espace
@@ -208,9 +208,9 @@ function muter(elA, ncsA, pos, pos2) {
     },
     newXY = xyFromPix(newPix);
 
-  if (trace) console.log('muter', catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TODO trace
+  if (trace) console.log('muter', el.innerHTML, catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TEST trace
 
-  if (typeof el === 'object') { // On créee une nouvelle figurine
+  if (typeof el.innerHTML === 'undefined') { // On créee une nouvelle figurine
     el = document.createElement('div');
 
     // Données initiales du modèle
@@ -249,11 +249,14 @@ function muter(elA, ncsA, pos, pos2) {
     }
   }
 
-  // Re-affiche la figurine dans la fenêtre
-  document.body.appendChild(el);
-  caseEl(cases, newXY, catSym, el);
+  if (catSym !== el.innerHTML) { // Si on change de symbole
+    // Met à jour la catégorie dans l'el
+    el.innerHTML = catSym;
+    el.classList = o[catSym][o[catSym].length - 1].cat;
+    el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
+  }
 
-  if (!newCatSyms.length) {
+  if (!newCatSyms.length) { // Pour ne pas faire bouger la gigue sur une production
     if (el.parentNode)
       // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
@@ -267,12 +270,9 @@ function muter(elA, ncsA, pos, pos2) {
     }
   }
 
-  if (catSym !== el.innerHTML) { // Si on change de symbole
-    // Met à jour la catégorie dans l'el
-    el.innerHTML = catSym;
-    el.classList = o[catSym][o[catSym].length - 1].cat;
-    el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
-  }
+  // Re-affiche la figurine dans la fenêtre
+  document.body.appendChild(el);
+  caseEl(cases, newXY, catSym, el);
 
   // On crée les nouvelles figurines
   if (dureeIteration < dureeMaxIteration) // S'il y a de la ressource
@@ -280,11 +280,11 @@ function muter(elA, ncsA, pos, pos2) {
       muter(null, cs, el.xy);
     });
 
-  return true;
+  return el;
 }
 
 function errer(el) {
-  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
+  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
   const pp = casesProches(cases, el, 1, 1);
 
@@ -294,7 +294,7 @@ function errer(el) {
 
 /* eslint-disable-next-line no-unused-vars */
 function rapprocher(el, symboleType) { // Jusqu'à la même case
-  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
+  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
   const pp = casesProches(cases, el, rayonRechercheMax, 1, symboleType, 1);
 
@@ -318,7 +318,7 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
 
 /* eslint-disable-next-line no-unused-vars */
 function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
-  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, [arguments]); //TODO trace
+  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
   /*
   const trouveEl = caseEl(cases,el.xy, symboleType);
@@ -340,7 +340,7 @@ function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
 
 // ACTIVATION (functions)
 function iterer() {
-  if (noIteration < noIterationMax /*//TODO || !window.location.search*/ ) {
+  if (noIteration < noIterationMax) {
     const debut = Date.now(),
       gameEls = [];
 
@@ -411,7 +411,7 @@ function iterer() {
 
 // RÉPONSES SOURIS / CLAVIER
 function dragstart(evt) {
-  if (trace) console.log('dragstart', evt); //TODO trace
+  if (trace) console.log('dragstart', evt); //TEST trace
 
   dragInfo = {
     el: evt.target,
@@ -445,7 +445,7 @@ document.ondragover = evt => {
 }
 
 document.ondrop = evt => {
-  if (trace) console.log('ondrop', evt); //TODO trace
+  if (trace) console.log('ondrop', evt); //TEST trace
 
   muter(
     dragInfo.tagName === 'LI' ? null : dragInfo.el,
@@ -459,13 +459,11 @@ document.ondrop = evt => {
 };
 
 function dragend(evt) {
-  //TODO en dehors fenêtre : supprimer
-  if (dragInfo) {
-    if (trace) console.log('dragend', evt); //TODO trace
-
+  if (dragInfo && // Sauf si ça déjà terminé par ondrop
+    document.elementFromPoint(evt.x, evt.y)) { // Sauf si c'est en dehors de la fenêtre
     // Start from the end drag cursor position
-    dragInfo.el.style.left = evt.x + 'px';
-    dragInfo.el.style.top = evt.y + 'px';
+    dragInfo.el.style.left = (evt.x - dragInfo.offset.x) + 'px';
+    dragInfo.el.style.top = (evt.y - dragInfo.offset.y) + 'px';
     document.body.appendChild(dragInfo.el);
     // Then, move slowly to the initial position
     muter(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
@@ -474,16 +472,14 @@ function dragend(evt) {
 
 function loadWorld(datas) {
   // Vide le monde
-  //TODO REDO Vide le monde !!!
-  /*  for (let divEls = document.getElementsByTagName('div');
-    divEls.length; divEls = document.getElementsByTagName('div'))
-      divEls[0].remove();*/
+  while (divEls.length)
+    divEls[0].remove();
 
   // Ajoute les objets du json
   datas.forEach(d => {
     const el = muter(null, d[0], {
       left: d[1],
-      top: d[2]
+      top: d[2],
     });
 
     if (el && d.data)
@@ -546,7 +542,7 @@ o = {
     [ // Action élémentaire du scénario
       [muter, // Verbe à exécuter
         '⛲ 💧', // Symboles pour remplacer et créer
-        //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle la règle
+        //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
         //() => Math.random() < 0.2 // Test d'applicabilité de la règle
       ],
       { // Init des data quand on crée
