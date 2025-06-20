@@ -196,6 +196,7 @@ function casesProches(xyCentre, distance, limite, catSym, tableau) {
 
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position
+//TODO autoriser/interdire le déplacement là où il y a certaines catégories
 function transformer(elA, ncsA, pos, pos2) {
   // null, '💧', (pix || xy || x,y) : crée la figurine
   // el tout seul : supprime la figurine
@@ -276,7 +277,7 @@ function transformer(elA, ncsA, pos, pos2) {
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
         el.style.left = newPix.left + 'px';
         el.style.top = newPix.top + 'px';
-      }, 50); //TODO pourquoi faut-il attendre un peu ???
+      }, 50); //TODO BUG pourquoi faut-il attendre un peu ???
     else {
       // On y va direct
       el.style.left = newPix.left + 'px';
@@ -308,7 +309,6 @@ function errer(el) {
 
 function rapprocher(el, symboleType) { // Jusqu'à la même case
   if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
-
   const pp = casesProches(el.xy, 10, 1, symboleType);
 
   if (pp.length) {
@@ -326,25 +326,25 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
   }
 }
 
-/* eslint-disable-next-line no-unused-vars */
 function unir(el, symboleType, symboleTypeFinal) { // Dans la même case
+  // 💧 : absorbe 💧
+  // 💧, 🌽 : absorbe 💧 et se transforme en 🌽
   if (trace) console.log('unir', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
-  /*
-  const trouveEl = caseEl(cases,el.xy, symboleType);
+  const trouveEl = caseEl(cases, el.xy, symboleType);
 
   if (trouveEl) {
     for (const property in trouveEl.data) {
+      // Récupérer les données de l'autre
       el.data[property] = ~~el.data[property] + trouveEl.data[property]
       el.data.age = 0;
 
-      deplacer(trouveEl); //supprimer
+      transformer(trouveEl); // Le supprimer
 
       if (symboleTypeFinal)
-        return muer(el, symboleTypeFinal);
+        return transformer(el, symboleTypeFinal);
     }
   }
-  */
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -400,7 +400,6 @@ function iterer() {
 
             });
 
-        //TODO DELETE ??? el.noIteration = noIteration; // Marque déjà traité
         el.data.age = ~~el.data.age + 1;
         if (el.data.eau > 0)
           el.data.eau--;
@@ -414,7 +413,7 @@ function iterer() {
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
-      divEls.length + ' fig &nbsp; a=' +
+      divEls.length + ' fig &nbsp; ' +
       dureeIteration + ' ms &nbsp; ' +
       Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
   }
@@ -570,12 +569,55 @@ o = {
     },
   ],
   '💦': [
+    [rapprocher, '🌽'],
+    [rapprocher, '🌾'],
+    [rapprocher, '🌱'],
     [transformer, d => d.eau <= 0],
     [errer],
     {
       cat: 'Eau',
     },
   ],
+  // Cycle des humains 🧒👶
+  '🧔': [
+    [rapprocher, '👩'],
+    [unir, '👩', '🧔👩'],
+    //...vivant,
+    [errer],
+    {
+      cat: 'Homme',
+      eau: 50,
+      energie: 50,
+    },
+  ],
+  '👩': [
+    [rapprocher, '🧔'],
+    [unir, '🧔', '🧔👩'],
+    //...vivant,
+    [errer],
+    {
+      cat: 'Femme',
+      eau: 50,
+      energie: 50,
+    },
+  ],
+  '🧔👩': [
+    [transformer, '👫', d => d.age > 10],
+    //...vivant,
+    [errer],
+    {
+      cat: 'Amoureux',
+    },
+  ],
+  '👫': [
+    //...vivant,
+    //[transformer, '👪', 5],
+    [errer],
+    {
+      cat: 'Couple',
+    },
+  ],
+  //TODO
   ////////////TODO TEST
   // Cycle des plantes
   // Fruits🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
@@ -590,8 +632,8 @@ o = {
     },
   ],
   '🌱': [
-    //[wwwWabsorber, '💧'],
-    //[wwwWabsorber, '💦'],
+    [unir, '💧'],
+    [unir, '💦'],
     //[transformer, '▒', d => d.eau <= 0],
     [transformer, '🌾', d => d.age > 10],
     {
@@ -599,8 +641,8 @@ o = {
     },
   ],
   '🌾': [
-    //[wwwWabsorber, '💧'],
-    //[wwwWabsorber, '💦'],
+    [unir, '💧'],
+    [unir, '💦'],
     //[transformer, '▒', d => d.eau <= 0],
     [transformer, '🌽', d => d.age > 10],
     {
@@ -608,8 +650,8 @@ o = {
     },
   ],
   '🌽': [
-    //[wwwWabsorber, '💧'],
-    //[wwwWabsorber, '💦'],
+    [unir, '💧'],
+    [unir, '💦'],
     //[transformer, '▒', d => d.eau <= 0],
     //[transformer, '▓', d => d.eau > 100],
     [transformer, '🌽 ❀', () => Math.random() < 0.2],
@@ -624,56 +666,6 @@ o = {
   '▓': [{
     cat: 'Herbe',
   }],
-  // Cycle des humains 🧒👶
-  '🧔': [
-    [rapprocher, '👩'],
-    //[wwwWabsorber, '👩', '💏'],
-    //[wwwWrencontrer, '👩', '🏠'],
-    //...vivant,
-    [errer],
-    {
-      cat: 'Homme',
-      eau: 50,
-      energie: 50,
-    },
-  ],
-  '👩': [
-    [rapprocher, '🧔'],
-    //[wwwWrencontrer, '🧔', '🏠'],
-    //[wwwWabsorber, '🧔', '💏'],
-    //[wwwWabsorber, '🧔', '💏'],
-    //...vivant,
-    [errer],
-    {
-      cat: 'Femme',
-      eau: 50,
-      energie: 50,
-    },
-  ],
-  '🧔👩': [
-    //...vivant,
-    //[transformer, '👫', 5],
-    //[errer],
-    {
-      cat: 'Dating',
-    },
-  ],
-  '💏': [
-    //...vivant,
-    //[transformer, '👫', 5],
-    [errer],
-    {
-      cat: 'Amoureux',
-    },
-  ],
-  '👫': [
-    //...vivant,
-    //[transformer, '👪', 5],
-    [errer],
-    {
-      cat: 'Couple',
-    },
-  ],
   '👪': [
     //...vivant,
     //[transformer, '👫', 15],

@@ -17,11 +17,6 @@ div {
   cursor: grab;
 }
 
-.Dating {
-  min-width: 42px;
-  letter-spacing: -8px;
-}
-
 ul {
   margin: 5px 0;
   padding-left: 10px;
@@ -97,4 +92,10 @@ p:has(#stats) {
 
 .Terre {
   color: #5b3c11;
+}
+
+/* Symboles doubles */
+.Amoureux {
+  min-width: 42px;
+  letter-spacing: -8px;
 }
