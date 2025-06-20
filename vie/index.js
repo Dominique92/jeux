@@ -187,7 +187,7 @@ function casesProches(zone, el, distance, limite, catSym) {
 
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position
-function muter(elA, ncsA, pos, pos2) {
+function transformer(elA, ncsA, pos, pos2) {
   // null, '💧', (pix || xy || x,y) : crée la figurine
   // el tout seul : supprime la figurine
   // el, '<même sym>', (pix || xy || x,y) : déplace la figurine
@@ -209,12 +209,13 @@ function muter(elA, ncsA, pos, pos2) {
     },
     newXY = xyFromPix(newPix);
 
-  if (trace) console.log('muter', el.innerHTML, catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TEST trace
+  if (trace) console.log('transformer', el.innerHTML, catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TEST trace
 
   if (typeof el.innerHTML === 'undefined') { // On créee une nouvelle figurine
     el = document.createElement('div');
 
     // Données initiales du modèle
+    //TODO gérer erreur symbole inexistant
     el.noIteration = noIteration;
     el.data = {
       ...o[catSym][o[catSym].length - 1],
@@ -227,7 +228,7 @@ function muter(elA, ncsA, pos, pos2) {
     el.ondragstart = dragstart;
     /* eslint-disable-next-line no-use-before-define */
     el.ondragend = dragend;
-    el.ondblclick = evt => muter(evt.target); // supprimer
+    el.ondblclick = evt => transformer(evt.target); // supprimer
 
     // Hold transition moves when hover
     el.onmouseover = () => {
@@ -278,7 +279,7 @@ function muter(elA, ncsA, pos, pos2) {
   // On crée les nouvelles figurines
   if (dureeIteration < dureeMaxIteration) // S'il y a de la ressource
     newCatSyms.forEach(cs => {
-      muter(null, cs, el.xy);
+      transformer(null, cs, el.xy);
     });
 
   return el;
@@ -290,7 +291,7 @@ function errer(el) {
   const pp = casesProches(cases, el, 1, 1);
 
   if (pp.length)
-    return muter(el, el.innerHTML, pp[0][4]); // errer
+    return transformer(el, el.innerHTML, pp[0][4]); // errer
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -310,7 +311,7 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
           pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
     */
 
-    return muter(el, // rapprocher
+    return transformer(el, // rapprocher
       el.innerHTML,
       nouvelX, nouvelY,
     ); // Accepte les cases contenant ce symbole
@@ -318,8 +319,8 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
-  if (trace) console.log('absorber', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
+function unir(el, symboleType, symboleTypeFinal) { // Dans la même case
+  if (trace) console.log('unir', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
   /*
   const trouveEl = caseEl(cases,el.xy, symboleType);
@@ -336,6 +337,10 @@ function absorber(el, symboleType, symboleTypeFinal) { // Dans la même case
     }
   }
   */
+}
+
+/* eslint-disable-next-line no-unused-vars */
+function autogenerer(el, symboleType, symboleTypeFinal) { // Dans la même case
 }
 
 
@@ -448,7 +453,7 @@ document.ondragover = evt => {
 document.ondrop = evt => {
   if (trace) console.log('ondrop', evt); //TEST trace
 
-  muter(
+  transformer(
     dragInfo.tagName === 'LI' ? null : dragInfo.el,
     dragInfo.el.innerHTML, {
       left: evt.x - dragInfo.offset.x,
@@ -467,7 +472,7 @@ function dragend(evt) {
     dragInfo.el.style.top = (evt.y - dragInfo.offset.y) + 'px';
     document.body.appendChild(dragInfo.el);
     // Then, move slowly to the initial position
-    muter(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
+    transformer(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
   }
 }
 
@@ -478,7 +483,7 @@ function loadWorld(datas) {
 
   // Ajoute les objets du json
   datas.forEach(d => {
-    const el = muter(null, d[0], {
+    const el = transformer(null, d[0], {
       left: d[1],
       top: d[2],
     });
@@ -531,16 +536,16 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
   vivant = [
     [consommer, '💧', 'eau'],
     [consommer, '🌽', 'energie'],
-    [consommer, '🌿', 'energie'],
+    [consommer, '🌾', 'energie'],
     [consommer, '🌱', 'energie'],
   ];
 */
 
 o = {
-  // Cycle de l'eau
+  // Cycle de l'eau 🚣🚢🌊🐟🌧
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
-      [muter, // Verbe à exécuter
+      [transformer, // Verbe à exécuter
         '⛲ 💧', // Symboles pour remplacer et créer
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
         //() => Math.random() < 0.2 // Test d'applicabilité de la règle
@@ -550,9 +555,9 @@ o = {
       },
     ],
   '💧': [
-    [muter, '💦', d => d.eau < 10],
+    [transformer, '💦', d => d.eau < 10],
     //[wwwWrapprocher, '🌱', 3],
-    //[wwwWrapprocher, '🌿', 3],
+    //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
     [errer], {
       cat: 'Eau',
@@ -560,7 +565,7 @@ o = {
     },
   ],
   '💦': [
-    [muter, d => d.eau <= 0],
+    [transformer, d => d.eau <= 0],
     [errer],
     {
       cat: 'Eau',
@@ -568,10 +573,11 @@ o = {
   ],
   ////////////TODO TEST
   // Cycle des plantes
-  // 🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
-  // 🌳🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌾
+  // Fruits🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
+  // 🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌻
+  // Arbres 🌿🌳🍂🔥
   '❀': [
-    [muter, '🌱', d => d.age > 10],
+    [transformer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
     [errer], {
@@ -581,17 +587,17 @@ o = {
   '🌱': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[muter, '▒', d => d.eau <= 0],
-    [muter, '🌿', d => d.age > 10],
+    //[transformer, '▒', d => d.eau <= 0],
+    [transformer, '🌾', d => d.age > 10],
     {
       cat: 'Pousse',
     },
   ],
-  '🌿': [
+  '🌾': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[muter, '▒', d => d.eau <= 0],
-    [muter, '🌽', d => d.age > 10],
+    //[transformer, '▒', d => d.eau <= 0],
+    [transformer, '🌽', d => d.age > 10],
     {
       cat: 'Plante',
     },
@@ -599,9 +605,9 @@ o = {
   '🌽': [
     //[wwwWabsorber, '💧'],
     //[wwwWabsorber, '💦'],
-    //[muter, '▒', d => d.eau <= 0],
-    //[muter, '▓', d => d.eau > 100],
-    [muter, '🌽 ❀', () => Math.random() < 0.2],
+    //[transformer, '▒', d => d.eau <= 0],
+    //[transformer, '▓', d => d.eau > 100],
+    [transformer, '🌽 ❀', () => Math.random() < 0.2],
     {
       cat: 'Mais',
     },
@@ -612,8 +618,7 @@ o = {
   '▓': [{
     cat: 'Herbe',
   }],
-  // Cycle des humains
-  // 🧒👶👷
+  // Cycle des humains 🧒👶
   '🧔': [
     //[rapprocher, '👩'],
     //[wwwWabsorber, '👩', '💏'],
@@ -641,7 +646,7 @@ o = {
   ],
   '🧔👩': [
     //...vivant,
-    //[muter, '👫', 5],
+    //[transformer, '👫', 5],
     //[errer],
     {
       cat: 'Dating',
@@ -649,7 +654,7 @@ o = {
   ],
   '💏': [
     //...vivant,
-    //[muter, '👫', 5],
+    //[transformer, '👫', 5],
     [errer],
     {
       cat: 'Amoureux',
@@ -657,7 +662,7 @@ o = {
   ],
   '👫': [
     //...vivant,
-    //[muter, '👪', 5],
+    //[transformer, '👪', 5],
     [errer],
     {
       cat: 'Couple',
@@ -665,7 +670,7 @@ o = {
   ],
   '👪': [
     //...vivant,
-    //[muter, '👫', 15],
+    //[transformer, '👫', 15],
     //TODO wwwWproduire enfant
     [errer],
     {
@@ -674,20 +679,22 @@ o = {
   ],
   '🧍': [
     //...vivant,
-    //TODO muter 50% 🧔 50% 👩
+    //TODO transformer 50% 🧔 50% 👩
     [errer],
     {
       cat: 'Enfant',
     },
   ],
   '💀': [
-    //[muter, '▒', 15],
+    //[transformer, '▒', 15],
     {
       cat: 'Mort',
     },
   ],
-  // Cycle des travaux
-  // 🚧🔥
+  // Cycle des animaux
+  // 🐇🥚🐣🐤🐥🐔🐓🦆🐀🐁🦊🐑🐻🦋🐞🦉🦴
+
+  // Cycle des travaux 🚧👷
   '🧱': [{
     cat: 'Briques',
   }],
@@ -697,8 +704,6 @@ o = {
       cat: 'Maison',
     },
   ],
-  // Cycle des animaux
-  // 🐇🐀🦊🦴
 };
 
 // INITIALISATIONS
@@ -722,7 +727,7 @@ loadWorld([
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
-  muter(null, catSym, {
+  transformer(null, catSym, {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });
