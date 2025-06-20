@@ -12,8 +12,8 @@ const trace = window.location.search.match(/trace/u),
     [1, 1, -1, 0],
     [-1, -1, 1, 0],
   ],
-  boxSize = 16,
-  rayonRechercheMax = 3,
+  tailleFigure = 16,
+  rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
   gigue = () => Math.random() * 4 - 2,
   recurrence = 1000, // ms
@@ -51,15 +51,15 @@ let o = {},
 // ROUTINES (functions)
 function xyFromPix(pix) {
   return {
-    x: Math.round((pix.left + pix.top / 1.732) / boxSize),
-    y: Math.round(pix.top / 0.866 / boxSize),
+    x: Math.round((pix.left + pix.top / 1.732) / tailleFigure),
+    y: Math.round(pix.top / 0.866 / tailleFigure),
   };
 }
 
 function pixFromXY(xy) {
   return {
-    left: (xy.x - xy.y / 2) * boxSize + gigue(),
-    top: xy.y * 0.866 * boxSize + gigue(),
+    left: (xy.x - xy.y / 2) * tailleFigure + gigue(),
+    top: xy.y * 0.866 * tailleFigure + gigue(),
   };
 }
 
@@ -126,7 +126,10 @@ function rebuildCases() {
       el.title =
         o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
         JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
-        (window.location.search ? ' ' + el.xy.x + ',' + el.xy.y : '');
+        (window.location.search ?
+          ' ' + el.xy.x + ',' + el.xy.y +
+          ' ' + xyzFromXY(el.xy).x + ',' + xyzFromXY(el.xy).y :
+          '');
 
       // Data to be saved in a file
       dataSav.push([
@@ -138,13 +141,14 @@ function rebuildCases() {
     }
 }
 
-function casesProches(zone, el, distance, limite, catSym) {
-  if (trace) console.log('casesProches', el.innerHTML, [arguments]); //TEST trace
+function casesProches(xyCentre, distance, limite, catSym, tableau) {
+  if (trace) console.log('casesProches', ...arguments); //TEST trace
 
   // el : Autour de el
   // distance : Rayon (nb cases) autour de el
   // limite : nombre de cases ramenées
   // catSym : catégorie de figurines 🌿 recherchés (string unicode)
+  // catSym = undefined : recherche de case vide
 
   const listeProches = [];
 
@@ -152,31 +156,36 @@ function casesProches(zone, el, distance, limite, catSym) {
   for (let i = Math.random() * deltasProches.length; i > 0; i--)
     deltasProches.push(deltasProches.shift());
 
-  //TODO ??? if (el.xy)
   // Recherche dans un rayon donné
-  for (let d = 1; d < distance + 1 && listeProches.length < limite; d++)
+  for (let d = 1; d <= Math.min(distance, rayonRechercheMax); d++)
     // Pour chacune des 6 directions
     deltasProches.forEach(delta => {
       // On parcours le côté
       for (let i = 0; i < d && listeProches.length < limite; i++) {
         const XYrech = {
-            x: el.xy.x + d * delta[0] + i * delta[2],
-            y: el.xy.y + d * delta[1] + i * delta[3],
+            x: xyCentre.x + d * delta[0] + i * delta[2],
+            y: xyCentre.y + d * delta[1] + i * delta[3],
           },
-          nbFigCaseRech = Object.keys(caseEl(zone, XYrech)).length;
+          nbFigCaseRech = Object.keys(caseEl(tableau || cases, XYrech)).length;
 
         if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
           (!catSym && !nbFigCaseRech)) // On cherche une case vide
           listeProches.push([
             ...delta,
             XYrech,
-            caseEl(cases, XYrech, catSym),
+            caseEl(tableau || cases, XYrech, catSym),
           ]);
       };
     });
 
-  if (!listeProches && distance > rayonRechercheMax)
-    return casesProches(zones, el, distance - rayonRechercheMax, limite, catSym);
+  if (typeof tableau === 'undefined' &&
+    listeProches.length < limite)
+    return listeProches.concat(casesProches(
+      xyzFromXY(xyCentre),
+      distance / tailleZone,
+      limite - listeProches.length,
+      catSym,
+      zones));
 
   return listeProches;
 }
@@ -287,17 +296,16 @@ function transformer(elA, ncsA, pos, pos2) {
 function errer(el) {
   if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
-  const pp = casesProches(cases, el, 1, 1);
+  const pp = casesProches(el.xy, 1, 1);
 
   if (pp.length)
     return transformer(el, el.innerHTML, pp[0][4]); // errer
 }
 
-/* eslint-disable-next-line no-unused-vars */
 function rapprocher(el, symboleType) { // Jusqu'à la même case
   if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
 
-  const pp = casesProches(cases, el, rayonRechercheMax, 1, symboleType, 1);
+  const pp = casesProches(el.xy, 10, 1, symboleType);
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
@@ -342,12 +350,13 @@ function unir(el, symboleType, symboleTypeFinal) { // Dans la même case
 function autogenerer(el, symboleType, symboleTypeFinal) { // Dans la même case
 }
 
-
 // ACTIVATION (functions)
 function iterer() {
   if (noIteration < noIterationMax) {
     const debut = Date.now(),
       gameEls = [];
+
+    noIteration++;
 
     for (const el of divEls)
       gameEls.push(el);
@@ -390,7 +399,7 @@ function iterer() {
 
             });
 
-        el.noIteration = noIteration; // Marque déjà traité
+        //TODO DELETE ??? el.noIteration = noIteration; // Marque déjà traité
         el.data.age = ~~el.data.age + 1;
         if (el.data.eau > 0)
           el.data.eau--;
@@ -404,11 +413,9 @@ function iterer() {
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
-      divEls.length + 'obj &nbsp; a=' +
-      dureeIteration + 'ms &nbsp; ' +
+      divEls.length + ' fig &nbsp; a=' +
+      dureeIteration + ' ms &nbsp; ' +
       Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
-
-    noIteration++;
   }
 }
 
@@ -618,7 +625,7 @@ o = {
   }],
   // Cycle des humains 🧒👶
   '🧔': [
-    //[rapprocher, '👩'],
+    [rapprocher, '👩'],
     //[wwwWabsorber, '👩', '💏'],
     //[wwwWrencontrer, '👩', '🏠'],
     //...vivant,
@@ -630,12 +637,12 @@ o = {
     },
   ],
   '👩': [
-    //[rapprocher, '🧔'],
+    [rapprocher, '🧔'],
     //[wwwWrencontrer, '🧔', '🏠'],
     //[wwwWabsorber, '🧔', '💏'],
     //[wwwWabsorber, '🧔', '💏'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       cat: 'Femme',
       eau: 50,
@@ -720,8 +727,8 @@ loadWorld([
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
-  ['🧔', 120, 200],
-  //['👩', 220, 200],
+  ['👩', 120, 200],
+  ['🧔', 200, 300],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
