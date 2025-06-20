@@ -23,7 +23,6 @@ let o = {},
   dragInfo = null,
   noIteration = 0,
   noIterationMax = 1000000, // Starts immediately
-  dureeActions = 0,
   dureeIteration = 0,
   cases = [],
   zones = [],
@@ -400,15 +399,13 @@ function iterer() {
       }
     });
 
-    dureeActions = Date.now() - debut;
     rebuildCases();
     dureeIteration = Date.now() - debut;
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
       divEls.length + 'obj &nbsp; a=' +
-      dureeActions + 'ms &nbsp; r=' +
-      (dureeIteration - dureeActions) + 'ms &nbsp; ' +
+      dureeIteration + 'ms &nbsp; ' +
       Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
 
     noIteration++;
@@ -612,6 +609,7 @@ o = {
       cat: 'Mais',
     },
   ],
+  // Cycle des surfaces
   '▒': [{
     cat: 'Terre',
   }],
