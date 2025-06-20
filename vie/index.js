@@ -174,6 +174,7 @@ function casesProches(xyCentre, distance, limite, catSym, tableau) {
             ...delta,
             XYrech,
             caseEl(tableau || cases, XYrech, catSym),
+            typeof tableau === 'undefined' ? d : d * tailleZone, // Distance du centre
           ]);
       };
     });
@@ -207,6 +208,7 @@ function transformer(elA, ncsA, pos, pos2) {
   const newCatSyms = (typeof ncsA === 'string' ? ncsA : el.innerHTML)
     .split(' '), // Séparés par un espace
     catSym = newCatSyms.shift(),
+    scenario = o[catSym],
     newPix = {
       ...pixFromXY({
         x: pos, // caseX, caseY
@@ -219,14 +221,16 @@ function transformer(elA, ncsA, pos, pos2) {
 
   if (trace) console.log('transformer', el.innerHTML, catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TEST trace
 
+  if (typeof scenario === 'undefined')
+    return console.log('Symbole inconnu : ', catSym);
+
   if (typeof el.innerHTML === 'undefined') { // On créee une nouvelle figurine
     el = document.createElement('div');
 
     // Données initiales du modèle
-    //TODO gérer erreur symbole inexistant
     el.noIteration = noIteration;
     el.data = {
-      ...o[catSym][o[catSym].length - 1],
+      ...scenario[scenario.length - 1],
     };
     delete el.data.cat;
 
@@ -262,7 +266,7 @@ function transformer(elA, ncsA, pos, pos2) {
   if (catSym !== el.innerHTML) { // Si on change de symbole
     // Met à jour la catégorie dans l'el
     el.innerHTML = catSym;
-    el.classList = o[catSym][o[catSym].length - 1].cat;
+    el.classList = scenario[scenario.length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 
@@ -311,12 +315,9 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
-    /*//TODO Seulement à 1 case de distance
-        if (typeof pp[0][5] === 'object' && // On a retourné un el
-          ~~pp[0][6] === 1 // Seulement à 1 case de distance
-        )
-          pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
-    */
+    if (typeof pp[0][5] === 'object' && // On a retourné un el
+      ~~pp[0][6] === 1) // Seulement à 1 case de distance
+      pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
     return transformer(el, // rapprocher
       el.innerHTML,
