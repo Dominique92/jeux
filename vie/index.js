@@ -15,7 +15,6 @@ const trace = window.location.search.match(/trace/u),
   tailleFigure = 16,
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
-  gigue = () => Math.random() * 4 - 2,
   recurrence = 1000, // ms
   dureeMaxIteration = 100; // ms
 
@@ -30,25 +29,29 @@ let o = {},
 
 /*********************
  * Terrain : toute la fenêtre <body>
- * Figurine / fig : <div>unicode</div> rattaché au <body> déplaçable
+ * Figurine / fig = <div>unicode</div> rattaché au <body> déplaçable
  * Catéorie / cat : type de figurine
- * catSym : caractère(s) unicode représentant une figurine sur l'écran
- * catName : string le nom de la categorie
- * data : tableau de valeurs associé à une figurine
- * Element / el : <div> tag affichant la figurine
+ * catSym = caractère(s) unicode représentant une figurine sur l'écran
+ * catName = string : le nom de la categorie
+ * data = tableau de valeurs associé à une figurine
+ * Element / el = <div> tag affichant la figurine
  *
  * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
  * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
- * xy : position de la figurine dans le tableau des cases (x, y)
- * pix : position de la figurine en pixels (left, top)
+ * xy = {x: 12, y: 34} : position de la figurine dans le tableau des cases
+ * pix = {left: px, top: px} : position de la figurine en pixels
  *
  * Routine : fonction qui manipule les données du programme
  * Verbe : fonction à exécuter qui réalise une action sur une figurine
- * Scenario : liste d'actions ou de scenarios à exécuter dans l'ordre,
+ * Scenario : liste d'actions ou de scenarii à exécuter dans l'ordre,
      la première ayant abouti interrompt la liste
  */
 
 // ROUTINES (functions)
+function gigue() { // -2 .. +2
+  return Math.random() * 4 - 2;
+}
+
 function xyFromPix(pix) {
   return {
     x: Math.round((pix.left + pix.top / 1.732) / tailleFigure),
@@ -77,13 +80,15 @@ function xyzFromXY(xy) {
   };
 }
 
-// Get / set case el
+// Get / set cases[] & zones[] el
 function caseEl(tableau, xy, catSym, el) {
-  // tableau : cases[] / zones[]
-  // 7,7 : returns the case contents []
-  // 7,7,🌿 : return the html element
-  // 7,7,🌿,el : fill the case
+  // tableau = cases[] / zones[]
+  // 7, 7 : returns the case contents []
+  // 7, 7, 🌿 : return the html element of thois category
+  // 7, 7, 🌿, el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
+
+  //if (trace) console.log('caseEl', ...arguments);
 
   if (typeof tableau[xy.x] === 'undefined')
     tableau[xy.x] = [];
@@ -91,7 +96,7 @@ function caseEl(tableau, xy, catSym, el) {
     tableau[xy.x][xy.y] = [];
 
   // Array des el dans une case
-  if (typeof catSym !== 'string')
+  if (typeof catSym !== 'string' || !catSym)
     return tableau[xy.x][xy.y];
 
   // Met l'el dans la case et la tableau
@@ -141,16 +146,18 @@ function rebuildCases() {
     }
 }
 
-function casesProches(xyCentre, distance, limite, catSym, tableau) {
-  if (trace) console.log('casesProches', ...arguments); //TEST trace
-
+function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // el : Autour de el
-  // distance : Rayon (nb cases) autour de el
-  // limite : nombre de cases ramenées
-  // catSym : catégorie de figurines 🌿 recherchés (string unicode)
-  // catSym = undefined : recherche de case vide
+  // distance = Rayon (nb cases) autour de el
+  // limite = nombre de cases ramenées
+  // catSyms = '🌱 🌾' : catégorie(s) de figurines recherchés (strings unicode separated by spaces)
+  // catSyms = ' ▒ ▓' : recherche de case vide ou contenant un de ces symboles
+  // tableau = undefined | cases | zones
 
-  const listeProches = [];
+  if (trace) console.log('casesProches', ...arguments);
+
+  const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
+    listeProches = [];
 
   // Randomize search order
   for (let i = Math.random() * deltasProches.length; i > 0; i--)
@@ -166,11 +173,12 @@ function casesProches(xyCentre, distance, limite, catSym, tableau) {
             x: xyCentre.x + d * delta[0] + i * delta[2],
             y: xyCentre.y + d * delta[1] + i * delta[3],
           },
-          nbFigCaseRech = Object.keys(caseEl(tableau || cases, XYrech)).length;
+          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech)),
+          filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
 
-        if ((catSym && nbFigCaseRech) || // On cherche et trouve un symbole de la catégotie
-          (!catSym && !nbFigCaseRech)) // On cherche une case vide
-          listeProches.push([
+        if ((catSym === '' && !filteredCaseRech.length) || // Recherche case vide
+          (catSym !== '' && filteredCaseRech.length)) // Recherche catégories
+          listeProches.push([ // Préparation du retour
             ...delta,
             XYrech,
             caseEl(tableau || cases, XYrech, catSym),
@@ -179,51 +187,67 @@ function casesProches(xyCentre, distance, limite, catSym, tableau) {
       };
     });
 
-  if (typeof tableau === 'undefined' &&
-    listeProches.length < limite)
-    return listeProches.concat(casesProches(
+  if (tableau === zones ||
+    listeProches.length >= limite)
+    return listeProches;
+
+  return listeProches.concat(
+    casesProches(
       xyzFromXY(xyCentre),
       distance / tailleZone,
       limite - listeProches.length,
-      catSym,
-      zones));
-
-  return listeProches;
+      catSyms,
+      zones)
+  );
 }
 
 // VERBES : function(el, ...)
 // return true : Succés
 
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
-// Change la position
-//TODO autoriser/interdire le déplacement là où il y a certaines catégories
-function transformer(elA, ncsA, pos, pos2) {
-  // null, '💧', (pix || xy || x,y) : crée la figurine
-  // el tout seul : supprime la figurine
-  // el, '<même sym>', (pix || xy || x,y) : déplace la figurine
+// Change la position vers une case vide ou ne contenant que certaines catégories
+function transformer(elA, catSyms, pos, pos2) {
+  // null, '💧', (pix || xy || x, y) : crée et place la figurine avec gigue mais sans transition de position
+  // el : supprime la figurine
+  // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
   // el, '💧' : transforme en cette catégorie
+  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
   let el = elA || {};
 
-  const newCatSyms = (typeof ncsA === 'string' ? ncsA : el.innerHTML)
-    .split(' '), // Séparés par un espace
+  const newCatSyms = catSyms.split(' '),
     catSym = newCatSyms.shift(),
-    scenario = o[catSym],
+    xyA = {
+      ...el.xy, // Par défaut
+      x: pos, // caseX, caseY
+      y: pos2,
+      ...pos, // {x: caseX, y: caseY}
+    },
     newPix = {
-      ...pixFromXY({
-        x: pos, // caseX, caseY
-        y: pos2,
-        ...pos || el.xy, // {x: caseX, y: caseY}
-      }),
+      ...pixFromXY(xyA),
       ...pos, // {left: ..px, top: ..px}
     },
-    newXY = xyFromPix(newPix);
+    newXY = xyFromPix(newPix),
+    scenario = o[catSym];
 
-  if (trace) console.log('transformer', el.innerHTML, catSym, newPix, newXY, newCatSyms, noIteration, [arguments]); //TEST trace
+  if (trace) console.log('transformer', el.innerHTML, 1, catSyms, 2, newCatSyms, 3, scenario, 4, newPix, newXY, noIteration, [arguments]);
 
-  if (typeof scenario === 'undefined')
-    return console.log('Symbole inconnu : ', catSym);
+  // Le symbole doit avoir un senario
+  if (catSym && typeof scenario === 'undefined') {
+    console.log('Symbole inconnu : ', catSym);
+    return false;
+  }
+
+  // Ne peut bouger que vers une case où il n'y a que des objets autorisés
+  if (typeof pos !== 'undefined' &&
+    catSym !== '') {
+    const figCaseRech = Object.keys(caseEl(cases, newXY)),
+      filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
+
+    if (filteredCaseRech.length)
+      return false;
+  }
 
   if (typeof el.innerHTML === 'undefined') { // On créee une nouvelle figurine
     el = document.createElement('div');
@@ -252,27 +276,29 @@ function transformer(elA, ncsA, pos, pos2) {
     el.onmouseout = () => {
       el.hovered = false;
     };
-  } else {
+  } else { // Figurine existente
     // On retire l'el de la case de départ
     if (el.xy)
       delete caseEl(cases, el.xy)[el.innerHTML];
 
-    // Supprime et c'est tout
-    if (typeof ncsA !== 'string') {
+    // S'il n'y a pas de nouveau symbole, on supprime et c'est tout
+    if (typeof catSyms !== 'string') {
       el.remove();
-      return el;
+      return true;
     }
   }
 
-  if (catSym !== el.innerHTML) { // Si on change de symbole
+  if (catSym !== '') { // Si on change de symbole
     // Met à jour la catégorie dans l'el
     el.innerHTML = catSym;
     el.classList = scenario[scenario.length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 
-  if (!newCatSyms.length) { // Pour ne pas faire bouger la gigue sur une production
-    if (el.parentNode)
+  if (typeof elA !== 'undefined') { // Pour ne pas faire bouger la gigue sur une production
+    if (el.parentNode &&
+      (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
+    )
       // On part d'une position, bouge lentement
       setTimeout(() => { // Timeout ensures styles are applied before scrolling
         el.style.left = newPix.left + 'px';
@@ -285,31 +311,34 @@ function transformer(elA, ncsA, pos, pos2) {
     }
   }
 
-  // Re-affiche la figurine dans la fenêtre
+  // Re-affiche la figurine dans la fenêtre et la replace dans les cases
   document.body.appendChild(el);
-  caseEl(cases, newXY, catSym, el);
+  caseEl(cases, newXY, el.innerHTML, el);
 
   // On crée les nouvelles figurines
   if (dureeIteration < dureeMaxIteration) // S'il y a de la ressource
-    newCatSyms.forEach(cs => {
-      transformer(null, cs, el.xy);
+    newCatSyms.forEach(ncs => {
+      transformer(null, ncs, el.xy);
     });
 
   return el;
 }
 
 function errer(el) {
-  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
+  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]);
 
-  const pp = casesProches(el.xy, 1, 1);
+  const pp = casesProches(el.xy, 1, 1, ' ▒ ▓'); //TODO faire de cat autorisées un argument
 
   if (pp.length)
-    return transformer(el, el.innerHTML, pp[0][4]); // errer
+    return transformer(el, ' ▒ ▓', pp[0][4]); // errer
 }
 
-function rapprocher(el, symboleType) { // Jusqu'à la même case
-  if (trace) console.log('rapprocher', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
-  const pp = casesProches(el.xy, 10, 1, symboleType);
+function rapprocher(el, catSym) { // Jusqu'à la même case
+  if (trace) console.log('rapprocher', el.innerHTML, catSym, el.xy, el.noIteration, noIteration, [arguments]);
+
+  const pp = casesProches(el.xy, 10, 1, catSym);
+
+  //TODO symboles autorisés
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
@@ -326,12 +355,12 @@ function rapprocher(el, symboleType) { // Jusqu'à la même case
   }
 }
 
-function unir(el, symboleType, symboleTypeFinal) { // Dans la même case
+function unir(el, catSym, catSymFinal) { // Dans la même case
   // 💧 : absorbe 💧
   // 💧, 🌽 : absorbe 💧 et se transforme en 🌽
-  if (trace) console.log('unir', el.innerHTML, el.noIteration, noIteration, [arguments]); //TEST trace
+  if (trace) console.log('unir', el.innerHTML, el.noIteration, noIteration, [arguments]);
 
-  const trouveEl = caseEl(cases, el.xy, symboleType);
+  const trouveEl = caseEl(cases, el.xy, catSym);
 
   if (trouveEl) {
     for (const property in trouveEl.data) {
@@ -341,14 +370,14 @@ function unir(el, symboleType, symboleTypeFinal) { // Dans la même case
 
       transformer(trouveEl); // Le supprimer
 
-      if (symboleTypeFinal)
-        return transformer(el, symboleTypeFinal);
+      if (catSymFinal)
+        return transformer(el, catSymFinal);
     }
   }
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function autogenerer(el, symboleType, symboleTypeFinal) { // Dans la même case
+function autogenerer(el, catSym, catSymFinal) { // Dans la même case
 }
 
 // ACTIVATION (functions)
@@ -358,6 +387,7 @@ function iterer() {
       gameEls = [];
 
     noIteration++;
+    console.log('iterer', noIteration, noIterationMax);
 
     for (const el of divEls)
       gameEls.push(el);
@@ -421,7 +451,7 @@ function iterer() {
 
 // RÉPONSES SOURIS / CLAVIER
 function dragstart(evt) {
-  if (trace) console.log('dragstart', evt); //TEST trace
+  if (trace) console.log('dragstart', evt);
 
   dragInfo = {
     el: evt.target,
@@ -455,7 +485,7 @@ document.ondragover = evt => {
 }
 
 document.ondrop = evt => {
-  if (trace) console.log('ondrop', evt); //TEST trace
+  if (trace) console.log('ondrop', evt);
 
   transformer(
     dragInfo.tagName === 'LI' ? null : dragInfo.el,
@@ -532,6 +562,7 @@ const save = async () => {
   await writer.close();
 }
 
+//TODO refund on setTimeout ?
 self.setInterval(iterer, recurrence);
 
 // SCÉNARII
@@ -559,7 +590,7 @@ o = {
       },
     ],
   '💧': [
-    [transformer, '💦', d => d.eau < 10],
+    //[transformer, '💦', d => d.eau < 10],
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
@@ -581,7 +612,7 @@ o = {
   // Cycle des humains 🧒👶
   '🧔': [
     [rapprocher, '👩'],
-    [unir, '👩', '🧔👩'],
+    //[unir, '👩', '🧔👩'],
     //...vivant,
     [errer],
     {
@@ -690,7 +721,7 @@ o = {
     },
   ],
   // Cycle des animaux
-  // 🐇🥚🐣🐤🐥🐔🐓🦆🐀🐁🦊🐑🐻🦋🐞🦉🦴
+  // 🥚🐣🐤🐥🐔🐓🦆🐀🐁🐇🐑🦊🐻🦋🐞🦉🦴
 
   // Cycle des travaux 🚧👷
   '🧱': [{
@@ -716,12 +747,24 @@ o = {
 
 // TESTS
 loadWorld([
+  /*
+   */
+  ["▓", 208, 112],
+  ["🧱", 224, 112],
+  ["🧱", 240, 112],
+  ["🧱", 208, 128],
+  ["🧔", 224, 128],
+  ["🧱", 240, 128],
+  ["🧱", 208, 144],
+  ["▒", 224, 144],
+  ["🧱", 240, 144],
+
   //['⛲', 120, 100],
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
-  ['👩', 120, 200],
-  ['🧔', 200, 300],
+  //['👩', 120, 200],
+  // '🧔', 200, 300],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
