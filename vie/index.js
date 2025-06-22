@@ -1,3 +1,23 @@
+/*********************
+ * Terrain : toute la fenêtre <body>
+ * Figurine / fig = <div>unicode</div> rattaché au <body> déplaçable
+ * Catéorie / cat : type de figurine
+ * catSym = caractère(s) unicode représentant une figurine sur l'écran
+ * catName = string : le nom de la categorie
+ * data = tableau de valeurs associé à une figurine
+ * Element / el = <div> tag affichant la figurine
+ *
+ * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
+ * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
+ * xy = {x: caseX, y: caseY} : position de la figurine dans le tableau des cases
+ * pix = {left: px, top: px} : position de la figurine en pixels
+ *
+ * Routine : fonction qui manipule les données du programme
+ * Verbe : fonction à exécuter qui réalise une action sur une figurine
+ * Scenario : liste d'actions ou de scenarii à exécuter dans l'ordre,
+     la première ayant abouti interrompt la liste
+ */
+
 const trace = window.location.search.match(/trace/u),
   debugInit = window.location.search.match(/[0-9]+/u),
   divEls = document.getElementsByTagName('div'),
@@ -26,26 +46,6 @@ let o = {},
   cases = [],
   zones = [],
   dataSav = [];
-
-/*********************
- * Terrain : toute la fenêtre <body>
- * Figurine / fig = <div>unicode</div> rattaché au <body> déplaçable
- * Catéorie / cat : type de figurine
- * catSym = caractère(s) unicode représentant une figurine sur l'écran
- * catName = string : le nom de la categorie
- * data = tableau de valeurs associé à une figurine
- * Element / el = <div> tag affichant la figurine
- *
- * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
- * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
- * xy = {x: caseX, y: caseY} : position de la figurine dans le tableau des cases
- * pix = {left: px, top: px} : position de la figurine en pixels
- *
- * Routine : fonction qui manipule les données du programme
- * Verbe : fonction à exécuter qui réalise une action sur une figurine
- * Scenario : liste d'actions ou de scenarii à exécuter dans l'ordre,
-     la première ayant abouti interrompt la liste
- */
 
 // ROUTINES (functions)
 function gigue() { // -2 .. +2
@@ -111,6 +111,8 @@ function caseEl(tableau, xy, catSym, el) {
 }
 
 function rebuildCases() {
+  if (trace) console.log('rebuildCases');
+
   cases = [];
   zones = [];
   dataSav = [];
@@ -182,7 +184,7 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
             ...delta,
             XYrech,
             caseEl(tableau || cases, XYrech, catSym),
-            typeof tableau === 'undefined' ? d : d * tailleZone, // Distance du centre
+            tableau === zones ? d * tailleZone : d, // Distance du centre
           ]);
       };
     });
@@ -344,8 +346,11 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
+    //TODO ne rapproche pas à la même case
+	//TODO première itération pas dnas la direction de la cible
     if (typeof pp[0][5] === 'object' && // On a retourné un el
-      ~~pp[0][6] === 1) // Seulement à 1 case de distance
+      ~~pp[0][6] === 1 // Seulement le départ à 1 case de distance
+    )
       pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
     return transformer(el, // rapprocher
@@ -617,7 +622,7 @@ o = {
     [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       cat: 'Homme',
       eau: 50,
@@ -628,7 +633,7 @@ o = {
     [rapprocher, '🧔'],
     //[unir, '🧔', '🧔👩'],
     //...vivant,
-    [errer],
+    //[errer],
     {
       cat: 'Femme',
       eau: 50,
