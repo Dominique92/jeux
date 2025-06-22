@@ -16,13 +16,13 @@ const trace = window.location.search.match(/trace/u),
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
   recurrence = 1000, // ms
-  dureeMaxIteration = 100; // ms
+  nbMaxFig = 100; // Nombre maximum de figurines dans la femnêtre
 
 let o = {},
   dragInfo = null,
   noIteration = 0,
   noIterationMax = 1000000, // Starts immediately
-  dureeIteration = 0,
+  timeoutID = null,
   cases = [],
   zones = [],
   dataSav = [];
@@ -38,7 +38,7 @@ let o = {},
  *
  * cases : tableau à 2 dimensions dont chaque case pointe sur 0 ou 1 figurine de la même catéorie max
  * zones : un tableau à 2 dimensions par catéorie de figurine représentant leur nombre dans chaque carré de n * n cases
- * xy = {x: 12, y: 34} : position de la figurine dans le tableau des cases
+ * xy = {x: caseX, y: caseY} : position de la figurine dans le tableau des cases
  * pix = {left: px, top: px} : position de la figurine en pixels
  *
  * Routine : fonction qui manipule les données du programme
@@ -218,10 +218,10 @@ function transformer(elA, catSyms, pos, pos2) {
 
   const newCatSyms = catSyms.split(' '),
     catSym = newCatSyms.shift(),
+    xyElA = el.xy || {},
     xyA = {
-      ...el.xy, // Par défaut
-      x: pos, // caseX, caseY
-      y: pos2,
+      x: pos || xyElA.x, // caseX, caseY
+      y: pos2 || xyElA.y,
       ...pos, // {x: caseX, y: caseY}
     },
     newPix = {
@@ -231,7 +231,7 @@ function transformer(elA, catSyms, pos, pos2) {
     newXY = xyFromPix(newPix),
     scenario = o[catSym];
 
-  if (trace) console.log('transformer', el.innerHTML, 1, catSyms, 2, newCatSyms, 3, scenario, 4, newPix, newXY, noIteration, [arguments]);
+  if (trace) console.log('transformer', el.innerHTML, catSyms, newCatSyms, scenario, newPix, newXY, noIteration, [arguments]);
 
   // Le symbole doit avoir un senario
   if (catSym && typeof scenario === 'undefined') {
@@ -243,7 +243,7 @@ function transformer(elA, catSyms, pos, pos2) {
   if (typeof pos !== 'undefined' &&
     catSym !== '') {
     const figCaseRech = Object.keys(caseEl(cases, newXY)),
-      filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
+      filteredCaseRech = figCaseRech.filter(v => !(catSyms + '▒▓⛲').includes(v)); //TODO symboles aotorisés
 
     if (filteredCaseRech.length)
       return false;
@@ -300,7 +300,7 @@ function transformer(elA, catSyms, pos, pos2) {
       (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
     )
       // On part d'une position, bouge lentement
-      setTimeout(() => { // Timeout ensures styles are applied before scrolling
+      window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
         el.style.left = newPix.left + 'px';
         el.style.top = newPix.top + 'px';
       }, 50); //TODO BUG pourquoi faut-il attendre un peu ???
@@ -316,9 +316,9 @@ function transformer(elA, catSyms, pos, pos2) {
   caseEl(cases, newXY, el.innerHTML, el);
 
   // On crée les nouvelles figurines
-  if (dureeIteration < dureeMaxIteration) // S'il y a de la ressource
+  if (divEls.length < nbMaxFig) // S'il y a de la ressource
     newCatSyms.forEach(ncs => {
-      transformer(null, ncs, el.xy);
+      transformer(null, ncs, newXY);
     });
 
   return el;
@@ -382,12 +382,14 @@ function autogenerer(el, catSym, catSymFinal) { // Dans la même case
 
 // ACTIVATION (functions)
 function iterer() {
+  window.clearTimeout(timeoutID);
+
   if (noIteration < noIterationMax) {
     const debut = Date.now(),
       gameEls = [];
 
     noIteration++;
-    console.log('iterer', noIteration, noIterationMax);
+    if (trace) console.log('iterer', noIteration, noIterationMax);
 
     // Fait un tableau avec les <div> existants
     for (const el of divEls)
@@ -440,15 +442,14 @@ function iterer() {
     });
 
     rebuildCases();
-    dureeIteration = Date.now() - debut;
 
     if (window.location.search)
       statsEl.innerHTML = noIteration + ': ' +
       divEls.length + ' fig &nbsp; ' +
-      dureeIteration + ' ms &nbsp; ' +
-      Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
+      (Date.now() - debut) + ' ms &nbsp; ' +
+      Math.round((Date.now() - debut) / divEls.length * 10) / 10 + 'ms/obj';
 
-    setTimeout(iterer, recurrence);
+    timeoutID = window.setTimeout(iterer, recurrence);
   }
 }
 
@@ -475,9 +476,8 @@ function dragstart(evt) {
 
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
-    setTimeout(() => { // Pour avoir le temps que le drag copie l'image
-      evt.target.remove();
-    }, 0);
+    // Pour avoir le temps que le drag copie l'image
+    window.setTimeout(evt.target.remove);
 
   helpEl.style.display = 'none';
 }
@@ -750,7 +750,6 @@ o = {
 // TESTS
 loadWorld([
   /*
-   */
   ["🧱", 208, 112],
   ["🧱", 224, 112],
   ["▒", 240, 112],
@@ -760,8 +759,9 @@ loadWorld([
   ["🧱", 208, 144],
   ["▓", 224, 144],
   ["🧱", 240, 144],
+   */
 
-  //['⛲', 120, 100],
+  ['⛲', 120, 100],
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
