@@ -389,6 +389,7 @@ function iterer() {
     noIteration++;
     console.log('iterer', noIteration, noIterationMax);
 
+    // Fait un tableau avec les <div> existants
     for (const el of divEls)
       gameEls.push(el);
 
@@ -446,10 +447,14 @@ function iterer() {
       divEls.length + ' fig &nbsp; ' +
       dureeIteration + ' ms &nbsp; ' +
       Math.round(dureeIteration / divEls.length * 10) / 10 + 'ms/obj';
+
+    setTimeout(iterer, recurrence);
   }
 }
 
-// RÉPONSES SOURIS / CLAVIER
+// RÉPONSES WINDOW / SOURIS / CLAVIER
+window.onload = iterer;
+
 function dragstart(evt) {
   if (trace) console.log('dragstart', evt);
 
@@ -562,9 +567,6 @@ const save = async () => {
   await writer.close();
 }
 
-//TODO refund on setTimeout ?
-self.setInterval(iterer, recurrence);
-
 // SCÉNARII
 /*
 const consommer = [wwwWrapprocher, wwwWabsorber];
@@ -611,7 +613,7 @@ o = {
   ],
   // Cycle des humains 🧒👶
   '🧔': [
-    [rapprocher, '👩'],
+    [rapprocher, '👩'], //TODO KO
     //[unir, '👩', '🧔👩'],
     //...vivant,
     [errer],
@@ -749,14 +751,14 @@ o = {
 loadWorld([
   /*
    */
-  ["▓", 208, 112],
+  ["🧱", 208, 112],
   ["🧱", 224, 112],
-  ["🧱", 240, 112],
+  ["▒", 240, 112],
   ["🧱", 208, 128],
   ["🧔", 224, 128],
   ["🧱", 240, 128],
   ["🧱", 208, 144],
-  ["▒", 224, 144],
+  ["▓", 224, 144],
   ["🧱", 240, 144],
 
   //['⛲', 120, 100],
@@ -788,5 +790,8 @@ if (window.location.search) {
       noIterationMax = noIteration < noIterationMax ? 0 : 1000000; // Toggle 
     else // Autre touche
       noIterationMax = 0; // Arrêt
+
+    if (noIteration < noIterationMax)
+      iterer();
   };
 }
