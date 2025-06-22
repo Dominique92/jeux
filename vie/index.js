@@ -16,7 +16,7 @@ const trace = window.location.search.match(/trace/u),
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
   recurrence = 1000, // ms
-  nbMaxFig = 100; // Nombre maximum de figurines dans la femnêtre
+  nbMaxFig = 255; // Nombre maximum de figurines dans la femnêtre
 
 let o = {},
   dragInfo = null,
@@ -177,7 +177,7 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
           filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
 
         if ((catSym === '' && !filteredCaseRech.length) || // Recherche case vide
-          (catSym !== '' && filteredCaseRech.length)) // Recherche catégories
+          (catSym !== '' && figCaseRech.length)) // Recherche catégories
           listeProches.push([ // Préparation du retour
             ...delta,
             XYrech,
@@ -336,7 +336,7 @@ function errer(el) {
 function rapprocher(el, catSym) { // Jusqu'à la même case
   if (trace) console.log('rapprocher', el.innerHTML, catSym, el.xy, el.noIteration, noIteration, [arguments]);
 
-  const pp = casesProches(el.xy, 10, 1, catSym);
+  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSym);
 
   //TODO symboles autorisés
 
@@ -389,7 +389,7 @@ function iterer() {
       gameEls = [];
 
     noIteration++;
-    if (trace) console.log('iterer', noIteration, noIterationMax);
+    if (trace) console.log('ITERER', noIteration, noIterationMax);
 
     // Fait un tableau avec les <div> existants
     for (const el of divEls)
@@ -476,8 +476,9 @@ function dragstart(evt) {
 
   if (evt.target.tagName === 'DIV') // Sauf modèle
     // Efface temporairement l'icône de départ
-    // Pour avoir le temps que le drag copie l'image
-    window.setTimeout(evt.target.remove);
+    timeoutID = window.setTimeout(() => { // Pour avoir le temps que le drag copie l'imageAdd commentMore actions
+      evt.target.remove();
+    });
 
   helpEl.style.display = 'none';
 }
@@ -613,7 +614,7 @@ o = {
   ],
   // Cycle des humains 🧒👶
   '🧔': [
-    [rapprocher, '👩'], //TODO KO
+    [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
     [errer],
@@ -625,7 +626,7 @@ o = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    [unir, '🧔', '🧔👩'],
+    //[unir, '🧔', '🧔👩'],
     //...vivant,
     [errer],
     {
@@ -759,14 +760,14 @@ loadWorld([
   ["🧱", 208, 144],
   ["▓", 224, 144],
   ["🧱", 240, 144],
-   */
+  */
 
-  ['⛲', 120, 100],
+  //['⛲', 120, 100],
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
-  //['👩', 120, 200],
-  // '🧔', 200, 300],
+  ['👩', 120, 200],
+  ['🧔', 200, 300],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
