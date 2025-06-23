@@ -81,6 +81,18 @@ function xyzFromXY(xy) {
   };
 }
 
+function scenario(catSym) {
+  const scn = o[catSym];
+
+  // Le symbole doit avoir un senario
+  if (typeof scn === 'undefined') {
+    console.log('Symbole inconnu : ', catSym);
+    return false;
+  }
+  return scn;
+}
+
+
 // Get / set cases[] & zones[] el
 function caseEl(tableau, xy, catSym, el) {
   //if (trace) console.log('caseEl', ...arguments);
@@ -207,41 +219,6 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
 // VERBES : function(el, ...)
 // return true : Succés
 
-function creer(catSym) {
-  if (trace) console.log('creer', ...arguments);
-
-  const el = document.createElement('div'),
-    scenario = o[catSym];
-
-  // Données initiales du modèle
-  el.noIteration = noIteration;
-  el.data = {
-    ...scenario[scenario.length - 1],
-  };
-  delete el.data.cat;
-
-  // Mouse actions
-  el.draggable = true;
-  /* eslint-disable-next-line no-use-before-define */
-  el.ondragstart = dragstart;
-  /* eslint-disable-next-line no-use-before-define */
-  el.ondragend = dragend;
-  /* eslint-disable-next-line no-use-before-define */
-  el.ondblclick = evt => transformer(evt.target); // supprimer
-
-  // Hold transition moves when hover
-  el.onmouseover = () => {
-    el.hovered = true;
-    el.style.top = window.getComputedStyle(el).top;
-    el.style.left = window.getComputedStyle(el).left;
-  };
-  el.onmouseout = () => {
-    el.hovered = false;
-  };
-
-  return el;
-}
-
 function bouger(el, pos, pos2) {
   if (trace) console.log('bouger', el.innerHTML, ...arguments);
 
@@ -299,41 +276,76 @@ function muer(el, catSym) {
   if (trace) console.log('muer', el.innerHTML, ...arguments);
 
   if (catSym !== '') { // Si on change de symbole
-    const scenario = o[catSym];
+    const scn = o[catSym];
 
     // Met à jour la catégorie dans l'el
     el.innerHTML = catSym;
-    el.classList = scenario[scenario.length - 1].cat;
+    el.classList = scn[scn.length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 }
 
+function creer(catSym, pos, pos2) {
+  if (trace) console.log('creer', ...arguments);
+
+  const el = document.createElement('div'),
+    scn = scenario(catSym);
+
+  // Données initiales du modèle
+  el.noIteration = noIteration;
+  el.data = {
+    ...scn[scn.length - 1],
+  };
+  delete el.data.cat;
+
+  // Mouse actions
+  el.draggable = true;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragstart = dragstart;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragend = dragend;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondblclick = evt => transformer(evt.target); // supprimer
+
+  // Hold transition moves when hover
+  el.onmouseover = () => {
+    el.hovered = true;
+    el.style.top = window.getComputedStyle(el).top;
+    el.style.left = window.getComputedStyle(el).left;
+  };
+  el.onmouseout = () => {
+    el.hovered = false;
+  };
+
+  muer(el, catSym);
+  bouger(el, pos, pos2);
+  document.body.appendChild(el);
+
+  return el;
+}
+
+function supprimer(el) {
+  if (trace) console.log('supprimer', el.innerHTML, ...arguments);
+
+  delete caseEl(cases, el.xy)[el.innerHTML];
+  el.remove();
+
+  return true;
+}
+
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position vers une case vide ou ne contenant que certaines catégories
-function transformer(elA, catSyms, pos, pos2) {
-  if (trace) console.log('transformer', (elA || {}).innerHTML, ...arguments);
+function transformer(el, catSyms, pos, pos2) {
+  if (trace) console.log('transformer', el.innerHTML, ...arguments);
 
-  // null, '💧', (pix || xy || x, y) : crée et place la figurine avec gigue mais sans transition de position
   // el : supprime la figurine
   // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
   // el, '💧' : transforme en cette catégorie
   // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
-  let el = elA || {};
-
-  const newCatSyms = catSyms.split(' '), //TODO BUG si supprimer car pas de catSyms
-    catSym = newCatSyms.shift(),
-    scenario = o[catSym];
-
-  // Le symbole doit avoir un senario
-  if (catSym && typeof scenario === 'undefined') {
-    console.log('Symbole inconnu : ', catSym);
-    return false;
-  }
-
-  if (typeof el.innerHTML === 'undefined') // On créee une nouvelle figurine
-    el = creer(catSym, scenario);
+  const newCatSyms = catSyms.split(' '),
+    catSym = newCatSyms.shift();
 
   // S'il n'y a pas de nouveau symbole, on supprime et c'est tout
   if (typeof catSyms !== 'string') {
@@ -350,7 +362,7 @@ function transformer(elA, catSyms, pos, pos2) {
   // On crée les nouvelles figurines
   if (divEls.length < nbMaxFig) // S'il y a de la ressource
     newCatSyms.forEach(ncs => {
-      transformer(null, ncs, el.xy);
+      creer(ncs, el.xy);
     });
 
   return el;
@@ -397,7 +409,7 @@ function unir(el, catSym, catSymFinal) { // Dans la même case
       el.data[property] = ~~el.data[property] + trouveEl.data[property]
       el.data.age = 0;
 
-      transformer(trouveEl); // Le supprimer
+      supprimer(trouveEl); // Le supprimer
 
       if (catSymFinal)
         return transformer(el, catSymFinal);
@@ -428,7 +440,7 @@ function iterer() {
 
     // Exécution des actions
     gameEls.forEach(el => {
-      if ( //TODO el.noIteration < noIteration && // S'il n'a pas déjà été traité
+      if ( //TODO ??? el.noIteration < noIteration && // S'il n'a pas déjà été traité
         el.parentNode && // S'il est affichable
         el.data && !el.hovered // Si le curseur n'est pas au dessus
       ) {
@@ -525,12 +537,16 @@ document.ondragover = evt => {
 document.ondrop = evt => {
   if (trace) console.log('ondrop', evt);
 
-  transformer(
-    dragInfo.tagName === 'LI' ? null : dragInfo.el,
-    dragInfo.el.innerHTML, {
-      left: evt.x - dragInfo.offset.x,
-      top: evt.y - dragInfo.offset.y,
-    });
+  const px = {
+    left: evt.x - dragInfo.offset.x,
+    top: evt.y - dragInfo.offset.y,
+  };
+
+  if (dragInfo.tagName === 'LI')
+    creer(
+      dragInfo.el.innerHTML, px);
+  else
+    transformer(dragInfo.el, dragInfo.el.innerHTML, px);
 
   dragInfo = null;
   rebuildCases();
@@ -557,7 +573,7 @@ function loadWorld(datas) {
 
   // Ajoute les objets du json
   datas.forEach(d => {
-    const el = transformer(null, d[0], {
+    const el = creer(d[0], {
       left: d[1],
       top: d[2],
     });
@@ -808,7 +824,7 @@ loadWorld([
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
-  transformer(null, catSym, {
+  creer(catSym, {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });
