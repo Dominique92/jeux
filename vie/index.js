@@ -235,7 +235,7 @@ function bouger(el, pos, pos2) {
     newXY = xyFromPix(newPix);
 
   // Ne peut bouger que vers une case où il n'y a que des objets autorisés
-  //TOODO BUG n'a pas les symboles autorisés
+  //TODO BUG n'a pas les symboles autorisés
   /*//TODO ??? que des objets autorisés
   if (typeof pos !== 'undefined' &&
     catSym !== '') {
@@ -247,20 +247,18 @@ function bouger(el, pos, pos2) {
   }
   */
 
-  if (el.xy) { // Pour ne pas faire bouger la gigue sur une production
-    if (el.parentNode &&
-      (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
-    )
-      // On part d'une position, bouge lentement
-      window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
-        el.style.left = newPix.left + 'px';
-        el.style.top = newPix.top + 'px';
-      }, 50); //TODO BUG pourquoi faut-il attendre un peu ???
-    else {
-      // On y va direct
+  if (el.parentNode &&
+    (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
+  )
+    // On part d'une position, bouge lentement
+    window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
       el.style.left = newPix.left + 'px';
       el.style.top = newPix.top + 'px';
-    }
+    }, 50); //TODO BUG pourquoi faut-il attendre un peu ???
+  else {
+    // On y va direct
+    el.style.left = newPix.left + 'px';
+    el.style.top = newPix.top + 'px';
   }
 
   // On change l'el de case
@@ -275,10 +273,10 @@ function bouger(el, pos, pos2) {
 function muer(el, catSym) {
   if (trace) console.log('muer', el.innerHTML, ...arguments);
 
-  if (catSym !== '') { // Si on change de symbole
-    const scn = o[catSym];
+  const scn = scenario(catSym);
 
-    // Met à jour la catégorie dans l'el
+  // Met à jour la catégorie dans l'el
+  if (scn) {
     el.innerHTML = catSym;
     el.classList = scn[scn.length - 1].cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
@@ -293,10 +291,12 @@ function creer(catSym, pos, pos2) {
 
   // Données initiales du modèle
   el.noIteration = noIteration;
-  el.data = {
-    ...scn[scn.length - 1],
-  };
-  delete el.data.cat;
+  if (scn) {
+    el.data = {
+      ...scn[scn.length - 1],
+    };
+    delete el.data.cat;
+  }
 
   // Mouse actions
   el.draggable = true;
@@ -338,7 +338,6 @@ function supprimer(el) {
 function transformer(el, catSyms, pos, pos2) {
   if (trace) console.log('transformer', el.innerHTML, ...arguments);
 
-  // el : supprime la figurine
   // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
   // el, '💧' : transforme en cette catégorie
   // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
@@ -347,17 +346,8 @@ function transformer(el, catSyms, pos, pos2) {
   const newCatSyms = catSyms.split(' '),
     catSym = newCatSyms.shift();
 
-  // S'il n'y a pas de nouveau symbole, on supprime et c'est tout
-  if (typeof catSyms !== 'string') {
-    el.remove();
-    return true;
-  }
-
   muer(el, catSym);
   bouger(el, pos, pos2);
-
-  // Re-affiche la figurine dans la fenêtre et la replace dans les cases
-  document.body.appendChild(el);
 
   // On crée les nouvelles figurines
   if (divEls.length < nbMaxFig) // S'il y a de la ressource
@@ -381,8 +371,6 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
   if (trace) console.log('rapprocher', el.innerHTML, catSym, el.xy, el.noIteration, noIteration, [arguments]);
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSym);
-
-  //TODO BUG première itération pas dans la direction de la cible
   //TODO symboles autorisés
 
   if (pp.length) {
@@ -543,10 +531,11 @@ document.ondrop = evt => {
   };
 
   if (dragInfo.tagName === 'LI')
-    creer(
-      dragInfo.el.innerHTML, px);
-  else
-    transformer(dragInfo.el, dragInfo.el.innerHTML, px);
+    creer(dragInfo.el.innerHTML, px);
+  else {
+    bouger(dragInfo.el, px);
+    document.body.appendChild(dragInfo.el);
+  }
 
   dragInfo = null;
   rebuildCases();
@@ -557,12 +546,8 @@ function dragend(evt) {
 
   if (dragInfo && // Sauf si ça déjà terminé par ondrop
     document.elementFromPoint(evt.x, evt.y)) { // Sauf si c'est en dehors de la fenêtre
-    // Start from the end drag cursor position
-    dragInfo.el.style.left = (evt.x - dragInfo.offset.x) + 'px';
-    dragInfo.el.style.top = (evt.y - dragInfo.offset.y) + 'px';
+    bouger(dragInfo.el, dragInfo.bounds)
     document.body.appendChild(dragInfo.el);
-    // Then, move slowly to the initial position
-    transformer(dragInfo.el, dragInfo.el.innerHTML, dragInfo.bounds)
   }
 }
 
