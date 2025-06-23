@@ -33,6 +33,7 @@ const trace = window.location.search.match(/trace/u),
     [-1, -1, 1, 0],
   ],
   tailleFigure = 16,
+  giguemax = 2,
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
   recurrence = 1000, // ms
@@ -48,8 +49,8 @@ let o = {},
   dataSav = [];
 
 // ROUTINES (functions)
-function gigue() { // -2 .. +2
-  return Math.random() * 4 - 2;
+function gigue() {
+  return Math.random() * 2 * giguemax - giguemax;
 }
 
 function xyFromPix(pix) {
@@ -82,13 +83,13 @@ function xyzFromXY(xy) {
 
 // Get / set cases[] & zones[] el
 function caseEl(tableau, xy, catSym, el) {
+  //if (trace) console.log('caseEl', ...arguments);
+
   // tableau = cases[] / zones[]
   // 7, 7 : returns the case contents []
   // 7, 7, 🌿 : return the html element of thois category
   // 7, 7, 🌿, el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
-
-  //if (trace) console.log('caseEl', ...arguments);
 
   if (typeof tableau[xy.x] === 'undefined')
     tableau[xy.x] = [];
@@ -149,14 +150,14 @@ function rebuildCases() {
 }
 
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
+  //if (trace) console.log('casesProches', ...arguments);
+
   // el : Autour de el
   // distance = Rayon (nb cases) autour de el
   // limite = nombre de cases ramenées
   // catSyms = '🌱 🌾' : catégorie(s) de figurines recherchés (strings unicode separated by spaces)
   // catSyms = ' ▒ ▓' : recherche de case vide ou contenant un de ces symboles
   // tableau = undefined | cases | zones
-
-  if (trace) console.log('casesProches', ...arguments);
 
   const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
     listeProches = [];
@@ -206,21 +207,45 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
 // VERBES : function(el, ...)
 // return true : Succés
 
-// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
-// Change la position vers une case vide ou ne contenant que certaines catégories
-function transformer(elA, catSyms, pos, pos2) {
-  // null, '💧', (pix || xy || x, y) : crée et place la figurine avec gigue mais sans transition de position
-  // el : supprime la figurine
-  // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
-  // el, '💧' : transforme en cette catégorie
-  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
-  // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
+function creer(catSym) {
+  if (trace) console.log('creer', ...arguments);
 
-  let el = elA || {};
+  const el = document.createElement('div'),
+    scenario = o[catSym];
 
-  const newCatSyms = catSyms.split(' '),
-    catSym = newCatSyms.shift(),
-    xyElA = el.xy || {},
+  // Données initiales du modèle
+  el.noIteration = noIteration;
+  el.data = {
+    ...scenario[scenario.length - 1],
+  };
+  delete el.data.cat;
+
+  // Mouse actions
+  el.draggable = true;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragstart = dragstart;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondragend = dragend;
+  /* eslint-disable-next-line no-use-before-define */
+  el.ondblclick = evt => transformer(evt.target); // supprimer
+
+  // Hold transition moves when hover
+  el.onmouseover = () => {
+    el.hovered = true;
+    el.style.top = window.getComputedStyle(el).top;
+    el.style.left = window.getComputedStyle(el).left;
+  };
+  el.onmouseout = () => {
+    el.hovered = false;
+  };
+
+  return el;
+}
+
+function bouger(el, pos, pos2) {
+  if (trace) console.log('bouger', el.innerHTML, ...arguments);
+
+  const xyElA = el.xy || {},
     xyA = {
       x: pos || xyElA.x, // caseX, caseY
       y: pos2 || xyElA.y,
@@ -230,18 +255,11 @@ function transformer(elA, catSyms, pos, pos2) {
       ...pixFromXY(xyA),
       ...pos, // {left: ..px, top: ..px}
     },
-    newXY = xyFromPix(newPix),
-    scenario = o[catSym];
-
-  if (trace) console.log('transformer', el.innerHTML, catSyms, newCatSyms, scenario, newPix, newXY, noIteration, [arguments]);
-
-  // Le symbole doit avoir un senario
-  if (catSym && typeof scenario === 'undefined') {
-    console.log('Symbole inconnu : ', catSym);
-    return false;
-  }
+    newXY = xyFromPix(newPix);
 
   // Ne peut bouger que vers une case où il n'y a que des objets autorisés
+  //TOODO BUG n'a pas les symboles autorisés
+  /*//TODO ??? que des objets autorisés
   if (typeof pos !== 'undefined' &&
     catSym !== '') {
     const figCaseRech = Object.keys(caseEl(cases, newXY)),
@@ -250,54 +268,9 @@ function transformer(elA, catSyms, pos, pos2) {
     if (filteredCaseRech.length)
       return false;
   }
+  */
 
-  if (typeof el.innerHTML === 'undefined') { // On créee une nouvelle figurine
-    el = document.createElement('div');
-
-    // Données initiales du modèle
-    el.noIteration = noIteration;
-    el.data = {
-      ...scenario[scenario.length - 1],
-    };
-    delete el.data.cat;
-
-    // Mouse actions
-    el.draggable = true;
-    /* eslint-disable-next-line no-use-before-define */
-    el.ondragstart = dragstart;
-    /* eslint-disable-next-line no-use-before-define */
-    el.ondragend = dragend;
-    el.ondblclick = evt => transformer(evt.target); // supprimer
-
-    // Hold transition moves when hover
-    el.onmouseover = () => {
-      el.hovered = true;
-      el.style.top = window.getComputedStyle(el).top;
-      el.style.left = window.getComputedStyle(el).left;
-    };
-    el.onmouseout = () => {
-      el.hovered = false;
-    };
-  } else { // Figurine existente
-    // On retire l'el de la case de départ
-    if (el.xy)
-      delete caseEl(cases, el.xy)[el.innerHTML];
-
-    // S'il n'y a pas de nouveau symbole, on supprime et c'est tout
-    if (typeof catSyms !== 'string') {
-      el.remove();
-      return true;
-    }
-  }
-
-  if (catSym !== '') { // Si on change de symbole
-    // Met à jour la catégorie dans l'el
-    el.innerHTML = catSym;
-    el.classList = scenario[scenario.length - 1].cat;
-    el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
-  }
-
-  if (typeof elA !== 'undefined') { // Pour ne pas faire bouger la gigue sur une production
+  if (el.xy) { // Pour ne pas faire bouger la gigue sur une production
     if (el.parentNode &&
       (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
     )
@@ -313,14 +286,71 @@ function transformer(elA, catSyms, pos, pos2) {
     }
   }
 
+  // On change l'el de case
+  if (el.xy)
+    delete caseEl(cases, el.xy)[el.innerHTML];
+
+  caseEl(cases, newXY, el.innerHTML, el);
+
+  return true;
+}
+
+function muer(el, catSym) {
+  if (trace) console.log('muer', el.innerHTML, ...arguments);
+
+  if (catSym !== '') { // Si on change de symbole
+    const scenario = o[catSym];
+
+    // Met à jour la catégorie dans l'el
+    el.innerHTML = catSym;
+    el.classList = scenario[scenario.length - 1].cat;
+    el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
+  }
+}
+
+// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
+// Change la position vers une case vide ou ne contenant que certaines catégories
+function transformer(elA, catSyms, pos, pos2) {
+  if (trace) console.log('transformer', (elA || {}).innerHTML, ...arguments);
+
+  // null, '💧', (pix || xy || x, y) : crée et place la figurine avec gigue mais sans transition de position
+  // el : supprime la figurine
+  // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
+  // el, '💧' : transforme en cette catégorie
+  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
+  // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
+
+  let el = elA || {};
+
+  const newCatSyms = catSyms.split(' '), //TODO BUG si supprimer car pas de catSyms
+    catSym = newCatSyms.shift(),
+    scenario = o[catSym];
+
+  // Le symbole doit avoir un senario
+  if (catSym && typeof scenario === 'undefined') {
+    console.log('Symbole inconnu : ', catSym);
+    return false;
+  }
+
+  if (typeof el.innerHTML === 'undefined') // On créee une nouvelle figurine
+    el = creer(catSym, scenario);
+
+  // S'il n'y a pas de nouveau symbole, on supprime et c'est tout
+  if (typeof catSyms !== 'string') {
+    el.remove();
+    return true;
+  }
+
+  muer(el, catSym);
+  bouger(el, pos, pos2);
+
   // Re-affiche la figurine dans la fenêtre et la replace dans les cases
   document.body.appendChild(el);
-  caseEl(cases, newXY, el.innerHTML, el);
 
   // On crée les nouvelles figurines
   if (divEls.length < nbMaxFig) // S'il y a de la ressource
     newCatSyms.forEach(ncs => {
-      transformer(null, ncs, newXY);
+      transformer(null, ncs, el.xy);
     });
 
   return el;
@@ -340,18 +370,12 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSym);
 
+  //TODO BUG première itération pas dans la direction de la cible
   //TODO symboles autorisés
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
-
-    //TODO ne rapproche pas à la même case
-	//TODO première itération pas dnas la direction de la cible
-    if (typeof pp[0][5] === 'object' && // On a retourné un el
-      ~~pp[0][6] === 1 // Seulement le départ à 1 case de distance
-    )
-      pp[0][5].noIteration = noIteration; // On bloque l'évolution de la cible
 
     return transformer(el, // rapprocher
       el.innerHTML,
@@ -363,7 +387,7 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
 function unir(el, catSym, catSymFinal) { // Dans la même case
   // 💧 : absorbe 💧
   // 💧, 🌽 : absorbe 💧 et se transforme en 🌽
-  if (trace) console.log('unir', el.innerHTML, el.noIteration, noIteration, [arguments]);
+  if (trace) console.log('unir', el.innerHTML, ...arguments);
 
   const trouveEl = caseEl(cases, el.xy, catSym);
 
@@ -383,6 +407,8 @@ function unir(el, catSym, catSymFinal) { // Dans la même case
 
 /* eslint-disable-next-line no-unused-vars */
 function autogenerer(el, catSym, catSymFinal) { // Dans la même case
+  if (trace) console.log('bouger', el.innerHTML, ...arguments);
+
 }
 
 // ACTIVATION (functions)
@@ -402,7 +428,7 @@ function iterer() {
 
     // Exécution des actions
     gameEls.forEach(el => {
-      if (el.noIteration < noIteration && // S'il n'a pas déjà été traité
+      if ( //TODO el.noIteration < noIteration && // S'il n'a pas déjà été traité
         el.parentNode && // S'il est affichable
         el.data && !el.hovered // Si le curseur n'est pas au dessus
       ) {
@@ -455,6 +481,7 @@ function iterer() {
       Math.round((Date.now() - debut) / divEls.length * 10) / 10 + 'ms/obj';
 
     timeoutID = window.setTimeout(iterer, recurrence);
+    //TODO BUG continue quand plantage en amont
   }
 }
 
@@ -510,6 +537,8 @@ document.ondrop = evt => {
 };
 
 function dragend(evt) {
+  if (trace) console.log('dragend', evt);
+
   if (dragInfo && // Sauf si ça déjà terminé par ondrop
     document.elementFromPoint(evt.x, evt.y)) { // Sauf si c'est en dehors de la fenêtre
     // Start from the end drag cursor position
@@ -585,38 +614,6 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 */
 
 o = {
-  // Cycle de l'eau 🚣🚢🌊🐟🌧
-  '⛲': // Scénario de la catégorie d'objet
-    [ // Action élémentaire du scénario
-      [transformer, // Verbe à exécuter
-        '⛲ 💧', // Symboles pour remplacer et créer
-        //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
-        //() => Math.random() < 0.2 // Test d'applicabilité de la règle
-      ],
-      { // Init des data quand on crée
-        cat: 'Fontaine',
-      },
-    ],
-  '💧': [
-    //[transformer, '💦', d => d.eau < 10],
-    //[wwwWrapprocher, '🌱', 3],
-    //[wwwWrapprocher, '🌾', 3],
-    //[wwwWrapprocher, '🌽', 3],
-    [errer], {
-      cat: 'Eau',
-      eau: 100,
-    },
-  ],
-  '💦': [
-    [rapprocher, '🌽'],
-    [rapprocher, '🌾'],
-    [rapprocher, '🌱'],
-    [transformer, d => d.eau <= 0],
-    [errer],
-    {
-      cat: 'Eau',
-    },
-  ],
   // Cycle des humains 🧒👶
   '🧔': [
     [rapprocher, '👩'],
@@ -656,7 +653,40 @@ o = {
       cat: 'Couple',
     },
   ],
-  //TODO
+
+  // Cycle de l'eau 🚣🚢🌊🐟🌧
+  '⛲': // Scénario de la catégorie d'objet
+    [ // Action élémentaire du scénario
+      [transformer, // Verbe à exécuter
+        '⛲ 💧', // Symboles pour remplacer et créer
+        //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
+        //() => Math.random() < 0.2 // Test d'applicabilité de la règle
+      ],
+      { // Init des data quand on crée
+        cat: 'Fontaine',
+      },
+    ],
+  '💧': [
+    //[transformer, '💦', d => d.eau < 10],
+    //[wwwWrapprocher, '🌱', 3],
+    //[wwwWrapprocher, '🌾', 3],
+    //[wwwWrapprocher, '🌽', 3],
+    [errer], {
+      cat: 'Eau',
+      eau: 100,
+    },
+  ],
+  '💦': [
+    [rapprocher, '🌽'],
+    [rapprocher, '🌾'],
+    [rapprocher, '🌱'],
+    [transformer, d => d.eau <= 0],
+    [errer],
+    {
+      cat: 'Eau',
+    },
+  ],
+
   ////////////TODO TEST
   // Cycle des plantes
   // Fruits🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
@@ -698,6 +728,7 @@ o = {
       cat: 'Mais',
     },
   ],
+
   // Cycle des surfaces
   '▒': [{
     cat: 'Terre',
@@ -705,6 +736,7 @@ o = {
   '▓': [{
     cat: 'Herbe',
   }],
+
   '👪': [
     //...vivant,
     //[transformer, '👫', 15],
