@@ -120,7 +120,62 @@ function caseEl(tableau, xy, catSym, el) {
   }
 
   // L'el d'une case pour une catéorie
-  return tableau[xy.x][xy.y][catSym];
+  return tableau[xy.x][xy.y][catSym] || [];
+}
+
+function casesProches(xyCentre, distance, limite, catSyms, tableau) {
+  if (trace) console.log('casesProches', ...arguments);
+
+  // el : Autour de el
+  // distance = Rayon (nb cases) autour de el
+  // limite = nombre de cases ramenées
+  // catSyms = '🌱🌾' : catégorie(s) de figurines recherchés
+  // catSyms = ' ▒▓' : catégorie(s) de figurines interdites
+  // tableau = undefined | cases | zones
+
+  const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
+    listeProches = [];
+
+  // Randomize search order
+  for (let i = Math.random() * deltasProches.length; i > 0; i--)
+    deltasProches.push(deltasProches.shift());
+
+  // Recherche dans un rayon donné
+  for (let d = 1; d <= Math.min(distance, rayonRechercheMax); d++)
+    // Pour chacune des 6 directions
+    deltasProches.forEach(delta => {
+      // On parcours le côté
+      for (let i = 0; i < d && listeProches.length < limite; i++) {
+        const XYrech = {
+            x: xyCentre.x + d * delta[0] + i * delta[2],
+            y: xyCentre.y + d * delta[1] + i * delta[3],
+          },
+          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech, catSyms)),
+          filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
+
+        if ((!catSym.length && !filteredCaseRech.length) || // Recherche case vide ou autorisée
+          (catSym.length && figCaseRech.length)) // Recherche catégories
+          listeProches.push([ // Préparation du retour
+            ...delta,
+            XYrech,
+            caseEl(tableau || cases, XYrech, catSym),
+            tableau === zones ? d * tailleZone : d, // Distance du centre
+          ]);
+      };
+    });
+
+  if (tableau === zones ||
+    listeProches.length >= limite)
+    return listeProches;
+
+  return listeProches.concat(
+    casesProches(
+      xyzFromXY(xyCentre),
+      distance / tailleZone,
+      limite - listeProches.length,
+      catSyms,
+      zones)
+  );
 }
 
 function rebuildCases() {
@@ -148,7 +203,8 @@ function rebuildCases() {
         JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
         (window.location.search ?
           ' ' + el.xy.x + ',' + el.xy.y +
-          ' ' + xyzFromXY(el.xy).x + ',' + xyzFromXY(el.xy).y :
+          ' ' + xyzFromXY(el.xy).x + ',' + xyzFromXY(el.xy).y +
+          ' ' + el.style.left + ',' + el.style.top :
           '');
 
       // Data to be saved in a file
@@ -161,62 +217,21 @@ function rebuildCases() {
     }
 }
 
-function casesProches(xyCentre, distance, limite, catSyms, tableau) {
-  //if (trace) console.log('casesProches', ...arguments);
-
-  // el : Autour de el
-  // distance = Rayon (nb cases) autour de el
-  // limite = nombre de cases ramenées
-  // catSyms = '🌱 🌾' : catégorie(s) de figurines recherchés (strings unicode separated by spaces)
-  // tableau = undefined | cases | zones
-
-  const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
-    listeProches = [];
-
-  // Randomize search order
-  for (let i = Math.random() * deltasProches.length; i > 0; i--)
-    deltasProches.push(deltasProches.shift());
-
-  // Recherche dans un rayon donné
-  for (let d = 1; d <= Math.min(distance, rayonRechercheMax); d++)
-    // Pour chacune des 6 directions
-    deltasProches.forEach(delta => {
-      // On parcours le côté
-      for (let i = 0; i < d && listeProches.length < limite; i++) {
-        const XYrech = {
-            x: xyCentre.x + d * delta[0] + i * delta[2],
-            y: xyCentre.y + d * delta[1] + i * delta[3],
-          },
-          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech)),
-          filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
-
-        if ((catSym === '' && !filteredCaseRech.length) || // Recherche case vide
-          (catSym !== '' && figCaseRech.length)) // Recherche catégories
-          listeProches.push([ // Préparation du retour
-            ...delta,
-            XYrech,
-            caseEl(tableau || cases, XYrech, catSym),
-            tableau === zones ? d * tailleZone : d, // Distance du centre
-          ]);
-      };
-    });
-
-  if (tableau === zones ||
-    listeProches.length >= limite)
-    return listeProches;
-
-  return listeProches.concat(
-    casesProches(
-      xyzFromXY(xyCentre),
-      distance / tailleZone,
-      limite - listeProches.length,
-      catSyms,
-      zones)
-  );
-}
-
 // VERBES : function(el, ...)
 // return true : Succés
+
+function supprimer(el, keep) {
+  //if (trace) console.log('supprimer', el.innerHTML, ...arguments);
+
+  if (el.xy) {
+    delete caseEl(cases, el.xy)[el.innerHTML];
+
+    if (!keep)
+      el.remove();
+
+    return true;
+  }
+}
 
 function deplacer(el, pos, pos2) {
   if (trace) console.log('deplacer', el.innerHTML, ...arguments);
@@ -233,19 +248,6 @@ function deplacer(el, pos, pos2) {
     },
     newXY = xyFromPix(newPix);
 
-  // Ne peut deplacer que vers une case où il n'y a que des objets autorisés
-  //TODO BUG n'a pas les symboles autorisés
-  /*//TODO ??? que des objets autorisés
-  if (typeof pos !== 'undefined' &&
-    catSym !== '') {
-    const figCaseRech = Object.keys(caseEl(cases, newXY)),
-      filteredCaseRech = figCaseRech.filter(v => !(catSyms + '▒▓⛲').includes(v)); //TODO symboles aotorisés
-
-    if (filteredCaseRech.length)
-      return false;
-  }
-  */
-
   if (el.parentNode &&
     (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
   )
@@ -261,9 +263,7 @@ function deplacer(el, pos, pos2) {
   }
 
   // On change l'el de case
-  if (el.xy)
-    delete caseEl(cases, el.xy)[el.innerHTML];
-
+  supprimer(el, true);
   caseEl(cases, newXY, el.innerHTML, el);
 
   return true;
@@ -304,7 +304,6 @@ function creer(catSym, pos, pos2) {
   el.ondragstart = dragstart;
   /* eslint-disable-next-line no-use-before-define */
   el.ondragend = dragend;
-  /* eslint-disable-next-line no-use-before-define */
   el.ondblclick = evt => supprimer(evt.target);
 
   // Hold transition moves when hover
@@ -324,22 +323,11 @@ function creer(catSym, pos, pos2) {
   return el;
 }
 
-function supprimer(el) {
-  if (trace) console.log('supprimer', el.innerHTML, ...arguments);
-
-  delete caseEl(cases, el.xy)[el.innerHTML];
-  el.remove();
-
-  return true;
-}
-
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position vers une case vide ou ne contenant que certaines catégories
-function transformer(el, catSyms, pos, pos2) {
+function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
   if (trace) console.log('transformer', el.innerHTML, ...arguments);
-  //TODO résorber transformer => essaimer
 
-  // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
   // el, '💧' : transforme en cette catégorie
   // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
@@ -359,20 +347,20 @@ function transformer(el, catSyms, pos, pos2) {
   return el;
 }
 
-function errer(el) {
-  if (trace) console.log('errer', el.innerHTML, el.noIteration, noIteration, [arguments]);
+function errer(el, catSymsAuth) {
+  if (trace) console.log('errer', el.innerHTML, ...arguments);
 
-  const pp = casesProches(el.xy, 1, 1, ' ▒ ▓'); //TODO faire de cat autorisées un argument
+  const pp = casesProches(el.xy, 1, 1, catSymsAuth);
+  //TODO autoriser à traverser des catégories autorisées
 
   if (pp.length)
     return deplacer(el, pp[0][4]); // errer
 }
 
 function rapprocher(el, catSym) { // Jusqu'à la même case
-  if (trace) console.log('rapprocher', el.innerHTML, catSym, el.xy, el.noIteration, noIteration, [arguments]);
+  if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSym);
-  //TODO symboles autorisés
 
   if (pp.length) {
     const nouvelX = el.xy.x + pp[0][0],
@@ -382,20 +370,20 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
   }
 }
 
-function unir(el, catSym, catSymFinal) { // Dans la même case
+function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
   // 💧 : absorbe 💧
-  // 💧, 🌽 : absorbe 💧 et se transforme en 🌽
+  // 💧, 🌽 : absorbe 💧 et se transforme en 🌽 //TODO !!!
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
   const trouveEl = caseEl(cases, el.xy, catSym);
 
-  if (trouveEl) {
+  if (trouveEl.length) {
     for (const property in trouveEl.data) {
       // Récupérer les données de l'autre
       el.data[property] = ~~el.data[property] + trouveEl.data[property]
       el.data.age = 0;
 
-      supprimer(trouveEl); // Le supprimer
+      supprimer(trouveEl);
 
       if (catSymFinal)
         return muer(el, catSymFinal);
@@ -404,7 +392,7 @@ function unir(el, catSym, catSymFinal) { // Dans la même case
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function autogenerer(el, catSym, catSymFinal) { // Dans la même case
+function autogenerer(el, catSym, catSymFinal) { // Dans la même case //TODO
   if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
 }
@@ -618,7 +606,7 @@ o = {
     [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Homme',
       eau: 50,
@@ -629,7 +617,7 @@ o = {
     [rapprocher, '🧔'],
     //[unir, '🧔', '🧔👩'],
     //...vivant,
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Femme',
       eau: 50,
@@ -639,7 +627,7 @@ o = {
   '🧔👩': [
     [muer, '👫', d => d.age > 10],
     //...vivant,
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Amoureux',
     },
@@ -647,9 +635,24 @@ o = {
   '👫': [
     //...vivant,
     //[muer, '👪', d => d.age > 5],
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Couple',
+    },
+  ],
+  '🧍': [
+    //...vivant,
+    [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
+    [muer, '👩', d => d.age > 1],
+    [errer, ' ▒▓'],
+    {
+      cat: 'Enfant',
+    },
+  ],
+  '💀': [
+    [muer, '▒', d => d.age > 10],
+    {
+      cat: 'Mort',
     },
   ],
 
@@ -670,7 +673,7 @@ o = {
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
-    [errer], {
+    [errer, ' ▒▓'], {
       cat: 'Eau',
       eau: 100,
     },
@@ -680,7 +683,7 @@ o = {
     [rapprocher, '🌾'],
     [rapprocher, '🌱'],
     [supprimer, d => d.eau <= 0],
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Eau',
     },
@@ -694,7 +697,7 @@ o = {
     [muer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
-    [errer], {
+    [errer, ' ▒▓'], {
       cat: 'Graine',
     },
   ],
@@ -738,24 +741,9 @@ o = {
   '👪': [
     //...vivant,
     //[muer, '👫', d => d.age > 10], //TODO wwwWproduire enfant
-    [errer],
+    [errer, ' ▒▓'],
     {
       cat: 'Famille',
-    },
-  ],
-  '🧍': [
-    //...vivant,
-    [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
-    [muer, '👩', d => d.age > 10],
-    [errer],
-    {
-      cat: 'Enfant',
-    },
-  ],
-  '💀': [
-    [muer, '▒', d => d.age > 10],
-    {
-      cat: 'Mort',
     },
   ],
   // Cycle des animaux
@@ -798,19 +786,20 @@ loadWorld([
   */
 
   //['⛲', 120, 100],
-  //['💧', 200, 160],
+  ['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
   //['👩', 120, 200],
   //['🧔', 200, 300],
+  //['🧍', 200, 300],
 ]);
 
-Object.keys(o).forEach((catSym, i) => {
-  creer('🧍', {
+/*Object.keys(o).forEach((catSym, i) => {
+  creer(catSym, {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });
-}); /**/
+});*/
 
 // Debug
 if (window.location.search) {
@@ -823,7 +812,7 @@ if (window.location.search) {
     if (96 < evt.keyCode && evt.keyCode < 106) // Keypad numérique 1 à 9
       noIterationMax = noIteration + evt.keyCode % 48; // Relance n itérations
     else if (evt.keyCode === 32) // Espace
-      noIterationMax = noIteration < noIterationMax ? 0 : 1000000; // Toggle 
+      noIterationMax = noIteration < noIterationMax ? 0 : 1000000; // Toggle
     else // Autre touche
       noIterationMax = 0; // Arrêt
 
