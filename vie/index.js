@@ -95,8 +95,6 @@ function scenario(catSym) {
 
 // Get / set cases[] & zones[] el
 function caseEl(tableau, xy, catSym, el) {
-  //if (trace) console.log('caseEl', ...arguments);
-
   // tableau = cases[] / zones[]
   // 7, 7 : returns the case contents []
   // 7, 7, 🌿 : return the html element of thois category
@@ -124,16 +122,17 @@ function caseEl(tableau, xy, catSym, el) {
 }
 
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
-  if (trace) console.log('casesProches', ...arguments);
-
   // el : Autour de el
   // distance = Rayon (nb cases) autour de el
   // limite = nombre de cases ramenées
-  // catSyms = '🌱🌾' : catégorie(s) de figurines recherchés
-  // catSyms = ' ▒▓' : catégorie(s) de figurines interdites
+  // catSyms = '🌱 🌾' : symboles de catégorie(s) de figurines recherchés séparés par un espace
+  // catSyms = ' ▒ ▓' : symboles de catégorie(s) de figurines interdites (commence par un espace)
   // tableau = undefined | cases | zones
 
-  const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
+  if (trace) console.log('casesProches', ...arguments);
+
+  const catSymsArray = (catSyms ? catSyms : '').split(' '),
+    catSym = catSymsArray[0],
     listeProches = [];
 
   // Randomize search order
@@ -150,11 +149,11 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
             x: xyCentre.x + d * delta[0] + i * delta[2],
             y: xyCentre.y + d * delta[1] + i * delta[3],
           },
-          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech, catSyms)),
-          filteredCaseRech = figCaseRech.filter(v => !catSyms.includes(v));
+          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech, catSym)),
+          filteredCaseRech = figCaseRech.filter(v => !catSymsArray.includes(v));
 
-        if ((!catSym.length && !filteredCaseRech.length) || // Recherche case vide ou autorisée
-          (catSym.length && figCaseRech.length)) // Recherche catégories
+        if ((!catSym && !filteredCaseRech.length) || // Recherche case vide ou autorisée
+          (catSym && figCaseRech.length)) // Recherche catégories
           listeProches.push([ // Préparation du retour
             ...delta,
             XYrech,
@@ -165,6 +164,7 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
     });
 
   if (tableau === zones ||
+    distance < tailleZone ||
     listeProches.length >= limite)
     return listeProches;
 
@@ -221,7 +221,7 @@ function rebuildCases() {
 // return true : Succés
 
 function supprimer(el, keep) {
-  //if (trace) console.log('supprimer', el.innerHTML, ...arguments);
+  if (trace) console.log('supprimer', el.innerHTML, ...arguments);
 
   if (el.xy) {
     delete caseEl(cases, el.xy)[el.innerHTML];
@@ -326,21 +326,21 @@ function creer(catSym, pos, pos2) {
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position vers une case vide ou ne contenant que certaines catégories
 function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
-  if (trace) console.log('transformer', el.innerHTML, ...arguments);
-
   // el, '💧' : transforme en cette catégorie
   // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
   // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
 
-  const newCatSyms = catSyms.split(' '),
-    catSym = newCatSyms.shift();
+  if (trace) console.log('transformer', el.innerHTML, ...arguments);
+
+  const newCatSymsArray = catSyms.split(' '),
+    catSym = newCatSymsArray.shift();
 
   muer(el, catSym);
   deplacer(el, pos, pos2);
 
   // On crée les nouvelles figurines
   if (divEls.length < nbMaxFig) // S'il y a de la ressource
-    newCatSyms.forEach(ncs => {
+    newCatSymsArray.forEach(ncs => {
       creer(ncs, el.xy);
     });
 
@@ -351,28 +351,29 @@ function errer(el, catSymsAuth) {
   if (trace) console.log('errer', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, 1, 1, catSymsAuth);
-  //TODO autoriser à traverser des catégories autorisées
 
   if (pp.length)
     return deplacer(el, pp[0][4]); // errer
 }
 
-function rapprocher(el, catSym) { // Jusqu'à la même case
+function rapprocher(el, catSym, catSymsAuth) { // Jusqu'à la même case
+  // catSym = symbole recherché
+  // catSymsAuth = symboles autorisés (commence par ' ')
+
+  //TODO quel est le bon catSym, catSymsAuth
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
-  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSym);
+  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsAuth);
 
-  if (pp.length) {
-    const nouvelX = el.xy.x + pp[0][0],
-      nouvelY = el.xy.y + pp[0][1];
-
-    return deplacer(el, nouvelX, nouvelY);
-  }
+  if (pp.length &&
+    caseEl(cases, pp[0][4], catSym).length)
+    return deplacer(el, pp[0][4]);
 }
 
 function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
   // 💧 : absorbe 💧
   // 💧, 🌽 : absorbe 💧 et se transforme en 🌽 //TODO !!!
+
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
   const trouveEl = caseEl(cases, el.xy, catSym);
@@ -414,8 +415,7 @@ function iterer() {
 
     // Exécution des actions
     gameEls.forEach(el => {
-      if ( //TODO ??? el.noIteration < noIteration && // S'il n'a pas déjà été traité
-        el.parentNode && // S'il est affichable
+      if (el.parentNode && // S'il est affichable
         el.data && !el.hovered // Si le curseur n'est pas au dessus
       ) {
         if (typeof o[el.innerHTML] === 'object')
@@ -560,6 +560,8 @@ function loadWorld(datas) {
 function load(evt) {
   const blob = evt.target.files[0],
     reader = new FileReader();
+  //TODO BUG ne marche pas si charge fontaine 2 fois
+  //index.js:570: Failed to execute 'readAsText' parameter 1 is not of type 'Blob'.
 
   reader.readAsText(blob);
   reader.onload = () =>
@@ -606,7 +608,7 @@ o = {
     [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
-    [errer, ' ▒▓'],
+    //[errer, ' ▒ ▓'],
     {
       cat: 'Homme',
       eau: 50,
@@ -614,10 +616,10 @@ o = {
     },
   ],
   '👩': [
-    [rapprocher, '🧔'],
+    //[rapprocher, '🧔'],
     //[unir, '🧔', '🧔👩'],
     //...vivant,
-    [errer, ' ▒▓'],
+    //[errer, ' ▒ ▓'],
     {
       cat: 'Femme',
       eau: 50,
@@ -627,7 +629,7 @@ o = {
   '🧔👩': [
     [muer, '👫', d => d.age > 10],
     //...vivant,
-    [errer, ' ▒▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Amoureux',
     },
@@ -635,7 +637,7 @@ o = {
   '👫': [
     //...vivant,
     //[muer, '👪', d => d.age > 5],
-    [errer, ' ▒▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Couple',
     },
@@ -644,7 +646,7 @@ o = {
     //...vivant,
     [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
     [muer, '👩', d => d.age > 1],
-    [errer, ' ▒▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Enfant',
     },
@@ -673,7 +675,7 @@ o = {
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
-    [errer, ' ▒▓'], {
+    [errer, ' ▒ ▓'], {
       cat: 'Eau',
       eau: 100,
     },
@@ -683,7 +685,7 @@ o = {
     [rapprocher, '🌾'],
     [rapprocher, '🌱'],
     [supprimer, d => d.eau <= 0],
-    [errer, ' ▒▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Eau',
     },
@@ -697,7 +699,7 @@ o = {
     [muer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
-    [errer, ' ▒▓'], {
+    [errer, ' ▒ ▓'], {
       cat: 'Graine',
     },
   ],
@@ -740,8 +742,8 @@ o = {
 
   '👪': [
     //...vivant,
-    //[muer, '👫', d => d.age > 10], //TODO wwwWproduire enfant
-    [errer, ' ▒▓'],
+    //[muer, '👫', d => d.age > 10], //TODO produire enfant
+    [errer, ' ▒ ▓'],
     {
       cat: 'Famille',
     },
@@ -778,20 +780,20 @@ loadWorld([
   ["🧱", 224, 112],
   ["▒", 240, 112],
   ["🧱", 208, 128],
-  ["🧔", 224, 128],
+  ["💧", 224, 128],
   ["🧱", 240, 128],
   ["🧱", 208, 144],
   ["▓", 224, 144],
   ["🧱", 240, 144],
-  */
 
-  //['⛲', 120, 100],
+  ['⛲', 120, 100],
   ['💧', 200, 160],
-  //['🌽', 120, 100],
-  //['❀', 120, 100],
-  //['👩', 120, 200],
-  //['🧔', 200, 300],
-  //['🧍', 200, 300],
+  ['🌽', 120, 100],
+  ['❀', 120, 100],
+  ['🧍', 200, 300],
+  */
+  ['👩', 120, 140],
+  ['🧔', 150, 170],
 ]);
 
 /*Object.keys(o).forEach((catSym, i) => {
