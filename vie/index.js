@@ -168,7 +168,6 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // distance = Rayon (nb cases) autour de el
   // limite = nombre de cases ramenées
   // catSyms = '🌱 🌾' : catégorie(s) de figurines recherchés (strings unicode separated by spaces)
-  // catSyms = ' ▒ ▓' : recherche de case vide ou contenant un de ces symboles
   // tableau = undefined | cases | zones
 
   const catSym = (catSyms || '').split(' ')[0], // Premier symbole dans la liste
@@ -219,8 +218,8 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
 // VERBES : function(el, ...)
 // return true : Succés
 
-function bouger(el, pos, pos2) {
-  if (trace) console.log('bouger', el.innerHTML, ...arguments);
+function deplacer(el, pos, pos2) {
+  if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
   const xyElA = el.xy || {},
     xyA = {
@@ -234,7 +233,7 @@ function bouger(el, pos, pos2) {
     },
     newXY = xyFromPix(newPix);
 
-  // Ne peut bouger que vers une case où il n'y a que des objets autorisés
+  // Ne peut deplacer que vers une case où il n'y a que des objets autorisés
   //TODO BUG n'a pas les symboles autorisés
   /*//TODO ??? que des objets autorisés
   if (typeof pos !== 'undefined' &&
@@ -254,7 +253,7 @@ function bouger(el, pos, pos2) {
     window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
       el.style.left = newPix.left + 'px';
       el.style.top = newPix.top + 'px';
-    }, 50); //TODO BUG pourquoi faut-il attendre un peu ???
+    });
   else {
     // On y va direct
     el.style.left = newPix.left + 'px';
@@ -272,6 +271,7 @@ function bouger(el, pos, pos2) {
 
 function muer(el, catSym) {
   if (trace) console.log('muer', el.innerHTML, ...arguments);
+  //TODO opacity transition
 
   const scn = scenario(catSym);
 
@@ -305,7 +305,7 @@ function creer(catSym, pos, pos2) {
   /* eslint-disable-next-line no-use-before-define */
   el.ondragend = dragend;
   /* eslint-disable-next-line no-use-before-define */
-  el.ondblclick = evt => transformer(evt.target); // supprimer
+  el.ondblclick = evt => supprimer(evt.target);
 
   // Hold transition moves when hover
   el.onmouseover = () => {
@@ -318,7 +318,7 @@ function creer(catSym, pos, pos2) {
   };
 
   muer(el, catSym);
-  bouger(el, pos, pos2);
+  deplacer(el, pos, pos2);
   document.body.appendChild(el);
 
   return el;
@@ -337,6 +337,7 @@ function supprimer(el) {
 // Change la position vers une case vide ou ne contenant que certaines catégories
 function transformer(el, catSyms, pos, pos2) {
   if (trace) console.log('transformer', el.innerHTML, ...arguments);
+  //TODO résorber transformer => essaimer
 
   // el, ' ▒ ▓', (pix || xy || x, y) : déplace la figurine vers des cases vides ou autorisées
   // el, '💧' : transforme en cette catégorie
@@ -347,7 +348,7 @@ function transformer(el, catSyms, pos, pos2) {
     catSym = newCatSyms.shift();
 
   muer(el, catSym);
-  bouger(el, pos, pos2);
+  deplacer(el, pos, pos2);
 
   // On crée les nouvelles figurines
   if (divEls.length < nbMaxFig) // S'il y a de la ressource
@@ -364,7 +365,7 @@ function errer(el) {
   const pp = casesProches(el.xy, 1, 1, ' ▒ ▓'); //TODO faire de cat autorisées un argument
 
   if (pp.length)
-    return transformer(el, ' ▒ ▓', pp[0][4]); // errer
+    return deplacer(el, pp[0][4]); // errer
 }
 
 function rapprocher(el, catSym) { // Jusqu'à la même case
@@ -377,10 +378,7 @@ function rapprocher(el, catSym) { // Jusqu'à la même case
     const nouvelX = el.xy.x + pp[0][0],
       nouvelY = el.xy.y + pp[0][1];
 
-    return transformer(el, // rapprocher
-      el.innerHTML,
-      nouvelX, nouvelY,
-    ); // Accepte les cases contenant ce symbole
+    return deplacer(el, nouvelX, nouvelY);
   }
 }
 
@@ -400,14 +398,14 @@ function unir(el, catSym, catSymFinal) { // Dans la même case
       supprimer(trouveEl); // Le supprimer
 
       if (catSymFinal)
-        return transformer(el, catSymFinal);
+        return muer(el, catSymFinal);
     }
   }
 }
 
 /* eslint-disable-next-line no-unused-vars */
 function autogenerer(el, catSym, catSymFinal) { // Dans la même case
-  if (trace) console.log('bouger', el.innerHTML, ...arguments);
+  if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
 }
 
@@ -533,7 +531,7 @@ document.ondrop = evt => {
   if (dragInfo.tagName === 'LI')
     creer(dragInfo.el.innerHTML, px);
   else {
-    bouger(dragInfo.el, px);
+    deplacer(dragInfo.el, px);
     document.body.appendChild(dragInfo.el);
   }
 
@@ -546,7 +544,7 @@ function dragend(evt) {
 
   if (dragInfo && // Sauf si ça déjà terminé par ondrop
     document.elementFromPoint(evt.x, evt.y)) { // Sauf si c'est en dehors de la fenêtre
-    bouger(dragInfo.el, dragInfo.bounds)
+    deplacer(dragInfo.el, dragInfo.bounds)
     document.body.appendChild(dragInfo.el);
   }
 }
@@ -620,7 +618,7 @@ o = {
     [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       cat: 'Homme',
       eau: 50,
@@ -631,7 +629,7 @@ o = {
     [rapprocher, '🧔'],
     //[unir, '🧔', '🧔👩'],
     //...vivant,
-    //[errer],
+    [errer],
     {
       cat: 'Femme',
       eau: 50,
@@ -639,7 +637,7 @@ o = {
     },
   ],
   '🧔👩': [
-    [transformer, '👫', d => d.age > 10],
+    [muer, '👫', d => d.age > 10],
     //...vivant,
     [errer],
     {
@@ -648,7 +646,7 @@ o = {
   ],
   '👫': [
     //...vivant,
-    //[transformer, '👪', 5],
+    //[muer, '👪', d => d.age > 5],
     [errer],
     {
       cat: 'Couple',
@@ -658,7 +656,7 @@ o = {
   // Cycle de l'eau 🚣🚢🌊🐟🌧
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
-      [transformer, // Verbe à exécuter
+      [transformer, // Verbe à exécuter //TODO faire essaimer
         '⛲ 💧', // Symboles pour remplacer et créer
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
         //() => Math.random() < 0.2 // Test d'applicabilité de la règle
@@ -668,7 +666,7 @@ o = {
       },
     ],
   '💧': [
-    //[transformer, '💦', d => d.eau < 10],
+    [muer, '💦', d => d.eau < 10],
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
@@ -681,20 +679,19 @@ o = {
     [rapprocher, '🌽'],
     [rapprocher, '🌾'],
     [rapprocher, '🌱'],
-    [transformer, d => d.eau <= 0],
+    [supprimer, d => d.eau <= 0],
     [errer],
     {
       cat: 'Eau',
     },
   ],
 
-  ////////////TODO TEST
   // Cycle des plantes
   // Fruits🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
   // 🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌻
   // Arbres 🌿🌳🍂🔥
   '❀': [
-    [transformer, '🌱', d => d.age > 10],
+    [muer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
     [errer], {
@@ -704,8 +701,8 @@ o = {
   '🌱': [
     [unir, '💧'],
     [unir, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    [transformer, '🌾', d => d.age > 10],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌾', d => d.age > 10],
     {
       cat: 'Pousse',
     },
@@ -713,8 +710,8 @@ o = {
   '🌾': [
     [unir, '💧'],
     [unir, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    [transformer, '🌽', d => d.age > 10],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '🌽', d => d.age > 10],
     {
       cat: 'Plante',
     },
@@ -722,9 +719,9 @@ o = {
   '🌽': [
     [unir, '💧'],
     [unir, '💦'],
-    //[transformer, '▒', d => d.eau <= 0],
-    //[transformer, '▓', d => d.eau > 100],
-    [transformer, '🌽 ❀', () => Math.random() < 0.2],
+    [muer, '▒', d => d.eau <= 0],
+    [muer, '▓', d => d.eau > 100],
+    [transformer, '🌽 ❀', () => Math.random() < 0.2], //TODO faire essaimer
     {
       cat: 'Mais',
     },
@@ -740,8 +737,7 @@ o = {
 
   '👪': [
     //...vivant,
-    //[transformer, '👫', 15],
-    //TODO wwwWproduire enfant
+    //[muer, '👫', d => d.age > 10], //TODO wwwWproduire enfant
     [errer],
     {
       cat: 'Famille',
@@ -749,14 +745,15 @@ o = {
   ],
   '🧍': [
     //...vivant,
-    //TODO transformer 50% 🧔 50% 👩
+    [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
+    [muer, '👩', d => d.age > 10],
     [errer],
     {
       cat: 'Enfant',
     },
   ],
   '💀': [
-    //[transformer, '▒', 15],
+    [muer, '▒', d => d.age > 10],
     {
       cat: 'Mort',
     },
@@ -804,16 +801,16 @@ loadWorld([
   //['💧', 200, 160],
   //['🌽', 120, 100],
   //['❀', 120, 100],
-  ['👩', 120, 200],
-  ['🧔', 200, 300],
+  //['👩', 120, 200],
+  //['🧔', 200, 300],
 ]);
 
-/*Object.keys(o).forEach((catSym, i) => {
-  creer(catSym, {
+Object.keys(o).forEach((catSym, i) => {
+  creer('🧍', {
     left: 70 + Math.floor(i / 4) * 70,
     top: 70 + i % 4 * 70
   });
-});*/
+}); /**/
 
 // Debug
 if (window.location.search) {
