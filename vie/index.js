@@ -18,12 +18,14 @@
      la première ayant abouti interrompt la liste
  */
 
-const trace = window.location.search.match(/trace/u),
-  debugInit = window.location.search.match(/[0-9]+/u),
-  divEls = document.getElementsByTagName('div'),
-  statsEl = document.getElementById('stats'),
+/* global scenarii */
+
+const divEls = document.getElementsByTagName('div'),
   liEls = document.getElementsByTagName('li'),
   helpEl = document.getElementById('help'),
+  statsEl = document.getElementById('stats'),
+  trace = window.location.search.match(/trace/u),
+  debugInit = window.location.search.match(/[0-9]+/u),
   deltasProches = [ // [<centre -> départ du côté>, <direction du parcours du côté>]
     [-1, 0, 0, -1],
     [1, 0, 0, 1],
@@ -39,8 +41,7 @@ const trace = window.location.search.match(/trace/u),
   recurrence = 1000, // ms
   nbMaxFig = 255; // Nombre maximum de figurines dans la femnêtre
 
-let o = {},
-  dragInfo = null,
+let dragInfo = null,
   noIteration = 0,
   noIterationMax = 1000000, // Starts immediately
   timeoutID = null,
@@ -82,7 +83,7 @@ function xyzFromXY(xy) {
 }
 
 function scenario(catSym) {
-  const scn = o[catSym];
+  const scn = scenarii[catSym];
 
   // Le symbole doit avoir un senario
   if (typeof scn === 'undefined') {
@@ -199,7 +200,7 @@ function rebuildCases() {
 
       // Figurines title
       el.title =
-        o[el.innerHTML][o[el.innerHTML].length - 1].cat + ' ' +
+        scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1].cat + ' ' +
         JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
         (window.location.search ?
           ' ' + el.xy.x + ',' + el.xy.y +
@@ -325,6 +326,7 @@ function creer(catSym, pos, pos2) {
 
 // Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
 // Change la position vers une case vide ou ne contenant que certaines catégories
+/* eslint-disable-next-line no-unused-vars */
 function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
   // el, '💧' : transforme en cette catégorie
   // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
@@ -347,6 +349,7 @@ function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
   return el;
 }
 
+/* eslint-disable-next-line no-unused-vars */
 function errer(el, catSymsAuth) {
   if (trace) console.log('errer', el.innerHTML, ...arguments);
 
@@ -370,6 +373,7 @@ function rapprocher(el, catSym, catSymsAuth) { // Jusqu'à la même case
     return deplacer(el, pp[0][4]);
 }
 
+/* eslint-disable-next-line no-unused-vars */
 function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
   // 💧 : absorbe 💧
   // 💧, 🌽 : absorbe 💧 et se transforme en 🌽 //TODO !!!
@@ -418,8 +422,8 @@ function iterer() {
       if (el.parentNode && // S'il est affichable
         el.data && !el.hovered // Si le curseur n'est pas au dessus
       ) {
-        if (typeof o[el.innerHTML] === 'object')
-          o[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
+        if (typeof scenarii[el.innerHTML] === 'object')
+          scenarii[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
           .every(a => // Exécute chaque action tant qu'elle retourne false
             {
               // Condition to the last argument (function)
@@ -471,8 +475,38 @@ function iterer() {
   }
 }
 
+function loadWorld(datas) {
+  // Vide le monde
+  while (divEls.length)
+    divEls[0].remove();
+
+  // Ajoute les objets du json
+  datas.forEach(d => {
+    const el = creer(d[0], {
+      left: d[1],
+      top: d[2],
+    });
+
+    if (el && d.data)
+      el.data = d[4];
+  });
+
+  rebuildCases();
+}
+
 // RÉPONSES WINDOW / SOURIS / CLAVIER
-window.onload = iterer;
+window.onload = () => {
+  // Initialisation des modèles
+  [...liEls].forEach(el => {
+    el.data = {
+      ...scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1],
+    };
+    el.title = el.data.cat;
+    delete el.data.cat;
+  });
+
+  iterer();
+}
 
 function dragstart(evt) {
   if (trace) console.log('dragstart', evt);
@@ -537,25 +571,6 @@ function dragend(evt) {
   }
 }
 
-function loadWorld(datas) {
-  // Vide le monde
-  while (divEls.length)
-    divEls[0].remove();
-
-  // Ajoute les objets du json
-  datas.forEach(d => {
-    const el = creer(d[0], {
-      left: d[1],
-      top: d[2],
-    });
-
-    if (el && d.data)
-      el.data = d[4];
-  });
-
-  rebuildCases();
-}
-
 /* eslint-disable-next-line no-unused-vars */
 function load(evt) {
   const blob = evt.target.files[0],
@@ -590,218 +605,6 @@ const save = async () => {
 
   await writer.close();
 }
-
-// SCÉNARII
-/*
-const consommer = [wwwWrapprocher, wwwWabsorber];
-  vivant = [
-    [consommer, '💧', 'eau'],
-    [consommer, '🌽', 'energie'],
-    [consommer, '🌾', 'energie'],
-    [consommer, '🌱', 'energie'],
-  ];
-*/
-
-o = {
-  // Cycle des humains 🧒👶
-  '🧔': [
-    [rapprocher, '👩'],
-    //[unir, '👩', '🧔👩'],
-    //...vivant,
-    //[errer, ' ▒ ▓'],
-    {
-      cat: 'Homme',
-      eau: 50,
-      energie: 50,
-    },
-  ],
-  '👩': [
-    //[rapprocher, '🧔'],
-    //[unir, '🧔', '🧔👩'],
-    //...vivant,
-    //[errer, ' ▒ ▓'],
-    {
-      cat: 'Femme',
-      eau: 50,
-      energie: 50,
-    },
-  ],
-  '🧔👩': [
-    [muer, '👫', d => d.age > 10],
-    //...vivant,
-    [errer, ' ▒ ▓'],
-    {
-      cat: 'Amoureux',
-    },
-  ],
-  '👫': [
-    //...vivant,
-    //[muer, '👪', d => d.age > 5],
-    [errer, ' ▒ ▓'],
-    {
-      cat: 'Couple',
-    },
-  ],
-  '🧍': [
-    //...vivant,
-    [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
-    [muer, '👩', d => d.age > 1],
-    [errer, ' ▒ ▓'],
-    {
-      cat: 'Enfant',
-    },
-  ],
-  '💀': [
-    [muer, '▒', d => d.age > 10],
-    {
-      cat: 'Mort',
-    },
-  ],
-
-  // Cycle de l'eau 🚣🚢🌊🐟🌧
-  '⛲': // Scénario de la catégorie d'objet
-    [ // Action élémentaire du scénario
-      [transformer, // Verbe à exécuter //TODO faire essaimer
-        '⛲ 💧', // Symboles pour remplacer et créer
-        //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
-        //() => Math.random() < 0.2 // Test d'applicabilité de la règle
-      ],
-      { // Init des data quand on crée
-        cat: 'Fontaine',
-      },
-    ],
-  '💧': [
-    [muer, '💦', d => d.eau < 10],
-    //[wwwWrapprocher, '🌱', 3],
-    //[wwwWrapprocher, '🌾', 3],
-    //[wwwWrapprocher, '🌽', 3],
-    [errer, ' ▒ ▓'], {
-      cat: 'Eau',
-      eau: 100,
-    },
-  ],
-  '💦': [
-    [rapprocher, '🌽'],
-    [rapprocher, '🌾'],
-    [rapprocher, '🌱'],
-    [supprimer, d => d.eau <= 0],
-    [errer, ' ▒ ▓'],
-    {
-      cat: 'Eau',
-    },
-  ],
-
-  // Cycle des plantes
-  // Fruits🥑🍆🌰🍇🍈🍉🍊🍋🍋‍🍌🍍🥭🍎🍏🍐🍑🍒🍓🥝🍅🥥💮🌸
-  // 🥦🍄🥔🥕🌽🌶️🥒🥬🧄🧅🥜🎕🌻
-  // Arbres 🌿🌳🍂🔥
-  '❀': [
-    [muer, '🌱', d => d.age > 10],
-    //[wwwWrapprocher, '▒', 3],
-    //[wwwWabsorber, '▒', '🌱'],
-    [errer, ' ▒ ▓'], {
-      cat: 'Graine',
-    },
-  ],
-  '🌱': [
-    [unir, '💧'],
-    [unir, '💦'],
-    [muer, '▒', d => d.eau <= 0],
-    [muer, '🌾', d => d.age > 10],
-    {
-      cat: 'Pousse',
-    },
-  ],
-  '🌾': [
-    [unir, '💧'],
-    [unir, '💦'],
-    [muer, '▒', d => d.eau <= 0],
-    [muer, '🌽', d => d.age > 10],
-    {
-      cat: 'Plante',
-    },
-  ],
-  '🌽': [
-    [unir, '💧'],
-    [unir, '💦'],
-    [muer, '▒', d => d.eau <= 0],
-    [muer, '▓', d => d.eau > 100],
-    [transformer, '🌽 ❀', () => Math.random() < 0.2], //TODO faire essaimer
-    {
-      cat: 'Mais',
-    },
-  ],
-
-  // Cycle des surfaces
-  '▒': [{
-    cat: 'Terre',
-  }],
-  '▓': [{
-    cat: 'Herbe',
-  }],
-
-  '👪': [
-    //...vivant,
-    //[muer, '👫', d => d.age > 10], //TODO produire enfant
-    [errer, ' ▒ ▓'],
-    {
-      cat: 'Famille',
-    },
-  ],
-  // Cycle des animaux
-  // 🥚🐣🐤🐥🐔🐓🦆🐀🐁🐇🐑🦊🐻🦋🐞🦉🦴
-
-  // Cycle des travaux 🚧👷
-  '🧱': [{
-    cat: 'Briques',
-  }],
-  '🏠': [
-    //[wwwWrencontrer, '▒'],
-    {
-      cat: 'Maison',
-    },
-  ],
-};
-
-// INITIALISATIONS
-// Modèles
-[...liEls].forEach(el => {
-  el.data = {
-    ...o[el.innerHTML][o[el.innerHTML].length - 1],
-  };
-  el.title = el.data.cat;
-  delete el.data.cat;
-});
-
-// TESTS
-loadWorld([
-  /*
-  ["🧱", 208, 112],
-  ["🧱", 224, 112],
-  ["▒", 240, 112],
-  ["🧱", 208, 128],
-  ["💧", 224, 128],
-  ["🧱", 240, 128],
-  ["🧱", 208, 144],
-  ["▓", 224, 144],
-  ["🧱", 240, 144],
-
-  ['⛲', 120, 100],
-  ['💧', 200, 160],
-  ['🌽', 120, 100],
-  ['❀', 120, 100],
-  ['🧍', 200, 300],
-  */
-  ['👩', 120, 140],
-  ['🧔', 150, 170],
-]);
-
-/*Object.keys(o).forEach((catSym, i) => {
-  creer(catSym, {
-    left: 70 + Math.floor(i / 4) * 70,
-    top: 70 + i % 4 * 70
-  });
-});*/
 
 // Debug
 if (window.location.search) {
