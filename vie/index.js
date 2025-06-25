@@ -127,13 +127,12 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // distance = Rayon (nb cases) autour de el
   // limite = nombre de cases ramenées
   // catSyms = '🌱 🌾' : symboles de catégorie(s) de figurines recherchés séparés par un espace
-  // catSyms = ' ▒ ▓' : symboles de catégorie(s) de figurines interdites (commence par un espace)
+  // catSyms = ' ▒ ▓' : Commence par un espace si la catégorie vide est recherchée
   // tableau = undefined | cases | zones
 
   if (trace) console.log('casesProches', ...arguments);
 
   const catSymsArray = (catSyms ? catSyms : '').split(' '),
-    catSym = catSymsArray[0],
     listeProches = [];
 
   // Randomize search order
@@ -150,18 +149,17 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
             x: xyCentre.x + d * delta[0] + i * delta[2],
             y: xyCentre.y + d * delta[1] + i * delta[3],
           },
-          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech, catSym)),
+          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech)),
           filteredCaseRech = figCaseRech.filter(v => !catSymsArray.includes(v));
 
-        if ((!catSym && !filteredCaseRech.length) || // Recherche case vide ou autorisée
-          (catSym && figCaseRech.length)) // Recherche catégories
+        if ((!catSymsArray[0] || figCaseRech.length) &&
+          !filteredCaseRech.length)
           listeProches.push([ // Préparation du retour
             ...delta,
             XYrech,
-            caseEl(tableau || cases, XYrech, catSym),
             tableau === zones ? d * tailleZone : d, // Distance du centre
           ]);
-      };
+      }
     });
 
   if (tableau === zones ||
@@ -187,35 +185,36 @@ function rebuildCases() {
   dataSav = [];
 
   for (const el of divEls)
-    if (el.data && !el.hovered) { // Pas si le curseur est au dessus
-      // Uniquement les données de valeur # 0
-      const filteredData = Object.fromEntries(
-        Object.entries(el.data)
-        .filter(v => v[1])
-      );
+    if (el.data && !el.hovered) // Pas si le curseur est au dessus
+  {
+    // Uniquement les données de valeur # 0
+    const filteredData = Object.fromEntries(
+      Object.entries(el.data)
+      .filter(v => v[1])
+    );
 
-      // Population des cases
-      caseEl(cases, el.xy, el.innerHTML, el);
-      caseEl(zones, xyzFromXY(el.xy), el.innerHTML, el);
+    // Population des cases
+    caseEl(cases, el.xy, el.innerHTML, el);
+    caseEl(zones, xyzFromXY(el.xy), el.innerHTML, el);
 
-      // Figurines title
-      el.title =
-        scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1].cat + ' ' +
-        JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
-        (window.location.search ?
-          ' ' + el.xy.x + ',' + el.xy.y +
-          ' ' + xyzFromXY(el.xy).x + ',' + xyzFromXY(el.xy).y +
-          ' ' + el.style.left + ',' + el.style.top :
-          '');
+    // Figurines title
+    el.title =
+      scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1].cat + ' ' +
+      JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
+      (window.location.search ?
+        ' ' + el.xy.x + ',' + el.xy.y +
+        ' ' + xyzFromXY(el.xy).x + ',' + xyzFromXY(el.xy).y +
+        ' ' + el.style.left + ',' + el.style.top :
+        '');
 
-      // Data to be saved in a file
-      dataSav.push([
-        el.innerHTML,
-        Math.round(el.getBoundingClientRect().left),
-        Math.round(el.getBoundingClientRect().top),
-        filteredData,
-      ]);
-    }
+    // Data to be saved in a file
+    dataSav.push([
+      el.innerHTML,
+      Math.round(el.getBoundingClientRect().left),
+      Math.round(el.getBoundingClientRect().top),
+      filteredData,
+    ]);
+  }
 }
 
 // VERBES : function(el, ...)
@@ -359,18 +358,20 @@ function errer(el, catSymsAuth) {
     return deplacer(el, pp[0][4]); // errer
 }
 
-function rapprocher(el, catSym, catSymsAuth) { // Jusqu'à la même case
-  // catSym = symbole recherché
-  // catSymsAuth = symboles autorisés (commence par ' ')
+/* eslint-disable-next-line no-unused-vars */
+function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la même case
+  // catSymsRech = symboles recherchés vers qui aller
+  // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
 
-  //TODO quel est le bon catSym, catSymsAuth
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
-  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsAuth);
+  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
 
-  if (pp.length &&
-    caseEl(cases, pp[0][4], catSym).length)
-    return deplacer(el, pp[0][4]);
+  if (pp.length)
+    return deplacer(el, {
+      x: el.xy.x + pp[0][0],
+      y: el.xy.y + pp[0][1],
+    });
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -382,7 +383,7 @@ function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
 
   const trouveEl = caseEl(cases, el.xy, catSym);
 
-  if (trouveEl.length) {
+  if (trouveEl.length)
     for (const property in trouveEl.data) {
       // Récupérer les données de l'autre
       el.data[property] = ~~el.data[property] + trouveEl.data[property]
@@ -393,7 +394,6 @@ function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
       if (catSymFinal)
         return muer(el, catSymFinal);
     }
-  }
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -420,8 +420,8 @@ function iterer() {
     // Exécution des actions
     gameEls.forEach(el => {
       if (el.parentNode && // S'il est affichable
-        el.data && !el.hovered // Si le curseur n'est pas au dessus
-      ) {
+        el.data && !el.hovered) // Si le curseur n'est pas au dessus
+      {
         if (typeof scenarii[el.innerHTML] === 'object')
           scenarii[el.innerHTML].slice(0, -1) // Enlève la structure d'initialisation à la fin
           .every(a => // Exécute chaque action tant qu'elle retourne false
@@ -431,7 +431,8 @@ function iterer() {
                 conditionFunction = parametresAction[parametresAction.length - 1];
 
               if (parametresAction.length > 1 && // S'il y a assez d'arguments
-                typeof conditionFunction === 'function') { // Si le dernier argument est une fonction
+                typeof conditionFunction === 'function') // Si le dernier argument est une fonction
+              {
                 parametresAction.pop();
 
                 if (!conditionFunction(el.data)) // Le test d'elligibilté est négatif
@@ -455,8 +456,10 @@ function iterer() {
             });
 
         el.data.age = ~~el.data.age + 1;
+
         if (el.data.eau > 0)
           el.data.eau--;
+
         if (el.data.energie > 0)
           el.data.energie--;
       }
@@ -465,7 +468,8 @@ function iterer() {
     rebuildCases();
 
     if (window.location.search)
-      statsEl.innerHTML = noIteration + ': ' +
+      statsEl.innerHTML =
+      noIteration + ': ' +
       divEls.length + ' fig &nbsp; ' +
       (Date.now() - debut) + ' ms &nbsp; ' +
       Math.round((Date.now() - debut) / divEls.length * 10) / 10 + 'ms/obj';

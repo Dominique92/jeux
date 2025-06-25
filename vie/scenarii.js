@@ -18,7 +18,7 @@ const scenarii = {
     [rapprocher, '👩'],
     //[unir, '👩', '🧔👩'],
     //...vivant,
-    //[errer, ' ▒ ▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Homme',
       eau: 50,
@@ -26,10 +26,10 @@ const scenarii = {
     },
   ],
   '👩': [
-    //[rapprocher, '🧔'],
+    [rapprocher, '🧔'],
     //[unir, '🧔', '🧔👩'],
     //...vivant,
-    //[errer, ' ▒ ▓'],
+    [errer, ' ▒ ▓'],
     {
       cat: 'Femme',
       eau: 50,

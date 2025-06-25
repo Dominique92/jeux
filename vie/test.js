@@ -23,7 +23,7 @@ loadWorld([
   ['👩', 120, 140],
   ['🧔', 200, 170],
   /*
-  */
+   */
 ]);
 
 /*Object.keys(scenarii).forEach((catSym, i) => {
