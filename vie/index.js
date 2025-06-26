@@ -20,8 +20,8 @@
 
 /* global scenarii */
 
-const divEls = document.getElementsByTagName('div'),
-  liEls = document.getElementsByTagName('li'),
+const divEls = document.getElementsByTagName('div'), // Les figurines
+  liEls = document.getElementsByTagName('li'), // Les modèles
   helpEl = document.getElementById('help'),
   statsEl = document.getElementById('stats'),
   trace = window.location.search.match(/trace/u),
@@ -36,7 +36,7 @@ const divEls = document.getElementsByTagName('div'),
   ],
   tailleFigure = 16,
   giguemax = 2,
-  //TODO nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
+  nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
   recurrence = 1000; // ms
@@ -359,7 +359,7 @@ function unir(el, catSym, catSymNew) { // Fusionne un une figurine de la catégo
 
   const trouveEl = caseEl(cases, el.xy, catSym);
 
-  if (trouveEl) {
+  if (trouveEl.innerHTML) {
     // Récupérer les données de l'autre
     for (const property in trouveEl.data)
       el.data[property] = ~~el.data[property] + trouveEl.data[property];
@@ -376,23 +376,25 @@ function unir(el, catSym, catSymNew) { // Fusionne un une figurine de la catégo
 function produire(el, catSym) { // Crée un nouvel objet au même emplacement
   if (trace) console.log('produire', el.innerHTML, ...arguments);
 
-  const newData = scenario(catSym).at(-1);
+  if (divEls.length < nbMaxFig) {
+    const newData = scenario(catSym).at(-1);
 
-  // Vérification des ressources
-  for (let property in newData)
-    if (typeof newData[property] === 'number') {
+    // Vérification des ressources
+    for (const property in newData)
+      if (typeof newData[property] === 'number' &&
+        newData[property] > ~~el.data[property])
+        return false;
 
-      if (newData[property] <= ~~el.data[property]) {
-        const newEl = creer(catSym, el.xy); // Crée une nouvelle figurine
+    /* eslint-disable-next-line one-var */
+    const newEl = creer(catSym, el.xy); // Crée une nouvelle figurine
 
-        // Prendre les ressources de la nouvelle figurine dans celle qui la produit
-        for (property in newEl.data)
-          el.data[property] = ~~el.data[property] - newEl.data[property];
+    // Prendre les ressources de la nouvelle figurine dans celle qui la produit
+    for (const property in newEl.data)
+      el.data[property] = ~~el.data[property] - newEl.data[property];
 
-        el.data.age = 0;
-        return newEl;
-      }
-    }
+    el.data.age = 0;
+    return newEl;
+  }
 }
 
 //TODO autogenerer
