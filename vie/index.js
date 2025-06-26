@@ -220,7 +220,7 @@ function rebuildCases() {
 // VERBES : function(el, ...)
 // return true : Succés
 
-function supprimer(el, keep) {
+function supprimer(el, keep) { // Uniquement supprimer
   if (trace) console.log('supprimer', el.innerHTML, ...arguments);
 
   if (el.xy) {
@@ -233,7 +233,7 @@ function supprimer(el, keep) {
   }
 }
 
-function deplacer(el, pos, pos2) {
+function deplacer(el, pos, pos2) { // Uniquement changer xy
   if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
   const xyElA = el.xy || {},
@@ -248,7 +248,7 @@ function deplacer(el, pos, pos2) {
     },
     newXY = xyFromPix(newPix);
 
-  if (el.parentNode &&
+  if (el.parentNode && el.xy && newXY &&
     (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
   )
     // On part d'une position, bouge lentement
@@ -269,7 +269,7 @@ function deplacer(el, pos, pos2) {
   return true;
 }
 
-function muer(el, catSym) {
+function muer(el, catSym) { // Uniquement changer de catégorie
   if (trace) console.log('muer', el.innerHTML, ...arguments);
   //TODO opacity transition
 
@@ -283,7 +283,7 @@ function muer(el, catSym) {
   }
 }
 
-function creer(catSym, pos, pos2) {
+function creer(catSym, pos, pos2) { // Uniquement créer une nouvella figurine
   if (trace) console.log('creer', ...arguments);
 
   const el = document.createElement('div'),
@@ -323,33 +323,8 @@ function creer(catSym, pos, pos2) {
   return el;
 }
 
-// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
-// Change la position vers une case vide ou ne contenant que certaines catégories
 /* eslint-disable-next-line no-unused-vars */
-function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
-  // el, '💧' : transforme en cette catégorie
-  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
-  // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
-
-  if (trace) console.log('transformer', el.innerHTML, ...arguments);
-
-  const newCatSymsArray = catSyms.split(' '),
-    catSym = newCatSymsArray.shift();
-
-  muer(el, catSym);
-  deplacer(el, pos, pos2);
-
-  // On crée les nouvelles figurines
-  if (divEls.length < nbMaxFig) // S'il y a de la ressource
-    newCatSymsArray.forEach(ncs => {
-      creer(ncs, el.xy);
-    });
-
-  return el;
-}
-
-/* eslint-disable-next-line no-unused-vars */
-function errer(el, catSymsAuth) {
+function errer(el, catSymsAuth) { // Uniquement déplacer
   if (trace) console.log('errer', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, 1, 1, catSymsAuth);
@@ -359,13 +334,14 @@ function errer(el, catSymsAuth) {
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la même case
+function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisation
   // catSymsRech = symboles recherchés vers qui aller
   // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
 
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
+  //TODO catSymsAuth
 
   if (pp.length)
     return deplacer(el, {
@@ -396,8 +372,33 @@ function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
     }
 }
 
+// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
+// Change la position vers une case vide ou ne contenant que certaines catégories
 /* eslint-disable-next-line no-unused-vars */
-function autogenerer(el, catSym, catSymFinal) { // Dans la même case //TODO
+function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
+  // el, '💧' : transforme en cette catégorie
+  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
+  // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
+
+  if (trace) console.log('transformer', el.innerHTML, ...arguments);
+
+  const newCatSymsArray = catSyms.split(' '),
+    catSym = newCatSymsArray.shift();
+
+  muer(el, catSym);
+  deplacer(el, pos, pos2);
+
+  // On crée les nouvelles figurines
+  if (divEls.length < nbMaxFig) // S'il y a de la ressource
+    newCatSymsArray.forEach(ncs => {
+      creer(ncs, el.xy);
+    });
+
+  return el;
+}
+
+/* eslint-disable-next-line no-unused-vars */
+function autogenerer(el, catSym, catSymFinal) { //TODO dans la même case //TODO
   if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
 }
