@@ -1,4 +1,4 @@
-/* global errer, muer, rapprocher, supprimer, transformer, unir */
+/* global errer, muer, rapprocher, supprimer, produire, unir */
 
 // SCÉNARII
 /*
@@ -16,7 +16,7 @@ const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
     [rapprocher, '👩'],
-    //[unir, '👩', '🧔👩'],
+    [unir, '👩', '🧔👩'],
     //...vivant,
     [errer, ' ▒ ▓'],
     {
@@ -27,7 +27,7 @@ const scenarii = {
   ],
   '👩': [
     [rapprocher, '🧔'],
-    //[unir, '🧔', '🧔👩'],
+    [unir, '🧔', '🧔👩'],
     //...vivant,
     [errer, ' ▒ ▓'],
     {
@@ -71,13 +71,14 @@ const scenarii = {
   // Cycle de l'eau 🚣🚢🌊🐟🌧
   '⛲': // Scénario de la catégorie d'objet
     [ // Action élémentaire du scénario
-      [transformer, // Verbe à exécuter //TODO faire essaimer
-        '⛲ 💧', // Symboles pour remplacer et créer
+      [produire, // Verbe à exécuter //TODO faire essaimer
+        '💧', // Catégorie à produire
         //TODO ??? () => {}, // Fonction à exécuter aprés avoir appliqué la règle
-        //() => Math.random() < 0.2 // Test d'applicabilité de la règle
+        () => Math.random() < 0.2 // Test d'applicabilité de la règle
       ],
       { // Init des data quand on crée
         cat: 'Fontaine',
+        eau: 1000000,
       },
     ],
   '💧': [
@@ -136,7 +137,7 @@ const scenarii = {
     [unir, '💦'],
     [muer, '▒', d => d.eau <= 0],
     [muer, '▓', d => d.eau > 100],
-    [transformer, '🌽 ❀', () => Math.random() < 0.2], //TODO faire essaimer
+    [produire, '❀', () => Math.random() < 0.2], //TODO faire essaimer
     {
       cat: 'Mais',
     },

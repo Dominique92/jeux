@@ -36,10 +36,10 @@ const divEls = document.getElementsByTagName('div'),
   ],
   tailleFigure = 16,
   giguemax = 2,
+  //TODO nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
   rayonRechercheMax = 4,
   tailleZone = rayonRechercheMax + 1,
-  recurrence = 1000, // ms
-  nbMaxFig = 255; // Nombre maximum de figurines dans la femnêtre
+  recurrence = 1000; // ms
 
 let dragInfo = null,
   noIteration = 0,
@@ -88,7 +88,7 @@ function scenario(catSym) {
   // Le symbole doit avoir un senario
   if (typeof scn === 'undefined') {
     console.log('Symbole inconnu : ', catSym);
-    return false;
+    return [];
   }
   return scn;
 }
@@ -102,8 +102,13 @@ function caseEl(tableau, xy, catSym, el) {
   // 7, 7, 🌿, el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
 
+  if (typeof catSym === 'undefined' &&
+    (typeof tableau[xy.x] === 'undefined' || typeof tableau[xy.x][xy.y] === 'undefined'))
+    return [];
+
   if (typeof tableau[xy.x] === 'undefined')
     tableau[xy.x] = [];
+
   if (typeof tableau[xy.x][xy.y] === 'undefined')
     tableau[xy.x][xy.y] = [];
 
@@ -119,7 +124,7 @@ function caseEl(tableau, xy, catSym, el) {
   }
 
   // L'el d'une case pour une catéorie
-  return tableau[xy.x][xy.y][catSym] || [];
+  return tableau[xy.x][xy.y][catSym] || {};
 }
 
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
@@ -129,7 +134,6 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // catSyms = '🌱 🌾' : symboles de catégorie(s) de figurines recherchés séparés par un espace
   // catSyms = ' ▒ ▓' : Commence par un espace si la catégorie vide est recherchée
   // tableau = undefined | cases | zones
-
   if (trace) console.log('casesProches', ...arguments);
 
   const catSymsArray = (catSyms ? catSyms : '').split(' '),
@@ -199,7 +203,7 @@ function rebuildCases() {
 
     // Figurines title
     el.title =
-      scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1].cat + ' ' +
+      scenarii[el.innerHTML].at(-1).cat + ' ' +
       JSON.stringify(filteredData).replace(/\{|"|\}/gu, '') +
       (window.location.search ?
         ' ' + el.xy.x + ',' + el.xy.y +
@@ -276,9 +280,9 @@ function muer(el, catSym) { // Uniquement changer de catégorie
   const scn = scenario(catSym);
 
   // Met à jour la catégorie dans l'el
-  if (scn) {
+  if (scn.length) {
     el.innerHTML = catSym;
-    el.classList = scn[scn.length - 1].cat;
+    el.classList = scn.at(-1).cat;
     el.data.age = 0; // L'âge repart à 0 si l'objet change de catégorie
   }
 }
@@ -291,9 +295,9 @@ function creer(catSym, pos, pos2) { // Uniquement créer une nouvella figurine
 
   // Données initiales du modèle
   el.noIteration = noIteration;
-  if (scn) {
+  if (scn.length) {
     el.data = {
-      ...scn[scn.length - 1],
+      ...scn.at(-1),
     };
     delete el.data.cat;
   }
@@ -337,11 +341,10 @@ function errer(el, catSymsAuth) { // Uniquement déplacer
 function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisation
   // catSymsRech = symboles recherchés vers qui aller
   // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
-
+  //TODO catSymsAuth
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
-  //TODO catSymsAuth
 
   if (pp.length)
     return deplacer(el, {
@@ -351,57 +354,48 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function unir(el, catSym, catSymFinal) { // Dans la même case //TODO
-  // 💧 : absorbe 💧
-  // 💧, 🌽 : absorbe 💧 et se transforme en 🌽 //TODO !!!
-
+function unir(el, catSym, catSymNew) { // Fusionne un une figurine de la catégorie présente dans la même case.
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
   const trouveEl = caseEl(cases, el.xy, catSym);
 
-  if (trouveEl.length)
-    for (const property in trouveEl.data) {
-      // Récupérer les données de l'autre
-      el.data[property] = ~~el.data[property] + trouveEl.data[property]
-      el.data.age = 0;
+  if (trouveEl) {
+    // Récupérer les données de l'autre
+    for (const property in trouveEl.data)
+      el.data[property] = ~~el.data[property] + trouveEl.data[property];
 
-      supprimer(trouveEl);
+    el.data.age = 0;
+    supprimer(trouveEl);
+    muer(el, catSymNew);
 
-      if (catSymFinal)
-        return muer(el, catSymFinal);
+    return true;
+  }
+}
+
+/* eslint-disable-next-line no-unused-vars */
+function produire(el, catSym) { // Crée un nouvel objet au même emplacement
+  if (trace) console.log('produire', el.innerHTML, ...arguments);
+
+  const newData = scenario(catSym).at(-1);
+
+  // Vérification des ressources
+  for (let property in newData)
+    if (typeof newData[property] === 'number') {
+
+      if (newData[property] <= ~~el.data[property]) {
+        const newEl = creer(catSym, el.xy); // Crée une nouvelle figurine
+
+        // Prendre les ressources de la nouvelle figurine dans celle qui la produit
+        for (property in newEl.data)
+          el.data[property] = ~~el.data[property] - newEl.data[property];
+
+        el.data.age = 0;
+        return newEl;
+      }
     }
 }
 
-// Toutes les transformations de 0 ou 1 figurines en 0, 1, 2, ... figurines
-// Change la position vers une case vide ou ne contenant que certaines catégories
-/* eslint-disable-next-line no-unused-vars */
-function transformer(el, catSyms, pos, pos2) { //TODO => essaimer
-  // el, '💧' : transforme en cette catégorie
-  // el, '🌾', (pix || xy || x, y) : transforme la figurine en cette catégorie et la déplace
-  // el, '⛲ 💧 🧔👩' : transforme vers ⛲ et ajoute 💧 et 🧔👩
-
-  if (trace) console.log('transformer', el.innerHTML, ...arguments);
-
-  const newCatSymsArray = catSyms.split(' '),
-    catSym = newCatSymsArray.shift();
-
-  muer(el, catSym);
-  deplacer(el, pos, pos2);
-
-  // On crée les nouvelles figurines
-  if (divEls.length < nbMaxFig) // S'il y a de la ressource
-    newCatSymsArray.forEach(ncs => {
-      creer(ncs, el.xy);
-    });
-
-  return el;
-}
-
-/* eslint-disable-next-line no-unused-vars */
-function autogenerer(el, catSym, catSymFinal) { //TODO dans la même case //TODO
-  if (trace) console.log('deplacer', el.innerHTML, ...arguments);
-
-}
+//TODO autogenerer
 
 // ACTIVATION (functions)
 function iterer() {
@@ -429,7 +423,7 @@ function iterer() {
             {
               // Condition to the last argument (function)
               const parametresAction = [...a],
-                conditionFunction = parametresAction[parametresAction.length - 1];
+                conditionFunction = parametresAction.at(-1);
 
               if (parametresAction.length > 1 && // S'il y a assez d'arguments
                 typeof conditionFunction === 'function') // Si le dernier argument est une fonction
@@ -504,7 +498,7 @@ window.onload = () => {
   // Initialisation des modèles
   [...liEls].forEach(el => {
     el.data = {
-      ...scenarii[el.innerHTML][scenarii[el.innerHTML].length - 1],
+      ...scenarii[el.innerHTML].at(-1),
     };
     el.title = el.data.cat;
     delete el.data.cat;
@@ -580,7 +574,7 @@ function dragend(evt) {
 function load(evt) {
   const blob = evt.target.files[0],
     reader = new FileReader();
-  //TODO BUG ne marche pas si charge fontaine 2 fois
+  //TODO BUG ne marche pas si charge 2 fois le même consécutivement
   //index.js:570: Failed to execute 'readAsText' parameter 1 is not of type 'Blob'.
 
   reader.readAsText(blob);
