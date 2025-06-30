@@ -15,10 +15,10 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
-    [rapprocher, '👩'],
+    [rapprocher, '👩', ' ▒▓'],
     [unir, '👩', '🧔👩'],
     //...vivant,
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Homme',
       eau: 50,
@@ -26,10 +26,10 @@ const scenarii = {
     },
   ],
   '👩': [
-    [rapprocher, '🧔'],
+    [rapprocher, '🧔', ' ▒▓'],
     [unir, '🧔', '🧔👩'],
     //...vivant,
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Femme',
       eau: 50,
@@ -39,7 +39,7 @@ const scenarii = {
   '🧔👩': [
     [muer, '👫', d => d.age > 10],
     //...vivant,
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Amoureux',
     },
@@ -47,7 +47,7 @@ const scenarii = {
   '👫': [
     //...vivant,
     //[muer, '👪', d => d.age > 5],
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Couple',
     },
@@ -56,7 +56,7 @@ const scenarii = {
     //...vivant,
     [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
     [muer, '👩', d => d.age > 1],
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Enfant',
     },
@@ -86,7 +86,7 @@ const scenarii = {
     //[wwwWrapprocher, '🌱', 3],
     //[wwwWrapprocher, '🌾', 3],
     //[wwwWrapprocher, '🌽', 3],
-    [errer, ' ▒ ▓'], {
+    [errer, ' ▒▓'], {
       cat: 'Eau',
       eau: 100,
     },
@@ -96,7 +96,7 @@ const scenarii = {
     [rapprocher, '🌾'],
     [rapprocher, '🌱'],
     [supprimer, d => d.eau <= 0],
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Eau',
     },
@@ -110,7 +110,7 @@ const scenarii = {
     [muer, '🌱', d => d.age > 10],
     //[wwwWrapprocher, '▒', 3],
     //[wwwWabsorber, '▒', '🌱'],
-    [errer, ' ▒ ▓'], {
+    [errer, ' ▒▓'], {
       cat: 'Graine',
     },
   ],
@@ -154,7 +154,7 @@ const scenarii = {
   '👪': [
     //...vivant,
     //[muer, '👫', d => d.age > 10], //TODO produire enfant
-    [errer, ' ▒ ▓'],
+    [errer, ' ▒▓'],
     {
       cat: 'Famille',
     },

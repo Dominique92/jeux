@@ -127,17 +127,23 @@ function caseEl(tableau, xy, catSym, el) {
   return tableau[xy.x][xy.y][catSym] || {};
 }
 
+function filtreCase(tableau, xy, catSyms) {
+  const catSymsDefault = catSyms || ' ',
+    caseRech = Object.keys(caseEl(tableau || cases, xy)),
+    caseRechDefault = caseRech.length ? caseRech : [' '];
+
+  return caseRechDefault.some(v => catSymsDefault.includes(v));
+}
+
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // el : Autour de el
   // distance = Rayon (nb cases) autour de el
   // limite = nombre de cases ramenées
-  // catSyms = '🌱 🌾' : symboles de catégorie(s) de figurines recherchés séparés par un espace
-  // catSyms = ' ▒ ▓' : Commence par un espace si la catégorie vide est recherchée
+  // catSyms = '🌱🌾' : symboles de catégories de figurines recherchés (x = case vide)
   // tableau = undefined | cases | zones
   if (trace) console.log('casesProches', ...arguments);
 
-  const catSymsArray = (catSyms ? catSyms : '').split(' '),
-    listeProches = [];
+  const listeProches = [];
 
   // Randomize search order
   for (let i = Math.random() * deltasProches.length; i > 0; i--)
@@ -150,14 +156,11 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
       // On parcours le côté
       for (let i = 0; i < d && listeProches.length < limite; i++) {
         const xyRech = {
-            x: xyCentre.x + d * delta[0] + i * delta[2],
-            y: xyCentre.y + d * delta[1] + i * delta[3],
-          },
-          figCaseRech = Object.keys(caseEl(tableau || cases, xyRech)),
-          filteredCaseRech = figCaseRech.filter(v => !catSymsArray.includes(v));
+          x: xyCentre.x + d * delta[0] + i * delta[2],
+          y: xyCentre.y + d * delta[1] + i * delta[3],
+        };
 
-        if ((!catSymsArray[0] || figCaseRech.length) &&
-          !filteredCaseRech.length)
+        if (filtreCase(tableau, xyRech, catSyms))
           listeProches.push([ // Préparation du retour
             ...delta,
             xyRech,
@@ -344,16 +347,19 @@ function errer(el, catSymsAuth) { // Uniquement déplacer
 function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisation
   // catSymsRech = symboles recherchés vers qui aller
   // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
-  //TODO catSymsAuth
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
 
-  if (pp.length)
-    return deplacer(el, {
+  if (pp.length) {
+    const newXY = {
       x: el.xy.x + pp[0][0],
       y: el.xy.y + pp[0][1],
-    });
+    };
+
+    if (filtreCase(cases, newXY, catSymsRech + (catSymsAuth || ' ')))
+      return deplacer(el, newXY);
+  }
 }
 
 /* eslint-disable-next-line no-unused-vars */
@@ -389,7 +395,7 @@ function produire(el, catSym) { // Crée un nouvel objet au même emplacement
         return false;
 
     /* eslint-disable-next-line one-var */
-    const newEl = creer(catSym, el.xy); // Crée une nouvelle figurine
+    const newEl = creer(catSym, pixFromEl(el)); // Crée une nouvelle figurine
 
     // Prendre les ressources de la nouvelle figurine dans celle qui la produit
     for (const property in newEl.data)
@@ -399,8 +405,6 @@ function produire(el, catSym) { // Crée un nouvel objet au même emplacement
     return newEl;
   }
 }
-
-//TODO autogenerer
 
 // ACTIVATION (functions)
 function iterer() {
