@@ -149,18 +149,18 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
     deltasProches.forEach(delta => {
       // On parcours le côté
       for (let i = 0; i < d && listeProches.length < limite; i++) {
-        const XYrech = {
+        const xyRech = {
             x: xyCentre.x + d * delta[0] + i * delta[2],
             y: xyCentre.y + d * delta[1] + i * delta[3],
           },
-          figCaseRech = Object.keys(caseEl(tableau || cases, XYrech)),
+          figCaseRech = Object.keys(caseEl(tableau || cases, xyRech)),
           filteredCaseRech = figCaseRech.filter(v => !catSymsArray.includes(v));
 
         if ((!catSymsArray[0] || figCaseRech.length) &&
           !filteredCaseRech.length)
           listeProches.push([ // Préparation du retour
             ...delta,
-            XYrech,
+            xyRech,
             tableau === zones ? d * tailleZone : d, // Distance du centre
           ]);
       }
@@ -250,27 +250,30 @@ function deplacer(el, pos, pos2) { // Uniquement changer xy
       ...pixFromXY(xyA),
       ...pos, // {left: ..px, top: ..px}
     },
-    newXY = xyFromPix(newPix);
+    newXY = xyFromPix(newPix),
+    arrivalEl = document.elementFromPoint(newPix.left, newPix.top);
 
-  if (el.parentNode && el.xy && newXY &&
-    (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
-  )
-    // On part d'une position, bouge lentement
-    window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
+  if (arrivalEl) { // Si on est dans la fenêtre
+    if (el.parentNode && el.xy && newXY &&
+      (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
+    )
+      // On part d'une position, bouge lentement
+      window.setTimeout(() => { // Timeout ensures styles are applied before scrolling
+        el.style.left = newPix.left + 'px';
+        el.style.top = newPix.top + 'px';
+      });
+    else {
+      // On y va direct
       el.style.left = newPix.left + 'px';
       el.style.top = newPix.top + 'px';
-    });
-  else {
-    // On y va direct
-    el.style.left = newPix.left + 'px';
-    el.style.top = newPix.top + 'px';
+    }
+
+    // On change l'el de case
+    supprimer(el, true);
+    caseEl(cases, newXY, el.innerHTML, el);
+
+    return true;
   }
-
-  // On change l'el de case
-  supprimer(el, true);
-  caseEl(cases, newXY, el.innerHTML, el);
-
-  return true;
 }
 
 function muer(el, catSym) { // Uniquement changer de catégorie
@@ -539,7 +542,7 @@ function dragstart(evt) {
 document.ondragover = evt => {
   const el = document.elementFromPoint(evt.x, evt.y);
 
-  if (el.tagName === 'HTML') // Il n'y a rien en dessous
+  if (el.tagName === 'BODY') // Il n'y a rien en dessous
     evt.preventDefault(); // Autorise drop
 }
 

@@ -1,4 +1,6 @@
+html,
 body {
+  height: 100%;
   margin: 0;
   overflow: hidden;
   background: #486;
@@ -71,7 +73,8 @@ input[type=file] {
 }
 
 p:has(#stats) {
-  margin: 5px 0 0 10px;
+  margin: 0;
+  padding: 8px 0 0 8px;
   cursor: pointer;
 }
 
