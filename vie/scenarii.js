@@ -52,6 +52,7 @@ const scenarii = {
       cat: 'Couple',
     },
   ],
+  //TODO TEST
   '🧍': [
     //...vivant,
     [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],

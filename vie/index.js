@@ -128,11 +128,10 @@ function caseEl(tableau, xy, catSym, el) {
 }
 
 function filtreCase(tableau, xy, catSyms) {
-  const catSymsDefault = catSyms || ' ',
-    caseRech = Object.keys(caseEl(tableau || cases, xy)),
+  const caseRech = Object.keys(caseEl(tableau, xy)),
     caseRechDefault = caseRech.length ? caseRech : [' '];
 
-  return caseRechDefault.some(v => catSymsDefault.includes(v));
+  return caseRechDefault.some(v => catSyms.includes(v));
 }
 
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
@@ -160,7 +159,7 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
           y: xyCentre.y + d * delta[1] + i * delta[3],
         };
 
-        if (filtreCase(tableau, xyRech, catSyms))
+        if (filtreCase(tableau || cases, xyRech, catSyms))
           listeProches.push([ // Préparation du retour
             ...delta,
             xyRech,
@@ -357,7 +356,7 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
       y: el.xy.y + pp[0][1],
     };
 
-    if (filtreCase(cases, newXY, catSymsRech + (catSymsAuth || ' ')))
+    if (filtreCase(cases, newXY, catSymsRech + catSymsAuth))
       return deplacer(el, newXY);
   }
 }
