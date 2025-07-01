@@ -16,8 +16,10 @@ const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
     [muer, '💀', d => d.eau < 0],
-    [rapprocher, '👩', ' ▒▓'],
+    [unir, '💧💦', '🧔', ' ▒▓', d => d.eau < 200],
+    [unir, '🌽', '🧔', ' ▒▓', d => d.energie < 20],
     [unir, '👩', '🧔👩'],
+    [rapprocher, '👩', ' ▒▓'],
     //...vivant,
     [errer, ' ▒▓', d => d.energie > 0],
     {
@@ -28,8 +30,10 @@ const scenarii = {
   ],
   '👩': [
     [muer, '💀', d => d.eau < 0],
-    [rapprocher, '🧔', ' ▒▓'],
+    [unir, '💧💦', '👩', ' ▒▓', d => d.eau < 200],
+    [unir, '🌽', '👩', ' ▒▓', d => d.energie < 20],
     [unir, '🧔', '🧔👩'],
+    [rapprocher, '🧔', ' ▒▓'],
     //...vivant,
     [errer, ' ▒▓', d => d.energie > 0],
     {
@@ -40,6 +44,8 @@ const scenarii = {
   ],
   '🧔👩': [
     [muer, '💀', d => d.eau < 0],
+    [unir, '💧💦', '🧔👩', ' ▒▓', d => d.eau < 200],
+    [unir, '🌽', '🧔👩', ' ▒▓', d => d.energie < 20],
     [muer, '👫', d => d.age > 10],
     //...vivant,
     [errer, ' ▒▓', d => d.energie > 0],
@@ -48,6 +54,9 @@ const scenarii = {
     },
   ],
   '👫': [
+    [muer, '💀', d => d.eau < 0],
+    [unir, '💧💦', '👫', ' ▒▓', d => d.eau < 200],
+    [unir, '🌽', '👫', ' ▒▓', d => d.energie < 20],
     //...vivant,
     //[muer, '👪', d => d.age > 5],
     [errer, ' ▒▓', d => d.energie > 0],
@@ -57,6 +66,8 @@ const scenarii = {
   ],
   //TODO TEST
   '🧍': [
+    [unir, '💧💦', '🧍', ' ▒▓', d => d.eau < 200],
+    [unir, '🌽', '🧍', ' ▒▓', d => d.energie < 20],
     //...vivant,
     [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
     [muer, '👩', d => d.age > 1],
@@ -87,9 +98,7 @@ const scenarii = {
     ],
   '💧': [
     [muer, '💦', d => d.eau < 10],
-    //[wwwWrapprocher, '🌱', 3],
-    //[wwwWrapprocher, '🌾', 3],
-    //[wwwWrapprocher, '🌽', 3],
+    [rapprocher, '🧔👩🌱🌾🌽'],
     [errer, ' ▒▓'], {
       cat: 'Eau',
       eau: 100,
@@ -134,6 +143,8 @@ const scenarii = {
     [muer, '🌽', d => d.age > 10],
     {
       cat: 'Plante',
+      eau: 100,
+      energie: 50,
     },
   ],
   '🌽': [
@@ -144,6 +155,8 @@ const scenarii = {
     [produire, '❀', () => Math.random() < 0.2], //TODO faire essaimer
     {
       cat: 'Mais',
+      eau: 100,
+      energie: 50,
     },
   ],
 

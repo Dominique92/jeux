@@ -350,28 +350,6 @@ function errer(el, catSymsAuth) { // Uniquement déplacer
     return deplacer(el, pp[0][4]); // errer
 }
 
-/* eslint-disable-next-line no-unused-vars */
-function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisation
-  // catSymsRech = symboles recherchés vers qui aller
-  // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
-  if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
-
-  if (filtreCase(cases, el.xy, catSymsRech))
-    return false; // Il y en dèjà sur la même case
-
-  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
-
-  if (pp.length) {
-    const newXY = {
-      x: el.xy.x + pp[0][0],
-      y: el.xy.y + pp[0][1],
-    };
-
-    if (filtreCase(cases, newXY, catSymsRech + catSymsAuth))
-      return deplacer(el, newXY);
-  }
-}
-
 function produire(el, catSym) { // Crée un nouvel objet au même emplacement
   if (trace) console.log('produire', el.innerHTML, ...arguments);
 
@@ -396,21 +374,44 @@ function produire(el, catSym) { // Crée un nouvel objet au même emplacement
   }
 }
 
+function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisation
+  // catSymsRech = symboles recherchés vers qui aller
+  // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
+  if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
+
+  if (filtreCase(cases, el.xy, catSymsRech))
+    return false; // Il y en dèjà sur la même case
+
+  const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
+
+  if (pp.length) {
+    const newXY = {
+      x: el.xy.x + pp[0][0],
+      y: el.xy.y + pp[0][1],
+    };
+
+    if (filtreCase(cases, newXY, catSymsRech + catSymsAuth))
+      return deplacer(el, newXY);
+  }
+}
+
 /* eslint-disable-next-line no-unused-vars */
-function unir(el, catSymRech, catSymsNewA) {
+function unir(el, catSymsRech, catSymsNewA, catSymsAuth) {
   // Fusionne une figurine de la catégorie dans la même case.
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
-  const catSymsNew = catSymsNewA.split(' '),
-    trouvesEl = caseEl(cases, el.xy, catSymRech);
+  const catSymsNew = (catSymsNewA || el.innerHTML).split(' '),
+    trouveEls = Object.entries(caseEl(cases, el.xy, catSymsRech));
 
-  if (trouvesEl[catSymRech]) {
+  if (trouveEls.length) {
+    const tEl = trouveEls[0][1];
+
     // Récupérer les données de l'autre
-    for (const property in trouvesEl[catSymRech].data)
-      el.data[property] = ~~el.data[property] + trouvesEl[catSymRech].data[property];
+    for (const property in tEl.data)
+      el.data[property] = ~~el.data[property] + tEl.data[property];
 
     el.data.age = 0;
-    supprimer(trouvesEl[catSymRech]);
+    supprimer(tEl);
     muer(el, catSymsNew.shift());
 
     // Crée les nouveaux objets au même emplacement
@@ -418,6 +419,8 @@ function unir(el, catSymRech, catSymsNewA) {
 
     return true;
   }
+
+  return rapprocher(el, catSymsRech, catSymsAuth);
 }
 
 // ACTIVATION (functions)
