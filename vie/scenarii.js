@@ -16,7 +16,7 @@ const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
     [rapprocher, '👩', ' ▒▓'],
-    [unir, '👩', '🧔👩'],
+    [unir, '👩', '🧔👩 🧍 👫'],
     //...vivant,
     [errer, ' ▒▓'],
     {
@@ -27,7 +27,7 @@ const scenarii = {
   ],
   '👩': [
     [rapprocher, '🧔', ' ▒▓'],
-    [unir, '🧔', '🧔👩'],
+    [unir, '🧔', '🧔👩 🧍 👫'],
     //...vivant,
     [errer, ' ▒▓'],
     {
@@ -50,6 +50,8 @@ const scenarii = {
     [errer, ' ▒▓'],
     {
       cat: 'Couple',
+      eau: 10,
+      energie: 10,
     },
   ],
   //TODO TEST

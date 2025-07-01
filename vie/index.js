@@ -37,7 +37,7 @@ const divEls = document.getElementsByTagName('div'), // Les figurines
   tailleFigure = 16,
   giguemax = 2,
   nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
-  rayonRechercheMax = 4,
+  rayonRechercheMax = 3,
   tailleZone = rayonRechercheMax + 1,
   recurrence = 1000; // ms
 
@@ -127,6 +127,7 @@ function caseEl(tableau, xy, catSym, el) {
   return tableau[xy.x][xy.y][catSym] || {};
 }
 
+//TODO fusionner avec caseEl
 function filtreCase(tableau, xy, catSyms) {
   const caseRech = Object.keys(caseEl(tableau, xy)),
     caseRechDefault = caseRech.length ? caseRech : [' '];
@@ -253,9 +254,9 @@ function deplacer(el, pos, pos2) { // Uniquement changer xy
       ...pos, // {left: ..px, top: ..px}
     },
     newXY = xyFromPix(newPix),
-    arrivalEl = document.elementFromPoint(newPix.left, newPix.top);
+    parentEl = document.elementFromPoint(newPix.left, newPix.top);
 
-  if (arrivalEl) { // Si on est dans la fenêtre
+  if (parentEl) { // Si on est dans la fenêtre
     if (el.parentNode && el.xy && newXY &&
       (el.xy.x !== newXY.x || el.xy.y !== newXY.y)
     )
@@ -299,11 +300,8 @@ function creer(catSym, pos, pos2) { // Uniquement créer une nouvella figurine
     scn = scenario(catSym);
 
   // Données initiales du modèle
-  el.noIteration = noIteration;
   if (scn.length) {
-    el.data = {
-      ...scn.at(-1),
-    };
+    el.data = scn.at(-1);
     delete el.data.cat;
   }
 
@@ -348,6 +346,9 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
   // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
+  if (filtreCase(cases, el.xy, catSymsRech))
+    return false; // Il y en dèjà sur la même case
+
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
 
   if (pp.length) {
@@ -361,26 +362,6 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
   }
 }
 
-/* eslint-disable-next-line no-unused-vars */
-function unir(el, catSym, catSymNew) { // Fusionne un une figurine de la catégorie présente dans la même case.
-  if (trace) console.log('unir', el.innerHTML, ...arguments);
-
-  const trouveEl = caseEl(cases, el.xy, catSym);
-
-  if (trouveEl.innerHTML) {
-    // Récupérer les données de l'autre
-    for (const property in trouveEl.data)
-      el.data[property] = ~~el.data[property] + trouveEl.data[property];
-
-    el.data.age = 0;
-    supprimer(trouveEl);
-    muer(el, catSymNew);
-
-    return true;
-  }
-}
-
-/* eslint-disable-next-line no-unused-vars */
 function produire(el, catSym) { // Crée un nouvel objet au même emplacement
   if (trace) console.log('produire', el.innerHTML, ...arguments);
 
@@ -405,11 +386,37 @@ function produire(el, catSym) { // Crée un nouvel objet au même emplacement
   }
 }
 
+/* eslint-disable-next-line no-unused-vars */
+function unir(el, catSym, catSymsNewA) {
+  // Fusionne un une figurine de la catégorie présente dans la même case.
+  if (trace) console.log('unir', el.innerHTML, ...arguments);
+
+  const catSymsNew = catSymsNewA.split(' '),
+    trouveEl = caseEl(cases, el.xy, catSym);
+
+  if (trouveEl.innerHTML) {
+    // Récupérer les données de l'autre
+    for (const property in trouveEl.data)
+      el.data[property] = ~~el.data[property] + trouveEl.data[property];
+
+    el.data.age = 0;
+    supprimer(trouveEl);
+    muer(el, catSymsNew.shift());
+
+    // Crée les nouveaux objets au même emplacement
+    catSymsNew.forEach(cs => produire(el, cs));
+
+    return true;
+  }
+}
+
 // ACTIVATION (functions)
 function iterer() {
   window.clearTimeout(timeoutID);
 
   if (noIteration < noIterationMax) {
+    if (trace) console.log('iterer');
+
     const debut = Date.now(),
       gameEls = [];
 
@@ -459,12 +466,8 @@ function iterer() {
             });
 
         el.data.age = ~~el.data.age + 1;
-
-        if (el.data.eau > 0)
-          el.data.eau--;
-
-        if (el.data.energie > 0)
-          el.data.energie--;
+        el.data.eau = ~~el.data.eau - 1;
+        el.data.energie = ~~el.data.energie - 1;
       }
     });
 
@@ -472,7 +475,6 @@ function iterer() {
 
     if (window.location.search)
       statsEl.innerHTML =
-      noIteration + ': ' +
       divEls.length + ' fig &nbsp; ' +
       (Date.now() - debut) + ' ms &nbsp; ' +
       Math.round((Date.now() - debut) / divEls.length * 10) / 10 + 'ms/obj';
@@ -628,7 +630,6 @@ if (window.location.search) {
     else // Autre touche
       noIterationMax = 0; // Arrêt
 
-    if (noIteration < noIterationMax)
-      iterer();
+    iterer();
   };
 }
