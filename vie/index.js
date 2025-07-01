@@ -309,7 +309,9 @@ function creer(catSym, pos, pos2) { // Uniquement créer une nouvella figurine
 
   // Données initiales du modèle
   if (scn.length) {
-    el.data = scn.at(-1);
+    el.data = { // Enum to clone the values
+      ...scn.at(-1),
+    };
     delete el.data.cat;
   }
 

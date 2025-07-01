@@ -15,31 +15,34 @@ const consommer = [wwwWrapprocher, wwwWabsorber];
 const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
+    [muer, '💀', d => d.eau < 0],
     [rapprocher, '👩', ' ▒▓'],
     [unir, '👩', '🧔👩'],
     //...vivant,
-    [errer, ' ▒▓'],
+    [errer, ' ▒▓', d => d.energie > 0],
     {
       cat: 'Homme',
-      eau: 50,
+      eau: 100,
       energie: 50,
     },
   ],
   '👩': [
+    [muer, '💀', d => d.eau < 0],
     [rapprocher, '🧔', ' ▒▓'],
     [unir, '🧔', '🧔👩'],
     //...vivant,
-    [errer, ' ▒▓'],
+    [errer, ' ▒▓', d => d.energie > 0],
     {
       cat: 'Femme',
-      eau: 50,
+      eau: 100,
       energie: 50,
     },
   ],
   '🧔👩': [
+    [muer, '💀', d => d.eau < 0],
     [muer, '👫', d => d.age > 10],
     //...vivant,
-    [errer, ' ▒▓'],
+    [errer, ' ▒▓', d => d.energie > 0],
     {
       cat: 'Amoureux',
     },
@@ -47,11 +50,9 @@ const scenarii = {
   '👫': [
     //...vivant,
     //[muer, '👪', d => d.age > 5],
-    [errer, ' ▒▓'],
+    [errer, ' ▒▓', d => d.energie > 0],
     {
       cat: 'Couple',
-      eau: 10,
-      energie: 10,
     },
   ],
   //TODO TEST
