@@ -95,14 +95,14 @@ function scenario(catSym) {
 
 
 // Get / set cases[] & zones[] el
-function caseEl(tableau, xy, catSym, el) {
+function caseEl(tableau, xy, catSyms, el) {
   // tableau = cases[] / zones[]
   // 7, 7 : returns the case contents []
-  // 7, 7, 🌿 : return the html element of thois category
-  // 7, 7, 🌿, el : fill the case
+  // 7, 7, '🌿🌳🍂' : return the html element of thess categories
+  // 7, 7, '🌿', el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
 
-  if (typeof catSym === 'undefined' &&
+  if (typeof catSyms === 'undefined' &&
     (typeof tableau[xy.x] === 'undefined' || typeof tableau[xy.x][xy.y] === 'undefined'))
     return [];
 
@@ -113,18 +113,26 @@ function caseEl(tableau, xy, catSym, el) {
     tableau[xy.x][xy.y] = [];
 
   // Array des el dans une case
-  if (typeof catSym !== 'string' || !catSym)
+  if (typeof catSyms !== 'string' || !catSyms)
     return tableau[xy.x][xy.y];
 
-  // Met l'el dans la case et la tableau
+  // Met l'el dans la case et la zone
   if (typeof el === 'object') {
-    tableau[xy.x][xy.y][catSym] = el;
+    tableau[xy.x][xy.y][catSyms] = el;
     if (tableau === cases)
       el.xy = xy;
   }
 
-  // L'el d'une case pour une catéorie
-  return tableau[xy.x][xy.y][catSym] || {};
+  // Les el d'une case pour les catéorie demand&es
+  const r = [];
+
+  Object.keys(tableau[xy.x][xy.y])
+    .forEach(c => {
+      if (catSyms.includes(c))
+        r[c] = tableau[xy.x][xy.y][c];
+    });
+
+  return r;
 }
 
 //TODO fusionner avec caseEl
@@ -387,20 +395,20 @@ function produire(el, catSym) { // Crée un nouvel objet au même emplacement
 }
 
 /* eslint-disable-next-line no-unused-vars */
-function unir(el, catSym, catSymsNewA) {
-  // Fusionne un une figurine de la catégorie présente dans la même case.
+function unir(el, catSymRech, catSymsNewA) {
+  // Fusionne une figurine de la catégorie dans la même case.
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
   const catSymsNew = catSymsNewA.split(' '),
-    trouveEl = caseEl(cases, el.xy, catSym);
+    trouvesEl = caseEl(cases, el.xy, catSymRech);
 
-  if (trouveEl.innerHTML) {
+  if (trouvesEl[catSymRech]) {
     // Récupérer les données de l'autre
-    for (const property in trouveEl.data)
-      el.data[property] = ~~el.data[property] + trouveEl.data[property];
+    for (const property in trouvesEl[catSymRech].data)
+      el.data[property] = ~~el.data[property] + trouvesEl[catSymRech].data[property];
 
     el.data.age = 0;
-    supprimer(trouveEl);
+    supprimer(trouvesEl[catSymRech]);
     muer(el, catSymsNew.shift());
 
     // Crée les nouveaux objets au même emplacement
@@ -475,6 +483,7 @@ function iterer() {
 
     if (window.location.search)
       statsEl.innerHTML =
+      noIteration + ': ' +
       divEls.length + ' fig &nbsp; ' +
       (Date.now() - debut) + ' ms &nbsp; ' +
       Math.round((Date.now() - debut) / divEls.length * 10) / 10 + 'ms/obj';
