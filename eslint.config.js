@@ -207,6 +207,7 @@ export default [{
       Event: "readonly",
       fetch: "readonly",
       FileReader: "readonly",
+      HTMLElement: "readonly",
       localStorage: "readonly",
       location: "readonly",
       navigator: "readonly",

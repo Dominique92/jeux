@@ -39,7 +39,8 @@ const divEls = document.getElementsByTagName('div'), // Les figurines
   nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
   rayonRechercheMax = 3,
   tailleZone = rayonRechercheMax + 1,
-  recurrence = 1000; // ms
+  recurrence = 1000, // ms
+  t0 = Date.now();
 
 let dragInfo = null,
   noIteration = 0,
@@ -93,54 +94,51 @@ function scenario(catSym) {
   return scn;
 }
 
-
-// Get / set cases[] & zones[] el
-function caseEl(tableau, xy, catSyms, el) {
+function setCase(xy, catSym, el, tableau) {
+  // xy, '🌿', el : fill the case
+  // xy, '🌿', <false> : delete the case
   // tableau = cases[] / zones[]
-  // 7, 7 : returns the case contents []
-  // 7, 7, '🌿🌳🍂' : return the html element of thess categories
-  // 7, 7, '🌿', el : fill the case
   // Il ne peut y avoir qu'un el de chaque catéorie dans une case
+  if (trace) console.log('setCase', ...arguments);
 
-  if (typeof catSyms === 'undefined' &&
-    (typeof tableau[xy.x] === 'undefined' || typeof tableau[xy.x][xy.y] === 'undefined'))
-    return [];
+  const tab = tableau ?? cases;
 
-  if (typeof tableau[xy.x] === 'undefined')
-    tableau[xy.x] = [];
+  if (!tab[xy.x])
+    tab[xy.x] = [];
 
-  if (typeof tableau[xy.x][xy.y] === 'undefined')
-    tableau[xy.x][xy.y] = [];
+  if (!tab[xy.x][xy.y])
+    tab[xy.x][xy.y] = [];
 
-  // Array des el dans une case
-  if (typeof catSyms !== 'string' || !catSyms)
-    return tableau[xy.x][xy.y];
+  // set/unset the cases
+  if (el instanceof HTMLElement)
+    tab[xy.x][xy.y][catSym] = el;
+  else
+    delete tab[xy.x][xy.y][catSym];
 
-  // Met l'el dans la case et la zone
-  if (typeof el === 'object') {
-    tableau[xy.x][xy.y][catSyms] = el;
-    if (tableau === cases)
-      el.xy = xy;
-  }
-
-  // Les el d'une case pour les catéorie demand&es
-  const r = [];
-
-  Object.keys(tableau[xy.x][xy.y])
-    .forEach(c => {
-      if (catSyms.includes(c))
-        r[c] = tableau[xy.x][xy.y][c];
-    });
-
-  return r;
+  // set/unset the zones
+  if (tab === cases)
+    setCase(xyzFromXY(xy), catSym, el, zones);
 }
 
-//TODO fusionner avec caseEl
-function filtreCase(tableau, xy, catSyms) {
-  const caseRech = Object.keys(caseEl(tableau, xy)),
-    caseRechDefault = caseRech.length ? caseRech : [' '];
+function caseEl(xy, catSyms, tableau) {
+  // xy, '🌿🌳🍂' : return the els in the case matching the pattern
+  // if the case is empty & the pattern includes ' ' : return []
+  // if none, return false
+  if (trace) console.log('caseEl', ...arguments);
 
-  return caseRechDefault.some(v => catSyms.includes(v));
+  const tab = tableau ?? cases,
+    c = tab[xy.x] ? (tab[xy.x][xy.y] ?? []) : [],
+    r = [];
+
+  Object.keys(c).forEach(k => {
+    if (catSyms.includes(k))
+      r.push(c[k]);
+  });
+
+  if (r.length || ( // Found
+      !Object.keys(c).length && catSyms.includes(' ') // Empty requested & found
+    ))
+    return r;
 }
 
 function casesProches(xyCentre, distance, limite, catSyms, tableau) {
@@ -168,7 +166,7 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
           y: xyCentre.y + d * delta[1] + i * delta[3],
         };
 
-        if (filtreCase(tableau || cases, xyRech, catSyms))
+        if (caseEl(xyRech, catSyms, tableau))
           listeProches.push([ // Préparation du retour
             ...delta,
             xyRech,
@@ -207,10 +205,7 @@ function rebuildCases() {
       Object.entries(el.data)
       .filter(v => v[1])
     );
-
-    // Population des cases
-    caseEl(cases, el.xy, el.innerHTML, el);
-    caseEl(zones, xyzFromXY(el.xy), el.innerHTML, el);
+    setCase(el.xy, el.innerHTML, el);
 
     // Figurines title
     el.title =
@@ -233,16 +228,14 @@ function rebuildCases() {
 }
 
 // VERBES : function(el, ...)
-// return true : Succés
+// return true : Succes
 
-function supprimer(el, keep) { // Uniquement supprimer
+function supprimer(el) { // Uniquement supprimer
   if (trace) console.log('supprimer', el.innerHTML, ...arguments);
 
   if (el.xy) {
-    delete caseEl(cases, el.xy)[el.innerHTML];
-
-    if (!keep)
-      el.remove();
+    setCase(el.xy, el.innerHTML, false);
+    el.remove();
 
     return true;
   }
@@ -251,10 +244,10 @@ function supprimer(el, keep) { // Uniquement supprimer
 function deplacer(el, pos, pos2) { // Uniquement changer xy
   if (trace) console.log('deplacer', el.innerHTML, ...arguments);
 
-  const xyElA = el.xy || {},
+  const xyElA = el.xy ?? {},
     xyA = {
-      x: pos || xyElA.x, // caseX, caseY
-      y: pos2 || xyElA.y,
+      x: pos ?? xyElA.x, // caseX, caseY
+      y: pos2 ?? xyElA.y,
       ...pos, // {x: caseX, y: caseY}
     },
     newPix = {
@@ -280,8 +273,10 @@ function deplacer(el, pos, pos2) { // Uniquement changer xy
     }
 
     // On change l'el de case
-    supprimer(el, true);
-    caseEl(cases, newXY, el.innerHTML, el);
+    if (el.xy)
+      setCase(el.xy, el.innerHTML, el);
+    el.xy = newXY;
+    setCase(newXY, el.innerHTML, el);
 
     return true;
   }
@@ -379,7 +374,7 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
   // catSymsAuth = symboles autorisés pour le déplacement (commence par ' ')
   if (trace) console.log('rapprocher', el.innerHTML, ...arguments);
 
-  if (filtreCase(cases, el.xy, catSymsRech))
+  if (caseEl(el.xy, catSymsRech))
     return false; // Il y en dèjà sur la même case
 
   const pp = casesProches(el.xy, tailleZone * tailleZone, 1, catSymsRech);
@@ -390,28 +385,25 @@ function rapprocher(el, catSymsRech, catSymsAuth) { // Jusqu'à la colocalisatio
       y: el.xy.y + pp[0][1],
     };
 
-    if (filtreCase(cases, newXY, catSymsRech + catSymsAuth))
+    if (caseEl(newXY, catSymsRech + catSymsAuth))
       return deplacer(el, newXY);
   }
 }
 
-/* eslint-disable-next-line no-unused-vars */
-function unir(el, catSymsRech, catSymsNewA, catSymsAuth) {
-  // Fusionne une figurine de la catégorie dans la même case.
+function unir(el, catSymsRech, catSymsReplace) {
+  // Fusionne deux figurines dans la même case.
   if (trace) console.log('unir', el.innerHTML, ...arguments);
 
-  const catSymsNew = (catSymsNewA || el.innerHTML).split(' '),
-    trouveEls = Object.entries(caseEl(cases, el.xy, catSymsRech));
+  const catSymsNew = (catSymsReplace ?? el.innerHTML).split(' '),
+    trouveEls = caseEl(el.xy, catSymsRech);
 
-  if (trouveEls.length) {
-    const tEl = trouveEls[0][1];
-
+  if (trouveEls && trouveEls.length) {
     // Récupérer les données de l'autre
-    for (const property in tEl.data)
-      el.data[property] = ~~el.data[property] + tEl.data[property];
+    for (const property in trouveEls[0].data)
+      el.data[property] = ~~el.data[property] + trouveEls[0].data[property];
 
     el.data.age = 0;
-    supprimer(tEl);
+    supprimer(trouveEls[0]);
     muer(el, catSymsNew.shift());
 
     // Crée les nouveaux objets au même emplacement
@@ -419,6 +411,12 @@ function unir(el, catSymsRech, catSymsNewA, catSymsAuth) {
 
     return true;
   }
+}
+
+/* eslint-disable-next-line no-unused-vars */
+function reunir(el, catSymsRech, catSymsReplace, catSymsAuth) {
+  if (unir(el, catSymsRech, catSymsReplace, catSymsAuth))
+    return true;
 
   return rapprocher(el, catSymsRech, catSymsAuth);
 }
@@ -434,7 +432,8 @@ function iterer() {
       gameEls = [];
 
     noIteration++;
-    if (trace) console.log('ITERER', noIteration, noIterationMax);
+    if (trace);
+    console.log('ITERER', debut - t0, noIteration, noIterationMax);
 
     // Fait un tableau avec les <div> existants
     for (const el of divEls)
@@ -500,6 +499,8 @@ function iterer() {
 
 function loadWorld(datas) {
   // Vide le monde
+  if (trace) console.log('loadWorld', ...arguments);
+
   while (divEls.length)
     divEls[0].remove();
 
@@ -596,6 +597,8 @@ function dragend(evt) {
 
 /* eslint-disable-next-line no-unused-vars */
 function load(evt) {
+  if (trace) console.log('load', evt);
+
   const blob = evt.target.files[0],
     reader = new FileReader();
   //TODO BUG ne marche pas si charge 2 fois le même consécutivement
@@ -610,6 +613,8 @@ function load(evt) {
 
 /* eslint-disable-next-line no-unused-vars, one-var */
 const save = async () => {
+  if (trace) console.log('save');
+
   const handle = await window.showSaveFilePicker({
       types: [{
         description: 'Sauvegarde jeu de la vie',

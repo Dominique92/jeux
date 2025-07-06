@@ -1,4 +1,4 @@
-/* global errer, muer, rapprocher, supprimer, produire, unir */
+/* global errer, muer, rapprocher, reunir, supprimer, produire, unir */
 
 // SCÉNARII
 /*
@@ -16,10 +16,9 @@ const scenarii = {
   // Cycle des humains 🧒👶
   '🧔': [
     [muer, '💀', d => d.eau < 0],
-    [unir, '💧💦', '🧔', ' ▒▓', d => d.eau < 200],
-    [unir, '🌽', '🧔', ' ▒▓', d => d.energie < 20],
-    [unir, '👩', '🧔👩'],
-    [rapprocher, '👩', ' ▒▓'],
+    [reunir, '💧💦', '🧔', ' ▒▓', d => d.eau < 200],
+    [reunir, '🌽', '🧔', ' ▒▓', d => d.energie < 20],
+    [reunir, '👩', '🧔👩', ' ▒▓'],
     //...vivant,
     [errer, ' ▒▓', d => d.energie > 0],
     {
@@ -30,11 +29,9 @@ const scenarii = {
   ],
   '👩': [
     [muer, '💀', d => d.eau < 0],
-    [unir, '💧💦', '👩', ' ▒▓', d => d.eau < 200],
-    [unir, '🌽', '👩', ' ▒▓', d => d.energie < 20],
-    [unir, '🧔', '🧔👩'],
-    [rapprocher, '🧔', ' ▒▓'],
-    //...vivant,
+    [reunir, '💧💦', '👩', ' ▒▓', d => d.eau < 200],
+    [reunir, '🌽', '👩', ' ▒▓', d => d.energie < 20],
+    [reunir, '🧔', '🧔👩', ' ▒▓'],
     [errer, ' ▒▓', d => d.energie > 0],
     {
       cat: 'Femme',
@@ -44,9 +41,8 @@ const scenarii = {
   ],
   '🧔👩': [
     [muer, '💀', d => d.eau < 0],
-    [unir, '💧💦', '🧔👩', ' ▒▓', d => d.eau < 200],
-    [unir, '🌽', '🧔👩', ' ▒▓', d => d.energie < 20],
-    [muer, '👫', d => d.age > 10],
+    [reunir, '💧💦', '🧔👩', ' ▒▓', d => d.eau < 200],
+    [reunir, '🌽', '🧔👩', ' ▒▓', d => d.energie < 20],
     //...vivant,
     [errer, ' ▒▓', d => d.energie > 0],
     {
@@ -55,9 +51,8 @@ const scenarii = {
   ],
   '👫': [
     [muer, '💀', d => d.eau < 0],
-    [unir, '💧💦', '👫', ' ▒▓', d => d.eau < 200],
-    [unir, '🌽', '👫', ' ▒▓', d => d.energie < 20],
-    //...vivant,
+    [reunir, '💧💦', '👫', ' ▒▓', d => d.eau < 200],
+    [reunir, '🌽', '👫', ' ▒▓', d => d.energie < 20],
     //[muer, '👪', d => d.age > 5],
     [errer, ' ▒▓', d => d.energie > 0],
     {
@@ -66,9 +61,8 @@ const scenarii = {
   ],
   //TODO TEST
   '🧍': [
-    [unir, '💧💦', '🧍', ' ▒▓', d => d.eau < 200],
-    [unir, '🌽', '🧍', ' ▒▓', d => d.energie < 20],
-    //...vivant,
+    [reunir, '💧💦', '🧍', ' ▒▓', d => d.eau < 200],
+    [reunir, '🌽', '🧍', ' ▒▓', d => d.energie < 20],
     [muer, '🧔', d => d.age > 10 && Math.random() < 0.5],
     [muer, '👩', d => d.age > 1],
     [errer, ' ▒▓'],
