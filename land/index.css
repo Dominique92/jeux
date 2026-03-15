@@ -15,10 +15,6 @@ body {
   width: 28px;
 }
 
-#terrain div div:last-child {
-  width: 28px;
-}
-
 /*
  body p{
   margin:0;

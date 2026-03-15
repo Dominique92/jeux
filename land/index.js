@@ -1,12 +1,12 @@
 const terrainEl = document.getElementById('terrain'),
-  pas = 28, // Même que CSS
-  tailleX = 28,
-  tailleY = tailleX * 1.4,
+  pasPixels = 28, // Même que CSS
+  nbCelX = 4,
+  nbCelY = nbCelX * 1.4,
   rnd = [],
 
   // Données mémorisées dans localstorage
   store = {
-    terrain: [], // [y][x]{proprerty:int}
+    terrain: [], // [y][x]{proprerty: 0...255}
   };
 
 // Génère une clé aléatoire pour calculer les bosses
@@ -21,37 +21,48 @@ function rndSin(marqueur, x, periode, min, max) {
 }
 
 // Initialise le DOM du terrain
-for (let y = 0; y < tailleY; y++) {
+for (let y = 0; y < nbCelY; y++) {
   // Une rangée horizontale
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
   store.terrain[y] = [];
 
-  for (let x = 0; x < tailleX; x++) {
+  for (let x = 0; x < nbCelX; x++) {
     // Un DIV pour chaque case
     //TODO masquer les bords droite et bas
     terrainEl.lastChild.insertAdjacentHTML('beforeend',
-      '<div style="top:' + (y - 0.7) / 2 * pas + 'px; left:' + (x - 0.7 + y % 2 / 2) * 0.7 * pas + 'px;"/>');
+      '<div style="top:' + (y - 0.7) / 2 * pasPixels + 'px; left:' + (x - 0.7 + y % 2 / 2) * 0.7 * pasPixels + 'px;"/>');
 
     // Les propriétés de la case
     store.terrain[y][x] = {
       altitude: 0,
-      eau: 100,
-      verdure: 0,
+      eau: 10,
+      verdure: 50,
     };
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      store.terrain[y][x].altitude += rndSin(4 * i, x, tailleX, 0, 9) * rndSin(4 * i + 2, y, tailleY, 0, 9);
+      store.terrain[y][x].altitude +=
+      rndSin(4 * i, x, nbCelX, 0, 9) *
+      rndSin(4 * i + 2, y, nbCelY, 0, 9);
   }
 }
 
+/* eslint-disable-next-line one-var */
+const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
+
 // Colore les éléments du terrain
-for (let x = 0; x < tailleX; x++)
-  for (let y = 0; y < tailleY; y++) {
-    const rgb = [store.terrain[y][x].altitude, 75, 0];
+for (let x = 0; x < nbCelX; x++)
+  for (let y = 0; y < nbCelY; y++) {
+    const cell = store.terrain[y][x],
+      rgb = [
+        cell.altitude,
+        cell.altitude * 0.7 + cell.verdure * 0.3,
+        cell.altitude * 0.5 + cell.eau * 0.5,
+      ].map(v => encadre(0, v, 255))
+      .join(',');
 
     terrainEl.children[y].children[x].style.backgroundImage =
-      'radial-gradient(rgb(' + rgb.join(',') + ') 45%, transparent 70%)';
+      'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
   }
 
 //////////////////////  FIN  //////////////////////
