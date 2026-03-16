@@ -2,12 +2,7 @@ const terrainEl = document.getElementById('terrain'),
   pasPixels = 28, // Même que CSS
   nbCelX = 4,
   nbCelY = nbCelX * 1.4,
-  rnd = [],
-
-  // Données mémorisées dans localstorage
-  store = {
-    terrain: [], // [y][x]{proprerty: 0...255}
-  };
+  rnd = [];
 
 // Génère une clé aléatoire pour calculer les bosses
 for (let i = 0; i < 12; i++)
@@ -24,26 +19,25 @@ function rndSin(marqueur, x, periode, min, max) {
 for (let y = 0; y < nbCelY; y++) {
   // Une rangée horizontale
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
-  store.terrain[y] = [];
 
   for (let x = 0; x < nbCelX; x++) {
-    // Un DIV pour chaque case
+    // Un DIV pour chaque case position: absolute
     //TODO masquer les bords droite et bas
     terrainEl.lastChild.insertAdjacentHTML('beforeend',
       '<div style="top:' + y / 2 * pasPixels + 'px; ' +
       'left:' + (x + y % 2 / 2) * 0.7 * pasPixels + 'px;" ' +
       'title="' + x + ',' + y + '" />');
 
-    // Les propriétés de la case
-    store.terrain[y][x] = {
-      altitude: 0,
-      eau: 10,
-      verdure: 50,
-    };
+    // On se sert du DOM pour stocker des variables (je sais, c'est pas beau !)
+    const cellEl = terrainEl.lastChild.lastChild;
+
+    cellEl.eau = 10;
+    cellEl.verdure = 50;
+    cellEl.altitude = 0;
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      store.terrain[y][x].altitude +=
+      cellEl.altitude +=
       rndSin(4 * i, x, nbCelX, 0, 9) *
       rndSin(4 * i + 2, y, nbCelY, 0, 9);
   }
@@ -56,16 +50,15 @@ const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
 function affiche() {
   for (let x = 0; x < nbCelX; x++)
     for (let y = 0; y < nbCelY; y++) {
-      const cell = store.terrain[y][x],
+      const cellEl = terrainEl.children[y].children[x],
         rgb = [
-          cell.altitude,
-          cell.altitude * 0.7 + cell.verdure * 0.3,
-          cell.altitude * 0.5 + cell.eau * 0.5,
+          cellEl.altitude,
+          cellEl.altitude * 0.7 + cellEl.verdure * 0.3,
+          cellEl.altitude * 0.5 + cellEl.eau * 0.5,
         ].map(v => encadre(0, v, 255))
         .join(',');
 
-      terrainEl.children[y].children[x].style.backgroundImage =
-        'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
+      cellEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
     }
 }
 affiche();
@@ -74,9 +67,8 @@ affiche();
 function vie() {
   const x = parseInt(nbCelX * Math.random(), 10),
     y = parseInt(nbCelY * Math.random(), 10),
-    centralCell = store.terrain[y][x],
     centralEl = terrainEl.children[y].children[x],
-    y2 = (y + 1) % 2,
+    y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
     proches = [
       [x - y2, y - 1],
       [x + 1 - y2, y - 1],
@@ -85,21 +77,21 @@ function vie() {
       [x - y2, y + 1],
       [x - 1, y],
     ];
-  console.log([x, y]); //DCMM
-  console.log(centralCell); //DCMM
+
+  console.log(centralEl.altitude); //DCMM
 
   for (let d = 0; d < proches.length; d++)
     if (0 <= proches[d][0] && proches[d][0] < nbCelX &&
       0 <= proches[d][1] && proches[d][1] < nbCelY) {
-      const procheCell = store.terrain[proches[d][1]][proches[d][0]],
-        procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
+      const procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
 
-      console.log(procheCell); //DCMM
+      console.log(procheEl.altitude); //DCMM
 
       procheEl.innerHTML = '💧';
     }
   affiche();
 }
+vie(); // Une première fois, pour tests
 
 
 //////////////////////  FIN  //////////////////////
