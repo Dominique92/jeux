@@ -53,25 +53,29 @@ for (let y = 0; y < nbCelY; y++) {
 const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
 
 // Colore les éléments du terrain
-for (let x = 0; x < nbCelX; x++)
-  for (let y = 0; y < nbCelY; y++) {
-    const cell = store.terrain[y][x],
-      rgb = [
-        cell.altitude,
-        cell.altitude * 0.7 + cell.verdure * 0.3,
-        cell.altitude * 0.5 + cell.eau * 0.5,
-      ].map(v => encadre(0, v, 255))
-      .join(',');
+function affiche() {
+  for (let x = 0; x < nbCelX; x++)
+    for (let y = 0; y < nbCelY; y++) {
+      const cell = store.terrain[y][x],
+        rgb = [
+          cell.altitude,
+          cell.altitude * 0.7 + cell.verdure * 0.3,
+          cell.altitude * 0.5 + cell.eau * 0.5,
+        ].map(v => encadre(0, v, 255))
+        .join(',');
 
-    terrainEl.children[y].children[x].style.backgroundImage =
-      'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
-  }
+      terrainEl.children[y].children[x].style.backgroundImage =
+        'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
+    }
+}
+affiche();
 
 // Vie
-for (let t = 0; t < 1; t++) {
+function vie() {
   const x = parseInt(nbCelX * Math.random(), 10),
     y = parseInt(nbCelY * Math.random(), 10),
-    el = terrainEl.children[y].children[x],
+    centralCell = store.terrain[y][x],
+    centralEl = terrainEl.children[y].children[x],
     y2 = (y + 1) % 2,
     proches = [
       [x - y2, y - 1],
@@ -82,14 +86,19 @@ for (let t = 0; t < 1; t++) {
       [x - 1, y],
     ];
   console.log([x, y]); //DCMM
+  console.log(centralCell); //DCMM
 
   for (let d = 0; d < proches.length; d++)
     if (0 <= proches[d][0] && proches[d][0] < nbCelX &&
       0 <= proches[d][1] && proches[d][1] < nbCelY) {
-      const eld = terrainEl.children[proches[d][1]].children[proches[d][0]];
+      const procheCell = store.terrain[proches[d][1]][proches[d][0]],
+        procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
 
-      eld.innerHTML = '💧';
+      console.log(procheCell); //DCMM
+
+      procheEl.innerHTML = '💧';
     }
+  affiche();
 }
 
 

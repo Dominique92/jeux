@@ -6,6 +6,11 @@ body {
   background: #486;
 }
 
+body>a {
+  float: right;
+  cursor: pointer;
+}
+
 /* Englobant tout le cercle colorant la zone du terrain */
 #terrain div div {
   display: block;
