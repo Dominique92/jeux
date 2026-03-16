@@ -30,7 +30,9 @@ for (let y = 0; y < nbCelY; y++) {
     // Un DIV pour chaque case
     //TODO masquer les bords droite et bas
     terrainEl.lastChild.insertAdjacentHTML('beforeend',
-      '<div style="top:' + (y - 0.7) / 2 * pasPixels + 'px; left:' + (x - 0.7 + y % 2 / 2) * 0.7 * pasPixels + 'px;"/>');
+      '<div style="top:' + y / 2 * pasPixels + 'px; ' +
+      'left:' + (x + y % 2 / 2) * 0.7 * pasPixels + 'px;" ' +
+      'title="' + x + ',' + y + '" />');
 
     // Les propriétés de la case
     store.terrain[y][x] = {
@@ -64,6 +66,32 @@ for (let x = 0; x < nbCelX; x++)
     terrainEl.children[y].children[x].style.backgroundImage =
       'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
   }
+
+// Vie
+for (let t = 0; t < 1; t++) {
+  const x = parseInt(nbCelX * Math.random(), 10),
+    y = parseInt(nbCelY * Math.random(), 10),
+    el = terrainEl.children[y].children[x],
+    y2 = (y + 1) % 2,
+    proches = [
+      [x - y2, y - 1],
+      [x + 1 - y2, y - 1],
+      [x + 1, y],
+      [x + 1 - y2, y + 1],
+      [x - y2, y + 1],
+      [x - 1, y],
+    ];
+  console.log([x, y]); //DCMM
+
+  for (let d = 0; d < proches.length; d++)
+    if (0 <= proches[d][0] && proches[d][0] < nbCelX &&
+      0 <= proches[d][1] && proches[d][1] < nbCelY) {
+      const eld = terrainEl.children[proches[d][1]].children[proches[d][0]];
+
+      eld.innerHTML = '💧';
+    }
+}
+
 
 //////////////////////  FIN  //////////////////////
 /*********************
@@ -227,17 +255,17 @@ function casesProches(xyCentre, distance, limite, catSyms, tableau) {
   // Recherche dans un rayon donné
   for (let d = 1; d <= Math.min(distance, rayonRechercheMax); d++)
     // Pour chacune des 6 directions
-    deltasProches.forEach(delta => {
+    deltasProches.forEach(proches => {
       // On parcours le côté
       for (let i = 0; i < d && listeProches.length < limite; i++) {
         const xyRech = {
-          x: xyCentre.x + d * delta[0] + i * delta[2],
-          y: xyCentre.y + d * delta[1] + i * delta[3],
+          x: xyCentre.x + d * proches[0] + i * proches[2],
+          y: xyCentre.y + d * proches[1] + i * proches[3],
         };
 
         if (caseEl(xyRech, catSyms, tableau))
           listeProches.push([ // Préparation du retour
-            ...delta,
+            ...proches,
             xyRech,
             tableau === zones ? d * tailleZone : d, // Distance du centre
           ]);
