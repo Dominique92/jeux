@@ -1,12 +1,5 @@
-const terrainEl = document.getElementById('terrain'),
-  pasPixels = 28, // Même que CSS
-  nbCelX = 4,
-  nbCelY = nbCelX * 1.4,
-  rnd = [];
-
-// Génère une clé aléatoire pour calculer les bosses
-for (let i = 0; i < 12; i++)
-  rnd[i] = Date.now() * Math.random() % 1;
+// Génère des clés aléatoires pour calculer les bosses du terrain
+const rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1);
 
 function rndSin(marqueur, x, periode, min, max) {
   return Math.sin((x / periode + rnd[marqueur]) * 6.28) *
@@ -15,74 +8,192 @@ function rndSin(marqueur, x, periode, min, max) {
     (max + min) / 2;
 }
 
+// Définition du terrain
+/* eslint-disable-next-line one-var */
+const tailleCase = 16,
+  nbCasesX = 20,
+  nbCasesY = nbCasesX * 1.4,
+  //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
+  cases = [], // Valeurs associées à chaque case
+  terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
+
 // Initialise le DOM du terrain
-for (let y = 0; y < nbCelY; y++) {
-  // Une rangée horizontale
+for (let x = 0; x < nbCasesX; x++) {
+  // Regroupé par colonnes
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
+  cases[x] = [];
 
-  for (let x = 0; x < nbCelX; x++) {
+  // Initialisation du terrain
+  for (let y = 0; y < nbCasesY; y++) {
     // Un DIV pour chaque case position: absolute
-    //TODO masquer les bords droite et bas
-    terrainEl.lastChild.insertAdjacentHTML('beforeend',
-      '<div style="top:' + y / 2 * pasPixels + 'px; ' +
-      'left:' + (x + y % 2 / 2) * 0.7 * pasPixels + 'px;" ' +
-      'title="' + x + ',' + y + '" />');
+    terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
+    Object.assign(terrainEl.lastChild.lastChild.style, {
+      width: tailleCase * 1.6 + 'px', // Facteur de recouvrement
+      top: (tailleCase * 0.866 * x) + 'px', // Triangle équilatéral
+      left: (tailleCase * (y + x % 2 / 2)) + 'px', // En quiconce
+    });
 
-    // On se sert du DOM pour stocker des variables (je sais, c'est pas beau !)
-    const cellEl = terrainEl.lastChild.lastChild;
-
-    cellEl.eau = 10;
-    cellEl.verdure = 50;
-    cellEl.altitude = 0;
+    // Valeurs initiales des cases du terrain
+    cases[x][y] = {
+      eau: 10,
+      verdure: 50,
+      altitude: 0,
+    };
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      cellEl.altitude +=
-      rndSin(4 * i, x, nbCelX, 0, 9) *
-      rndSin(4 * i + 2, y, nbCelY, 0, 9);
+      cases[x][y].altitude +=
+      rndSin(4 * i, x, nbCasesX, 0, 9) *
+      rndSin(4 * i + 2, y, nbCasesY, 0, 9);
   }
 }
 
-/* eslint-disable-next-line one-var */
-const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
+// Calcul de la couleur d'une case
+function rgbCase(c) {
+  return [
+    c.altitude,
+    c.altitude * 0.7 + c.verdure * 0.3,
+    c.altitude * 0.5 + c.eau * 0.5,
+  ];
+}
 
 // Colore les éléments du terrain
 function affiche() {
-  for (let x = 0; x < nbCelX; x++)
-    for (let y = 0; y < nbCelY; y++) {
-      const cellEl = terrainEl.children[y].children[x],
-        rgb = [
-          cellEl.altitude,
-          cellEl.altitude * 0.7 + cellEl.verdure * 0.3,
-          cellEl.altitude * 0.5 + cellEl.eau * 0.5,
-        ].map(v => encadre(0, v, 255))
+  for (let x = 0; x < nbCasesX; x++)
+    for (let y = 0; y < nbCasesY; y++) {
+      const caseEl = terrainEl.children[x].children[y],
+        rgb = rgbCase(cases[x][y])
+        .map(v => Math.max(0, Math.min(v, 255)))
         .join(',');
 
-      cellEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
+      caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 42%, transparent 70%)';
     }
 }
 affiche();
 
-// Vie
-function vie() {
-  const x = parseInt(nbCelX * Math.random(), 10),
-    y = parseInt(nbCelY * Math.random(), 10),
-    centralEl = terrainEl.children[y].children[x],
-    y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
-    proches = [
+
+//const tailleCase= terrainEl.firstChild.firstChild.clientWidth;
+//console.log(tailleCase);//DCMM
+
+// Fonctions générales
+//const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
+//vMoy = (v1, v2) => v1.map((v, k) => (v + v2[k]) / 2),
+//rgb = (v) => 'rgb(' + v.map(c => encadre(0, Math.round(c), 255)).join(',') + ')',
+/*
+  [...terrainEl.children].forEach((lineEl, y) => {
+    [...lineEl.children].forEach((caseEl, x) => {
+      caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgbCase(caseEl) + ') 45%, transparent 70%)';
+console.log(rgbCase(caseEl) );//DCMM
+    });
+  });
+}
+*/
+
+/*
+function cellElFromXY(xy) {
+  if (inTerrain(xy))
+    return terrainEl.children[xy[1]].children[xy[0]];
+};
+
+function prochesEls(xy) {
+  const x = xy[0],
+    y = xy[1],
+    y2 = (y + 1) % 2; // On décale une ligne sur 2 pour simuler un pattern hexagonal
+
+  return [
       [x - y2, y - 1],
       [x + 1 - y2, y - 1],
       [x + 1, y],
       [x + 1 - y2, y + 1],
       [x - y2, y + 1],
       [x - 1, y],
-    ];
+    ].filter(inTerrain)
+    .map(cellElFromXY);
+}
+*/
 
-  console.log(centralEl.altitude); //DCMM
+/* es lint-disable-next-line no-extend-native, func-names
+Array.prototype.caseEl = function() {
+  if (0 <= this[0] && this[0] < nbCasesX && 0 <= this[1] && this[1] < nbCasesY)
+    return terrainEl.children[this[1]].children[this[0]];
+}; */
+
+//console.log(cellElFromXY([1, 1])); //DCMM
+//console.log(prochesEls ([0,0]) );//DCMM
+//TODO for (const [i, value] of myArray.entries()) {
+//for (const [i, obj] of enumerate(myArray)) {
+//for (const [y, lineEl]  of [...terrainEl.children])
+//for (const [x, caseEl]   of Array.from(lineEl.children))    {
+/* }
+    for (let x = 0; x < nbCasesX; x++)
+    for (let y = 0; y < nbCasesY; y++) {
+      const caseEl = terrainEl.children[y].children[x],
+  const      WWWrgbCell = [
+          caseEl.altitude,
+          caseEl.altitude * 0.7 + caseEl.verdure * 0.3,
+          caseEl.altitude * 0.5 + caseEl.eau * 0.5,
+        ].map(v => encadre(0, v, 255));*/
+
+
+//const      rgbCellCentrale = rgbCase(caseEl);
+
+/*  [
+       caseEl.altitude,
+       caseEl.altitude * 0.7 + caseEl.verdure * 0.3,
+       caseEl.altitude * 0.5 + caseEl.eau * 0.5,
+     ].map(v => encadre(0, v, 255));*/
+//        .join(',');
+//console.log(arguments);//DCMM
+
+/*rgbCase.map((a,b)=>{
+console.log([a,b]);//DCMM
+  });*/
+
+//console.log(caseEl.style);//DCMM
+//caseEl.style.backgroundColor = 'red';
+
+/*const    bkImg ='conic-gradient(from 30deg,' + [
+           rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
+          rgb(vMoy(rgbCellCentrale, [64, 196, 128])),
+          rgb(vMoy(rgbCellCentrale, [128, 64, 196])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
+          rgb(vMoy(rgbCellCentrale, [196, 64, 128])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
+         ].join(',') + ')' ;*/
+//console.log(bkImg); //DCMM
+
+/*
+    conic-gradient(from 30deg at rgb(39,77,104),rgb(39,77,104),rgb(39,111,70),
+    rgb(71,45,104),rgb(39,77,104),rgb(105,45,70),rgb(39,77,104))
+    
+      //const titi = xyProches(x, y);
+      //const toto = 'conic-gradient(from 30deg' + [].join(',') + ')';
+
+
+      if (0)
+        caseEl.style.backgroundImage = //'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
+        //   'radial-gradient(rgba(' + rgb + ',1) 20%,  rgba(' + rgb + ',0) 60%),'+
+        //'conic-gradient(from red 30deg, yellow 90deg, green 150deg, yellow 210deg, red 270deg, yellow 330deg, blue  )';
+        ;
+      // 'conic-gradient(from 45deg, blue, red)';
+ */
+// console.log(caseEl.style.backgroundImage); //DCMM
+
+//////////////////////  FIN  //////////////////////
+// Vie
+function vie() {
+  const x = parseInt(nbCasesX * Math.random(), 10),
+    y = parseInt(nbCasesY * Math.random(), 10),
+    centralEl = terrainEl.children[y].children[x],
+    //  y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
+    proches = xyProches(x, y);
+
+  //console.log(centralEl.altitude); //DCMM
 
   for (let d = 0; d < proches.length; d++)
-    if (0 <= proches[d][0] && proches[d][0] < nbCelX &&
-      0 <= proches[d][1] && proches[d][1] < nbCelY) {
+    if (0 <= proches[d][0] && proches[d][0] < nbCasesX &&
+      0 <= proches[d][1] && proches[d][1] < nbCasesY) {
       const procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
 
       console.log(procheEl.altitude); //DCMM
@@ -91,10 +202,9 @@ function vie() {
     }
   affiche();
 }
-vie(); // Une première fois, pour tests
+//vie(); // Une première fois, pour tests
 
 
-//////////////////////  FIN  //////////////////////
 /*********************
  * Terrain : toute la fenêtre <body>
  * Figurine / fig = <div>unicode</div> rattaché au <body> déplaçable
