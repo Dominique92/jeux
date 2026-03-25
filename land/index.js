@@ -1,7 +1,9 @@
 // Définition du terrain
-const tailleCase = 50, // Pixels//DCMM 16
+const tailleCaseX = 20, // Pixels//DCMM 16
+  tailleCaseY = tailleCaseX * 0.866,
   nbCasesX = 16, // 16
   nbCasesY = Math.round(nbCasesX / 0.866),
+  encadre = (min, val, max) => Math.max(min, Math.min(val, max)),
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
   cases = [], // Valeurs associées à chaque case
@@ -23,9 +25,9 @@ for (let y = 0; y < nbCasesY; y++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCase * 1.6 + 'px', // Facteur de recouvrement
-      top: (tailleCase * 0.866 * y) + 'px', // Triangle équilatéral
-      left: (tailleCase * (x + y % 2 / 2)) + 'px', // En quiconce
+      width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
+      top: (tailleCaseY * y) + 'px', // Triangle équilatéral
+      left: (tailleCaseX * (x + y % 2 / 2)) + 'px', // En quiconce
     });
 
     // Valeurs initiales des cases du terrain
@@ -70,10 +72,10 @@ affiche();
 //setInterval(affiche, 200);
 
 document.addEventListener('click', (evt) => {
-  const y = Math.floor(evt.clientY / tailleCase),
-    x = Math.floor(evt.clientX / tailleCase - y % 2 / 2);
+  const y = Math.floor(evt.clientY / tailleCaseY),
+    x = Math.floor(evt.clientX / tailleCaseX - y % 2 / 2);
 
-  cases[x][y].altitude -= 10;
+  cases[x][y].altitude = encadre(0, cases[x][y].altitude - 10, 255);
   affiche();
 });
 
@@ -87,10 +89,7 @@ figEl2.innerHTML = 'Z💧V🌽';
 terrainEl.children[3].children[3].appendChild(figEl);
 terrainEl.children[2].children[3].appendChild(figEl2);
 
-//const tailleCase= terrainEl.firstChild.firstChild.clientWidth;
-
 // Fonctions générales
-//const encadre = (min, val, max) => Math.max(min, Math.min(val, max));
 //vMoy = (v1, v2) => v1.map((v, k) => (v + v2[k]) / 2),
 //rgb = (v) => 'rgb(' + v.map(c => encadre(0, Math.round(c), 255)).join(',') + ')',
 /*
