@@ -1,9 +1,10 @@
+/* global encadre */
 // Définition du terrain
-const tailleCaseX = 20, // Pixels//DCMM 16
+const tailleMonde = 400,
+  tailleCaseX = 16, // Pixels//DCMM 16
   tailleCaseY = tailleCaseX * 0.866,
-  nbCasesX = 16, // 16
+  nbCasesX = Math.round(tailleMonde / tailleCaseX),
   nbCasesY = Math.round(nbCasesX / 0.866),
-  encadre = (min, val, max) => Math.max(min, Math.min(val, max)),
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
   cases = [], // Valeurs associées à chaque case
@@ -79,8 +80,12 @@ document.addEventListener('click', (evt) => {
   affiche();
 });
 
-
 ///////// TEST //////////
+
+console.log([1, 2, 3].time(5)); //DCMM
+console.log([1, 2, 3].plus([4, 5, 6])); //DCMM
+
+/*
 const figEl = document.createElement('div');
 figEl.innerHTML = '🧔';
 const figEl2 = document.createElement('div');
@@ -88,6 +93,7 @@ figEl2.innerHTML = 'Z💧V🌽';
 
 terrainEl.children[3].children[3].appendChild(figEl);
 terrainEl.children[2].children[3].appendChild(figEl2);
+*/
 
 // Fonctions générales
 //vMoy = (v1, v2) => v1.map((v, k) => (v + v2[k]) / 2),
@@ -123,12 +129,6 @@ function prochesEls(xy) {
     .map(cellElFromXY);
 }
 */
-
-/* es lint-disable-next-line no-extend-native, func-names
-Array.prototype.caseEl = function() {
-  if (0 <= this[0] && this[0] < nbCasesX && 0 <= this[1] && this[1] < nbCasesY)
-    return terrainEl.children[this[1]].children[this[0]];
-}; */
 
 //TODO for (const [i, value] of myArray.entries()) {
 //for (const [i, obj] of enumerate(myArray)) {
