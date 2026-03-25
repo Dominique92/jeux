@@ -6,16 +6,17 @@ body {
   background: #486;
 }
 
+#terrain div div {
+  position: absolute;
+  aspect-ratio: 1;
+}
+
+/* Bouton de test */
 body>a {
   position: absolute;
   top: 0;
   z-index: 1000;
   cursor: pointer;
-}
-
-#terrain div div {
-  position: absolute;
-  aspect-ratio: 1;
 }
 
 /*
