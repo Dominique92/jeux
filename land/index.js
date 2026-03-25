@@ -1,4 +1,3 @@
-/* global encadre */
 // Définition du terrain
 const tailleMonde = 400,
   tailleCaseX = 16, // Pixels//DCMM 16
@@ -49,12 +48,10 @@ for (let y = 0; y < nbCasesY; y++) {
 
 // Calcul de la couleur d'une case
 function rgbCase(c) {
-  //TODO use HSL / vMoy
-  return [
-    c.altitude,
-    c.altitude * 0.7 + c.verdure * 0.3,
-    c.altitude * 0.5 + c.eau * 0.5,
-  ];
+  return [255, 196, 128].time(c.altitude / 255)
+    .plus([0, 64, 0].time(c.verdure / 255))
+    .plus([0, 0, 128].time(c.eau / 255))
+    .borne(0, 255);
 }
 
 // Colore les éléments du terrain
@@ -62,9 +59,7 @@ function affiche() {
   for (let x = 0; x < nbCasesX; x++)
     for (let y = 0; y < nbCasesY; y++) {
       const caseEl = terrainEl.children[y].children[x],
-        rgb = rgbCase(cases[x][y])
-        .map(v => Math.max(0, Math.min(v, 255)))
-        .join(',');
+        rgb = rgbCase(cases[x][y]).join(',');
 
       caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 42%, transparent 70%)';
     }
@@ -76,7 +71,7 @@ document.addEventListener('click', (evt) => {
   const y = Math.floor(evt.clientY / tailleCaseY),
     x = Math.floor(evt.clientX / tailleCaseX - y % 2 / 2);
 
-  cases[x][y].altitude = encadre(0, cases[x][y].altitude - 10, 255);
+  cases[x][y].altitude = (cases[x][y].altitude - 10).borne(0, 255);
   affiche();
 });
 
