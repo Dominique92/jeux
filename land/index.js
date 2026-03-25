@@ -11,6 +11,7 @@ const tailleMonde = 400,
 
 // Fonction aléatoire pour calculer les bosses du terrain
 function rndSin(marqueur, x, periode, min, max) {
+  //TODO BUG génère des points noirs à la limite du sin
   return Math.sin((x / periode + rnd[marqueur]) * 6.28) *
     rnd[marqueur + 1] *
     (max - min) +
@@ -75,10 +76,37 @@ document.addEventListener('click', (evt) => {
   affiche();
 });
 
-///////// TEST //////////
+// Vie
+function vie100() {
+  for (let x = 0; x < nbCasesX; x++)
+    for (let y = 0; y < nbCasesY; y++) {
+      cases[x][y].altitude = (cases[x][y].altitude + 50).borne(0, 255);
+    }
+}
 
-console.log([1, 2, 3].time(5)); //DCMM
-console.log([1, 2, 3].plus([4, 5, 6])); //DCMM
+function vie() {
+  const x = parseInt(nbCasesX * Math.random(), 10),
+    y = parseInt(nbCasesY * Math.random(), 10),
+    centralEl = terrainEl.children[y].children[x];
+  //  y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
+  //proches = xyProches(x, y);
+  cases[x][y].altitude = (cases[x][y].altitude + 50).borne(0, 255);
+
+  /*for (let d = 0; d < proches.length; d++)
+    if (0 <= proches[d][0] && proches[d][0] < nbCasesX &&
+      0 <= proches[d][1] && proches[d][1] < nbCasesY) {
+      const procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
+
+      procheEl.innerHTML = '💧';
+    }*/
+  affiche();
+}
+//vie(); // Une première fois, pour tests
+//setInterval(vie, 20);
+
+
+///////// TEST //////////
+console.log(nbCasesX); //DCMM
 
 /*
 const figEl = document.createElement('div');
@@ -179,26 +207,6 @@ function prochesEls(xy) {
         ;
       // 'conic-gradient(from 45deg, blue, red)';
  */
-
-// Vie
-function vie() {
-  const x = parseInt(nbCasesX * Math.random(), 10),
-    y = parseInt(nbCasesY * Math.random(), 10),
-    centralEl = terrainEl.children[y].children[x],
-    //  y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
-    proches = xyProches(x, y);
-
-  for (let d = 0; d < proches.length; d++)
-    if (0 <= proches[d][0] && proches[d][0] < nbCasesX &&
-      0 <= proches[d][1] && proches[d][1] < nbCasesY) {
-      const procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
-
-      procheEl.innerHTML = '💧';
-    }
-  affiche();
-}
-//vie(); // Une première fois, pour tests
-
 
 /*********************
  * Terrain : toute la fenêtre <body>
