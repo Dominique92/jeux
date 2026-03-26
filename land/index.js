@@ -1,6 +1,6 @@
 // Définition du terrain
 const tailleMonde = 400,
-  tailleCaseX = 16, // Pixels//DCMM 16
+  tailleCaseX = 16, // Pixels// 16
   tailleCaseY = tailleCaseX * 0.866,
   nbCasesX = Math.round(tailleMonde / tailleCaseX),
   nbCasesY = Math.round(nbCasesX / 0.866),
@@ -11,7 +11,6 @@ const tailleMonde = 400,
 
 // Fonction aléatoire pour calculer les bosses du terrain
 function rndSin(marqueur, x, periode, min, max) {
-  //TODO BUG génère des points noirs à la limite du sin
   return Math.sin((x / periode + rnd[marqueur]) * 6.28) *
     rnd[marqueur + 1] *
     (max - min) +
@@ -49,9 +48,9 @@ for (let y = 0; y < nbCasesY; y++) {
 
 // Calcul de la couleur d'une case
 function rgbCase(c) {
-  return [255, 196, 128].time(c.altitude / 255)
-    .plus([0, 64, 0].time(c.verdure / 255))
-    .plus([0, 0, 128].time(c.eau / 255))
+  return [255, 192, 128].time(c.altitude / 256)
+    .plus([0, 64, 0].time(c.verdure / 256))
+    .plus([0, 0, 128].time(c.eau / 256))
     .borne(0, 255);
 }
 
@@ -69,8 +68,8 @@ affiche();
 //setInterval(affiche, 200);
 
 document.addEventListener('click', (evt) => {
-  const y = Math.floor(evt.clientY / tailleCaseY),
-    x = Math.floor(evt.clientX / tailleCaseX - y % 2 / 2);
+  const y = Math.floor(evt.clientY / tailleCaseY - 0.3),
+    x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
 
   cases[x][y].altitude = (cases[x][y].altitude - 10).borne(0, 255);
   affiche();
@@ -153,7 +152,7 @@ function prochesEls(xy) {
 }
 */
 
-//TODO for (const [i, value] of myArray.entries()) {
+//for (const [i, value] of myArray.entries()) {
 //for (const [i, obj] of enumerate(myArray)) {
 //for (const [y, lineEl]  of [...terrainEl.children])
 //for (const [x, caseEl]   of Array.from(lineEl.children))    {
@@ -183,13 +182,13 @@ function prochesEls(xy) {
 //caseEl.style.backgroundColor = 'red';
 
 /*const    bkImg ='conic-gradient(from 30deg,' + [
-           rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
-          rgb(vMoy(rgbCellCentrale, [64, 196, 128])),
-          rgb(vMoy(rgbCellCentrale, [128, 64, 196])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
-          rgb(vMoy(rgbCellCentrale, [196, 64, 128])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 196])),
+           rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
+          rgb(vMoy(rgbCellCentrale, [64, 192, 128])),
+          rgb(vMoy(rgbCellCentrale, [128, 64, 192])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
+          rgb(vMoy(rgbCellCentrale, [192, 64, 128])),
+          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
          ].join(',') + ')' ;*/
 
 /*
