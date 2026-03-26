@@ -1,12 +1,12 @@
 // Définition du terrain
 const tailleMonde = 400,
   tailleCaseX = 16, // Pixels// 16
-  tailleCaseY = tailleCaseX * 0.866,
+  tailleCaseY = tailleCaseX * 0.866, // cos 30°
   nbCasesX = Math.round(tailleMonde / tailleCaseX),
-  nbCasesY = Math.round(nbCasesX / 0.866),
+  nbCasesY = Math.round(tailleMonde / tailleCaseY / 2) * 2, // Pour être pair
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
-  cases = [], // Valeurs associées à chaque case
+  cases = [], // Valeurs associées à chaque case [x] [y]
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
 // Fonction aléatoire pour calculer les bosses du terrain
@@ -20,6 +20,7 @@ function rndSin(marqueur, x, periode, min, max) {
 // Initialise le DOM du terrain, regroupé par lignes
 for (let y = 0; y < nbCasesY; y++) {
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
+  cases[y] = [];
 
   for (let x = 0; x < nbCasesX; x++) {
     // Un DIV pour chaque case position: absolute
@@ -31,8 +32,7 @@ for (let y = 0; y < nbCasesY; y++) {
     });
 
     // Valeurs initiales des cases du terrain
-    cases[x] ??= [];
-    cases[x][y] = {
+    cases[y][x] = {
       eau: 10,
       verdure: 50,
       altitude: 0,
@@ -40,7 +40,7 @@ for (let y = 0; y < nbCasesY; y++) {
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      cases[x][y].altitude +=
+      cases[y][x].altitude +=
       rndSin(4 * i, x, nbCasesX, 0, 9) *
       rndSin(4 * i + 2, y, nbCasesY, 0, 9);
   }
@@ -59,7 +59,7 @@ function affiche() {
   for (let x = 0; x < nbCasesX; x++)
     for (let y = 0; y < nbCasesY; y++) {
       const caseEl = terrainEl.children[y].children[x],
-        rgb = rgbCase(cases[x][y]).join(',');
+        rgb = rgbCase(cases[y][x]).join(',');
 
       caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 42%, transparent 70%)';
     }
@@ -71,7 +71,7 @@ document.addEventListener('click', (evt) => {
   const y = Math.floor(evt.clientY / tailleCaseY - 0.3),
     x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
 
-  cases[x][y].altitude = (cases[x][y].altitude - 10).borne(0, 255);
+  cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
   affiche();
 });
 
@@ -79,7 +79,7 @@ document.addEventListener('click', (evt) => {
 function vie100() {
   for (let x = 0; x < nbCasesX; x++)
     for (let y = 0; y < nbCasesY; y++) {
-      cases[x][y].altitude = (cases[x][y].altitude + 50).borne(0, 255);
+      cases[y][x].altitude = (cases[y][x].altitude + 50).borne(0, 255);
     }
 }
 
@@ -89,7 +89,7 @@ function vie() {
     centralEl = terrainEl.children[y].children[x];
   //  y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
   //proches = xyProches(x, y);
-  cases[x][y].altitude = (cases[x][y].altitude + 50).borne(0, 255);
+  cases[y][x].altitude = (cases[y][x].altitude + 50).borne(0, 255);
 
   /*for (let d = 0; d < proches.length; d++)
     if (0 <= proches[d][0] && proches[d][0] < nbCasesX &&
