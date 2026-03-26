@@ -3,7 +3,7 @@ const tailleMonde = 400,
   tailleCaseX = 16, // Pixels// 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   nbCasesX = Math.round(tailleMonde / tailleCaseX),
-  nbCasesY = Math.round(tailleMonde / tailleCaseY / 2) * 2, // Pour être pair
+  nbCasesY = Math.round(tailleMonde / tailleCaseY),
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
   cases = [], // Valeurs associées à chaque case [x] [y]
@@ -76,31 +76,32 @@ document.addEventListener('click', (evt) => {
 });
 
 // Vie
-function vie100() {
-  for (let x = 0; x < nbCasesX; x++)
-    for (let y = 0; y < nbCasesY; y++) {
-      cases[y][x].altitude = (cases[y][x].altitude + 50).borne(0, 255);
-    }
-}
-
 function vie() {
-  const x = parseInt(nbCasesX * Math.random(), 10),
-    y = parseInt(nbCasesY * Math.random(), 10),
-    centralEl = terrainEl.children[y].children[x];
-  //  y2 = (y + 1) % 2, // On décale une ligne sur 2 pour simuler un pattern hexagonal
-  //proches = xyProches(x, y);
-  cases[y][x].altitude = (cases[y][x].altitude + 50).borne(0, 255);
+  for (let y = 1; y < nbCasesY - 1; y++) {
+    const dxAp = y % 2,
+      dxAv = dxAp - 1; // Quinconce
 
-  /*for (let d = 0; d < proches.length; d++)
-    if (0 <= proches[d][0] && proches[d][0] < nbCasesX &&
-      0 <= proches[d][1] && proches[d][1] < nbCasesY) {
-      const procheEl = terrainEl.children[proches[d][1]].children[proches[d][0]];
+    for (let x = 1; x < nbCasesX - 1; x++) {
+      cases[y][x].vecteurs ??= [];
 
-      procheEl.innerHTML = '💧';
-    }*/
-  affiche();
+      ['altitude']
+      .forEach((f) => {
+        cases[y][x].vecteurs[f] = [
+          cases[y][x + 1][f] - cases[y][x - 1][f],
+          (cases[y - 1][x + dxAv][f] + cases[y - 1][x + dxAp][f] -
+            cases[y + 1][x + dxAv][f] - cases[y + 1][x + dxAp][f]) / 2,
+        ];
+      });
+
+      // TEST
+      const mm = Math.round(cases[y][x].vecteurs.altitude.abs(), 10) / 2,
+        rr = Math.atan(cases[y][x].vecteurs.altitude[0] / cases[y][x].vecteurs.altitude[1]) + 1.57;
+      terrainEl.children[y].children[x].innerHTML = '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>';
+    }
+  }
+  console.log(cases); //DCMM
 }
-//vie(); // Une première fois, pour tests
+vie(); // Une première fois, pour tests
 //setInterval(vie, 20);
 
 
