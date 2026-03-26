@@ -67,16 +67,7 @@ function affiche() {
 affiche();
 //setInterval(affiche, 200);
 
-document.addEventListener('click', (evt) => {
-  const y = Math.floor(evt.clientY / tailleCaseY - 0.3),
-    x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
-
-  cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
-  affiche();
-});
-
-// Vie
-function vie() {
+function calculVecteurs() {
   for (let y = 1; y < nbCasesY - 1; y++) {
     const dxAp = y % 2,
       dxAv = dxAp - 1; // Quinconce
@@ -93,49 +84,33 @@ function vie() {
         ];
       });
 
-      // TEST
+      /* TEST
       const mm = Math.round(cases[y][x].vecteurs.altitude.abs(), 10) / 2,
         rr = Math.atan(cases[y][x].vecteurs.altitude[0] / cases[y][x].vecteurs.altitude[1]) + 1.57;
-      terrainEl.children[y].children[x].innerHTML = '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>';
+      terrainEl.children[y].children[x].innerHTML =
+        '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>';*/
     }
   }
-  console.log(cases); //DCMM
 }
-vie(); // Une première fois, pour tests
+calculVecteurs(); // Une première fois, pour tests
+
+// Vie
+function vie() {}
+//vie(); // Une première fois, pour tests
 //setInterval(vie, 20);
+
+document.addEventListener('click', (evt) => {
+  const y = Math.floor(evt.clientY / tailleCaseY - 0.3),
+    x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
+
+  cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
+  calculVecteurs();
+  affiche();
+});
 
 
 ///////// TEST //////////
-console.log(nbCasesX); //DCMM
-
 /*
-const figEl = document.createElement('div');
-figEl.innerHTML = '🧔';
-const figEl2 = document.createElement('div');
-figEl2.innerHTML = 'Z💧V🌽';
-
-terrainEl.children[3].children[3].appendChild(figEl);
-terrainEl.children[2].children[3].appendChild(figEl2);
-*/
-
-// Fonctions générales
-//vMoy = (v1, v2) => v1.map((v, k) => (v + v2[k]) / 2),
-//rgb = (v) => 'rgb(' + v.map(c => encadre(0, Math.round(c), 255)).join(',') + ')',
-/*
-  [...terrainEl.children].forEach((lineEl, y) => {
-    [...lineEl.children].forEach((caseEl, x) => {
-      caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgbCase(caseEl) + ') 45%, transparent 70%)';
-    });
-  });
-}
-*/
-
-/*
-function cellElFromXY(xy) {
-  if (inTerrain(xy))
-    return terrainEl.children[xy[1]].children[xy[0]];
-};
-
 function prochesEls(xy) {
   const x = xy[0],
     y = xy[1],
@@ -152,35 +127,6 @@ function prochesEls(xy) {
     .map(cellElFromXY);
 }
 */
-
-//for (const [i, value] of myArray.entries()) {
-//for (const [i, obj] of enumerate(myArray)) {
-//for (const [y, lineEl]  of [...terrainEl.children])
-//for (const [x, caseEl]   of Array.from(lineEl.children))    {
-/* }
-    for (let x = 0; x < nbCasesX; x++)
-    for (let y = 0; y < nbCasesY; y++) {
-      const caseEl = terrainEl.children[y].children[x],
-  const      WWWrgbCell = [
-          caseEl.altitude,
-          caseEl.altitude * 0.7 + caseEl.verdure * 0.3,
-          caseEl.altitude * 0.5 + caseEl.eau * 0.5,
-        ].map(v => encadre(0, v, 255));*/
-
-
-//const      rgbCellCentrale = rgbCase(caseEl);
-
-/*  [
-       caseEl.altitude,
-       caseEl.altitude * 0.7 + caseEl.verdure * 0.3,
-       caseEl.altitude * 0.5 + caseEl.eau * 0.5,
-     ].map(v => encadre(0, v, 255));*/
-//        .join(',');
-
-/*rgbCase.map((a,b)=>{
-  });*/
-
-//caseEl.style.backgroundColor = 'red';
 
 /*const    bkImg ='conic-gradient(from 30deg,' + [
            rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
