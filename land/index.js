@@ -7,7 +7,8 @@ const tailleMonde = 400,
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
   cases = [], // Valeurs associées à chaque case [x] [y]
-  terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
+  terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
+  chronoEl = document.getElementById('chrono');
 
 // Fonction aléatoire pour calculer les bosses du terrain
 function rndSin(marqueur, x, periode, min, max) {
@@ -36,6 +37,7 @@ for (let y = 0; y < nbCasesY; y++) {
       eau: 10,
       verdure: 50,
       altitude: 0,
+      gradiants: [],
     };
 
     // Ajout de 3 bosses
@@ -51,51 +53,51 @@ function rgbCase(c) {
   return [255, 192, 128].time(c.altitude / 256)
     .plus([0, 64, 0].time(c.verdure / 256))
     .plus([0, 0, 128].time(c.eau / 256))
-    .borne(0, 255);
+    .borne(0, 255)
+    .join(',');
 }
 
 // Colore les éléments du terrain
 function affiche() {
-  for (let x = 0; x < nbCasesX; x++)
-    for (let y = 0; y < nbCasesY; y++) {
-      const caseEl = terrainEl.children[y].children[x],
-        rgb = rgbCase(cases[y][x]).join(',');
+  const debut = Date.now();
 
-      caseEl.style.backgroundImage = 'radial-gradient(rgb(' + rgb + ') 42%, transparent 70%)';
+  for (let y = 0; y < nbCasesY; y++) {
+    const ligneEl = terrainEl.children[y],
+      caseLigneAv = cases[y - 1],
+      caseLigne = cases[y],
+      caseLigneAp = cases[y + 1],
+      dxAp = y % 2,
+      dxAv = dxAp - 1; // Quinconce
+
+    for (let x = 0; x < nbCasesX; x++) {
+      ligneEl.children[x].style.backgroundImage = 'radial-gradient(rgb(' + rgbCase(caseLigne[x]) + ') 42%, transparent 70%)';
+
+      if (0 < x && x < (nbCasesX - 1) && 0 < y && y < (nbCasesY - 1)) {
+        ['altitude']
+        .forEach((f) => {
+          caseLigne[x].gradiants[f] = [
+            caseLigne[x + 1][f] - caseLigne[x - 1][f],
+            (caseLigneAv[x + dxAv][f] + caseLigneAv[x + dxAp][f] -
+              caseLigneAp[x + dxAv][f] - caseLigneAp[x + dxAp][f]) / 2,
+          ];
+        });
+
+        /* TEST */
+        const mm = Math.round(caseLigne[x].gradiants.altitude.abs(), 10) / 2,
+          rr = Math.atan(caseLigne[x].gradiants.altitude[0] / caseLigne[x].gradiants.altitude[1]) + 1.57;
+        ligneEl.children[x].innerHTML =
+          '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>';
+      }
     }
+  }
+
+  chronoEl.innerHTML = Date.now() - debut;
 }
 affiche();
 //setInterval(affiche, 200);
 
-function calculVecteurs() {
-  for (let y = 1; y < nbCasesY - 1; y++) {
-    const dxAp = y % 2,
-      dxAv = dxAp - 1; // Quinconce
-
-    for (let x = 1; x < nbCasesX - 1; x++) {
-      cases[y][x].vecteurs ??= [];
-
-      ['altitude']
-      .forEach((f) => {
-        cases[y][x].vecteurs[f] = [
-          cases[y][x + 1][f] - cases[y][x - 1][f],
-          (cases[y - 1][x + dxAv][f] + cases[y - 1][x + dxAp][f] -
-            cases[y + 1][x + dxAv][f] - cases[y + 1][x + dxAp][f]) / 2,
-        ];
-      });
-
-      /* TEST
-      const mm = Math.round(cases[y][x].vecteurs.altitude.abs(), 10) / 2,
-        rr = Math.atan(cases[y][x].vecteurs.altitude[0] / cases[y][x].vecteurs.altitude[1]) + 1.57;
-      terrainEl.children[y].children[x].innerHTML =
-        '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>';*/
-    }
-  }
-}
-calculVecteurs(); // Une première fois, pour tests
-
 // Vie
-function vie() {}
+//function vie() {}
 //vie(); // Une première fois, pour tests
 //setInterval(vie, 20);
 
@@ -104,7 +106,6 @@ document.addEventListener('click', (evt) => {
     x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
 
   cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
-  calculVecteurs();
   affiche();
 });
 

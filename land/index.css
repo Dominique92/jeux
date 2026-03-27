@@ -19,6 +19,12 @@ body>a {
   cursor: pointer;
 }
 
+#chrono {
+  position: absolute;
+  top: 420px;
+  left: 10px;
+}
+
 /*
   wwborder: 1px solid white;
 
