@@ -49,33 +49,11 @@ for (let y = 0; y < nbCasesY; y++) {
       rndSin(4 * i + 2, y, nbCasesY, 0, 9);
   }
 }
-
-// Calcule la couleur des cases du terrain
-function calculCouleur() {
-  for (let y = 0; y < nbCasesY; y++) {
-    for (let x = 0; x < nbCasesX; x++) {
-      const c = cases[y][x];
-
-      c.couleur = ([255, 192, 128].time(c.altitude / 256))
-        .plus([0, 64, 0].time(c.verdure / 256))
-        .plus([0, 0, 128].time(c.eau / 256))
-        .rgb();
-    }
-    //cases[y][-1] = cases[y][0];
-    //cases[y][nbCasesX] = cases[y][nbCasesX - 1];
-  }
-  for (let x = 0; x < nbCasesX; x++) {
-    cases[-1][x] = cases[0][x];
-    cases[nbCasesY][x] = cases[nbCasesY - 1][x];
-  }
-}
 //console.log(cases); //DCMM
 
-// Colore les éléments du terrain
+// Affiche les cases du terrain
 function affiche() {
   const debut = Date.now();
-
-  calculCouleur();
 
   for (let y = 0; y < nbCasesY; y++) {
     const ligneEl = terrainEl.children[y],
@@ -86,7 +64,13 @@ function affiche() {
       dxAv = dxAp - 1; // Quinconce
 
     for (let x = 0; x < nbCasesX; x++) {
-      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + caseLigne[x].couleur + ' 42%, transparent 72%)';
+      const c = cases[y][x],
+        couleur = ([255, 192, 128].time(c.altitude / 256))
+        .plus([0, 64, 0].time(c.verdure / 256))
+        .plus([0, 0, 128].time(c.eau / 256))
+        .rgb();
+
+      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + couleur + ' 42%, transparent 72%)';
 
       // Calcul des directions
       if (0 < x && x < (nbCasesX - 1) && 0 < y && y < (nbCasesY - 1)) {
