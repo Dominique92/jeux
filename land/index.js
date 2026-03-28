@@ -3,8 +3,8 @@ const dateLancement = Date.now(),
   nbCases = 70,
   tailleCaseX = window.innerWidth / (nbCases - 0.5),
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  shiftX = 0.7, // Cases
-  shiftY = 0.35,
+  shiftX = 0.7 * tailleCaseX, // Cases
+  shiftY = 0.35 * tailleCaseY,
   cases = [], // Valeurs associées à chaque case [x] [y]
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
@@ -18,8 +18,8 @@ for (let y = 0; y < nbCases; y++) {
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
       width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
-      top: (tailleCaseY * (y - shiftY)) + 'px', // Triangle équilatéral
-      left: (tailleCaseX * (x - shiftX + y % 2 / 2)) + 'px', // En quiconce
+      top: (tailleCaseY * y - shiftY) + 'px', // Triangle équilatéral
+      left: (tailleCaseX * (x + y % 2 / 2) - shiftX) + 'px', // En quiconce
     });
 
     // Valeurs initiales des cases du terrain
@@ -89,8 +89,8 @@ affiche();
 //setInterval(vie, 20);
 
 document.addEventListener('click', (evt) => {
-  const y = Math.floor(evt.clientY / tailleCaseY - 0.3),
-    x = Math.floor(evt.clientX / tailleCaseX - 0.3 - y % 2 / 2);
+  const y = Math.floor((evt.clientY + shiftY) / tailleCaseY - 0.3),
+    x = Math.floor((evt.clientX + shiftX) / tailleCaseX - 0.3 - y % 2 / 2);
 
   cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
   affiche();
