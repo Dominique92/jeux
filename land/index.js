@@ -56,7 +56,7 @@ function affiche() {
         .plus([0, 0, 128].time(c.eau / 256))
         .rgb();
 
-      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + couleur + ' 42%, transparent 72%)';
+      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + couleur + ' 42%, transparent 80%)';
 
       // Calcul des directions
       if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
@@ -71,10 +71,13 @@ function affiche() {
         });
 
         /* VISU VECTEURS POUR TEST
-        const mm = Math.round(caseLigne[x].directions.altitude.abs(), 10) / 2,
-          rr = Math.atan(caseLigne[x].directions.altitude[0] / caseLigne[x].directions.altitude[1]) + 1.57;
+        const valeur = Math.round(caseLigne[x].directions.altitude.abs(), 10) / 2,
+          rotation = Math.atan(caseLigne[x].directions.altitude[0] / caseLigne[x].directions.altitude[1]) +
+          (caseLigne[x].directions.altitude[1] > 0 ? 4.71 : 1.57);
+
         ligneEl.children[x].innerHTML =
-          '<div style="transform:rotate(' + rr + 'rad);;font-size:' + mm + 'px" z-index=1000000>→</div>'; */
+          '<div style="transform:rotate(' + rotation + 'rad);font-size:' +
+          valeur + 'px" z-index=1000000>→</div>'; */
       }
     }
   }
