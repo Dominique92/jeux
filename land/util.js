@@ -31,3 +31,18 @@ Number.prototype.borne = function(min, max) {
 Array.prototype.rgb = function() {
   return 'rgb(' + (this.borne(0, 255).round().join(',')) + ')';
 };
+
+// Fonction aléatoire pour calculer les bosses du terrain
+const rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1); // Tableau de valeurs aléatoires
+
+function rndSin(marqueur, x, periode, min, max) {
+  return Math.sin((x / periode + rnd[marqueur]) * 6.28) *
+    rnd[marqueur + 1] *
+    (max - min) +
+    (max + min) / 2;
+}
+
+Array.prototype.waves = function(i, nbCases) {
+  return rndSin(4 * i, this[0], nbCases, 0, 9) *
+    rndSin(4 * i + 2, this[1], nbCases, 0, 9);
+};

@@ -1,24 +1,13 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  tailleMonde = 600,
+  tailleMonde = 400,
   tailleCaseX = 10, // Pixels// 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   nbCasesX = Math.round(tailleMonde / tailleCaseX),
   nbCasesY = Math.round(tailleMonde / tailleCaseY),
-  rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // tableau de valeurs aléatoires
   //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
   cases = [], // Valeurs associées à chaque case [x] [y]
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
-
-console.log(nbCasesX * nbCasesY + ' cellules'); //DCMM
-
-// Fonction aléatoire pour calculer les bosses du terrain
-function rndSin(marqueur, x, periode, min, max) {
-  return Math.sin((x / periode + rnd[marqueur]) * 6.28) *
-    rnd[marqueur + 1] *
-    (max - min) +
-    (max + min) / 2;
-}
 
 // Initialise le DOM du terrain, regroupé par lignes
 for (let y = 0; y < nbCasesY; y++) {
@@ -29,9 +18,9 @@ for (let y = 0; y < nbCasesY; y++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
+      width: tailleCaseX * 1.6 * (1 + (y / 10)) + 'px', // Facteur de recouvrement
       top: (tailleCaseY * y) + 'px', // Triangle équilatéral
-      left: (tailleCaseX * (x + y % 2 / 2)) + 'px', // En quiconce
+      left: (tailleCaseX * (x + y % 2 / 2 + (1 + (y / 10)))) + 'px', // En quiconce
     });
 
     // Valeurs initiales des cases du terrain
@@ -44,9 +33,7 @@ for (let y = 0; y < nbCasesY; y++) {
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      cases[y][x].altitude +=
-      rndSin(4 * i, x, nbCasesX, 0, 9) *
-      rndSin(4 * i + 2, y, nbCasesY, 0, 9);
+      cases[y][x].altitude += [x, y].waves(i, nbCasesX);
   }
 }
 //console.log(cases); //DCMM
@@ -110,7 +97,7 @@ document.addEventListener('click', (evt) => {
   affiche();
 });
 
-console.log('Fin index.js ' + (Date.now() - dateLancement) + ' ms'); //DCMM
+console.log('index.js ' + (Date.now() - dateLancement) + ' ms, ' + nbCasesX * nbCasesY + ' cellules'); //DCMM
 
 ///////// TEST //////////
 /*
