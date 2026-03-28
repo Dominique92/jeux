@@ -1,26 +1,25 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  tailleMonde = 400,
-  tailleCaseX = 10, // Pixels// 16
+  nbCases = 70,
+  tailleCaseX = window.innerWidth / (nbCases - 0.5),
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  nbCasesX = Math.round(tailleMonde / tailleCaseX),
-  nbCasesY = Math.round(tailleMonde / tailleCaseY),
-  //inTerrain = (xy) => 0 <= xy[0] && xy[0] < nbCasesX && 0 <= xy[1] && xy[1] < nbCasesY,
+  shiftX = 0.7, // Cases
+  shiftY = 0.35,
   cases = [], // Valeurs associées à chaque case [x] [y]
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
 // Initialise le DOM du terrain, regroupé par lignes
-for (let y = 0; y < nbCasesY; y++) {
+for (let y = 0; y < nbCases; y++) {
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
   cases[y] = [];
 
-  for (let x = 0; x < nbCasesX; x++) {
+  for (let x = 0; x < nbCases; x++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCaseX * 1.6 * (1 + (y / 10)) + 'px', // Facteur de recouvrement
-      top: (tailleCaseY * y) + 'px', // Triangle équilatéral
-      left: (tailleCaseX * (x + y % 2 / 2 + (1 + (y / 10)))) + 'px', // En quiconce
+      width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
+      top: (tailleCaseY * (y - shiftY)) + 'px', // Triangle équilatéral
+      left: (tailleCaseX * (x - shiftX + y % 2 / 2)) + 'px', // En quiconce
     });
 
     // Valeurs initiales des cases du terrain
@@ -33,7 +32,7 @@ for (let y = 0; y < nbCasesY; y++) {
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      cases[y][x].altitude += [x, y].waves(i, nbCasesX);
+      cases[y][x].altitude += [x, y].waves(i, nbCases);
   }
 }
 //console.log(cases); //DCMM
@@ -42,7 +41,7 @@ for (let y = 0; y < nbCasesY; y++) {
 function affiche() {
   const debut = Date.now();
 
-  for (let y = 0; y < nbCasesY; y++) {
+  for (let y = 0; y < nbCases; y++) {
     const ligneEl = terrainEl.children[y],
       caseLigneAv = cases[y - 1],
       caseLigne = cases[y],
@@ -50,7 +49,7 @@ function affiche() {
       dxAp = y % 2,
       dxAv = dxAp - 1; // Quinconce
 
-    for (let x = 0; x < nbCasesX; x++) {
+    for (let x = 0; x < nbCases; x++) {
       const c = cases[y][x],
         couleur = ([255, 192, 128].time(c.altitude / 256))
         .plus([0, 64, 0].time(c.verdure / 256))
@@ -60,7 +59,7 @@ function affiche() {
       ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + couleur + ' 42%, transparent 72%)';
 
       // Calcul des directions
-      if (0 < x && x < (nbCasesX - 1) && 0 < y && y < (nbCasesY - 1)) {
+      if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
         //TODO traiter les émanations hors terrain
         ['altitude']
         .forEach((f) => {
@@ -97,7 +96,7 @@ document.addEventListener('click', (evt) => {
   affiche();
 });
 
-console.log('index.js ' + (Date.now() - dateLancement) + ' ms, ' + nbCasesX * nbCasesY + ' cellules'); //DCMM
+console.log('index.js ' + (Date.now() - dateLancement) + ' ms');
 
 ///////// TEST //////////
 /*

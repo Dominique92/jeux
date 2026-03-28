@@ -2,8 +2,13 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
   background: #486;
+}
+
+#terrain {
+  width: 100%;
+  aspect-ratio: 1.1547;
 }
 
 #terrain div div {
