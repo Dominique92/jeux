@@ -23,15 +23,13 @@ function rndSin(marqueur, x, periode, min, max) {
 // Initialise le DOM du terrain, regroupé par lignes
 for (let y = 0; y < nbCasesY; y++) {
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
-  /* eslint-disable-next-line no-multi-assign */
-  cases[y] = cases[-1] = cases[nbCasesY] = [];
+  cases[y] = [];
 
   for (let x = 0; x < nbCasesX; x++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
       width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
-      //height: tailleCaseY   * 1.6   + 'px', // Facteur de recouvrement
       top: (tailleCaseY * y) + 'px', // Triangle équilatéral
       left: (tailleCaseX * (x + y % 2 / 2)) + 'px', // En quiconce
     });
@@ -42,7 +40,6 @@ for (let y = 0; y < nbCasesY; y++) {
       verdure: 50,
       altitude: 0,
       directions: [],
-      //couleur: [],
     };
 
     // Ajout de 3 bosses
@@ -53,57 +50,19 @@ for (let y = 0; y < nbCasesY; y++) {
   }
 }
 
-// Calcul de la couleur d'une case
-/*
-function rgbCase(c) {//TODO DELETE
-  return [255, 192, 128].time(c.altitude / 256)
-    .plus([0, 64, 0].time(c.verdure / 256))
-    .plus([0, 0, 128].time(c.eau / 256))
-    .borne(0, 255)
-    .round()
-    .join(',');
-}
-
-function calculCouleur() {
-  for (let y = 0; y < nbCasesY; y++)     
-    for (let x = 0; x < nbCasesX; x++) 
-    cases[y][x].couleur=rgbCase(cases[y][x]) ;
- }
-*/
-
-// Calcule la couleur des éléments du terrain
+// Calcule la couleur des cases du terrain
 function calculCouleur() {
   for (let y = 0; y < nbCasesY; y++) {
     for (let x = 0; x < nbCasesX; x++) {
-      const c = cases[y][x],
-        wwwwcv = [255 * Math.random(), 255 * Math.random(), 255 * Math.random()], //DCMM
-        cv = ([255, 192, 128].time(c.altitude / 256))
+      const c = cases[y][x];
+
+      c.couleur = ([255, 192, 128].time(c.altitude / 256))
         .plus([0, 64, 0].time(c.verdure / 256))
-        .plus([0, 0, 128].time(c.eau / 256)),
-        cc = cv.rgb();
-
-      c.couleur = {
-        v: cv, // Forme vectorielle pour calculs
-        m: cc,
-        g: cc,
-        hg: cc,
-        hd: cc, // Formes string pour affichage
-      };
-
-      if (x) {
-        c.couleur.g = c.couleur.v.plus(cases[y][x - 1].couleur.v).div(2).rgb();
-        if (y) {
-          c.couleur.hg = c.couleur.v.plus(cases[y - 1][x - y % 2].couleur.v).div(2).rgb();
-          c.couleur.hd = c.couleur.v.plus(cases[y - 1][x - 1 + y % 2].couleur.v).div(2).rgb();
-        }
-      }
-      //( cases[y][x-1]  .couleur.m  +  cases[y][x].couleur.m)/2  ;        
-      //cases[y][x].couleur.g=( cases[y][x-1]  .couleur.m  +  cases[y][x].couleur.m)/2  ;        
-      //c.couleur.hg=( cases[y-1][x-y % 2]  .couleur.m+c.couleur.m)/2  ;     
-      //c.couleur.hd=( cases[y-1][x-1+y % 2]  .couleur.m+c.couleur.m)/2  ;     
+        .plus([0, 0, 128].time(c.eau / 256))
+        .rgb();
     }
-    cases[y][-1] = cases[y][0];
-    cases[y][nbCasesX] = cases[y][nbCasesX - 1];
+    //cases[y][-1] = cases[y][0];
+    //cases[y][nbCasesX] = cases[y][nbCasesX - 1];
   }
   for (let x = 0; x < nbCasesX; x++) {
     cases[-1][x] = cases[0][x];
@@ -127,21 +86,7 @@ function affiche() {
       dxAv = dxAp - 1; // Quinconce
 
     for (let x = 0; x < nbCasesX; x++) {
-      //const c0=' red ';//+caseLigne[x].couleur.hd,
-      const c0 = caseLigne[x + 1].couleur.g; //' grey ';caseLigneAv[x+dxAp].couleur.hd;
-
-      const ccc = 'radial-gradient(' + caseLigne[x].couleur.m + ' 42%, transparent 72%)';
-      /*',conic-gradient(' + c0 + '30deg,' +
-          //OKcaseLigne[x + 1].couleur.g + '90deg,' +
-          //OKcaseLigne[x].couleur.g + '270deg,'+ 
-          c0 + '90deg,' +
-          caseLigne[x + 1].couleur.g + '150deg,' +
-          caseLigne[x].couleur.g + '210deg,' +
-          caseLigne[x].couleur.g + '270deg,' +
-          c0+ '330deg,' +
-          c0 + ')';*/
-      //console.log(ccc); //DCMM
-      ligneEl.children[x].style.backgroundImage = ccc;
+      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + caseLigne[x].couleur + ' 42%, transparent 72%)';
 
       // Calcul des directions
       if (0 < x && x < (nbCasesX - 1) && 0 < y && y < (nbCasesY - 1)) {
@@ -155,7 +100,7 @@ function affiche() {
           ];
         });
 
-        /* TEST
+        /* VISU VECTEURS POUR TEST
         const mm = Math.round(caseLigne[x].directions.altitude.abs(), 10) / 2,
           rr = Math.atan(caseLigne[x].directions.altitude[0] / caseLigne[x].directions.altitude[1]) + 1.57;
         ligneEl.children[x].innerHTML =
@@ -200,25 +145,9 @@ function prochesEls(xy) {
     ].filter(inTerrain)
     .map(cellElFromXY);
 }
-*/
-
-/*const    bkImg ='conic-gradient(from 30deg,' + [
-           rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
-          rgb(vMoy(rgbCellCentrale, [64, 192, 128])),
-          rgb(vMoy(rgbCellCentrale, [128, 64, 192])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
-          rgb(vMoy(rgbCellCentrale, [192, 64, 128])),
-          rgb(vMoy(rgbCellCentrale, [64, 128, 192])),
-         ].join(',') + ')' ;*/
-
-/*
-    conic-gradient(from 30deg at rgb(39,77,104),rgb(39,77,104),rgb(39,111,70),
-    rgb(71,45,104),rgb(39,77,104),rgb(105,45,70),rgb(39,77,104))
     
       //const titi = xyProches(x, y);
       //const toto = 'conic-gradient(from 30deg' + [].join(',') + ')';
-
 
       if (0)
         caseEl.style.backgroundImage = //'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
