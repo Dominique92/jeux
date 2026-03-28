@@ -8,7 +8,8 @@ body {
 
 #terrain div div {
   position: absolute;
-  aspect-ratio: 1;
+  aspect-ratio: 1.1547;
+  wborder: 0.1px dotted black;
 }
 
 /* Bouton de test */
@@ -18,46 +19,6 @@ body>a {
   z-index: 1000;
   cursor: pointer;
 }
-
-#chrono {
-  position: absolute;
-  top: 420px;
-  left: 10px;
-}
-
-/*
-  wwborder: 1px solid white;
-
-  wbackground-image: conic-gradient(red 30deg, yellow 30deg, green 90deg, yellow 90deg, yellow 90deg, yellow 90deg, red 30deg);
-  wbackground-image: radial-gradient(rgba(128, 196, 64, 0.5) 20%, rgba(128, 196, 64, 0.5) 50%, rgba(128, 196, 64, 0.5) 80%);
-  wbackground-image:
-    radial-gradient(rgba(128, 196, 64, 1) 20%, rgba(128, 196, 64, 0) 60%),
-    conic-gradient(red 30deg, yellow 90deg, green 150deg, yellow 210deg, yellow 270deg, yellow 330deg, red 30deg);
-
-#terrain div:nth-of-type(odd) div:nth-of-type(odd) {
-   background-image: 
-  linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,255,255,0.5))  ,
-  linear-gradient(to top, red, yellow)  ;
-} 
-
-#terrain div:nth-of-type(odd) div:nth-of-type(even) {
-   background-image: 
-  linear-gradient(to left, rgba(0,0,0,0.5), rgba(0,255,255,0.5))  ,
-  linear-gradient(to top, red, yellow)  ;
-} 
-
-#terrain div:nth-of-type(even) div:nth-of-type(odd) {
-   background-image: 
-  linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,255,255,0.5))  ,
-  linear-gradient(to bottom, red, yellow)  ;
-} 
-
-#terrain div:nth-of-type(even) div:nth-of-type(even) {
-   background-image: 
-  linear-gradient(to left, rgba(0,0,0,0.5), rgba(0,255,255,0.5))  ,
-  linear-gradient(to bottom, red, yellow)  ;
-} 
-*/
 
 /*
  body p{
