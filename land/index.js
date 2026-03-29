@@ -1,12 +1,25 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  nbCases = 70,
-  tailleCaseX = window.innerWidth / (nbCases - 0.5),
+  nbCases = 50,
+  tailleCaseX = 16, // Pixels 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  shiftX = 0.7 * tailleCaseX, // Cases
-  shiftY = 0.35 * tailleCaseY,
+  debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
+  shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
+  shiftY = -debord * tailleCaseY, // Pixels
   cases = [], // Valeurs associées à chaque case [x] [y]
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
+
+function inTerrain(x, y) {
+  if (0 <= x && x < nbCases && 0 <= y && y < nbCases)
+    return [x, y];
+}
+
+function xyCaseAtPoint(px, py) {
+  const y = Math.floor((py - shiftY) / tailleCaseY),
+    x = Math.floor((px - shiftX) / tailleCaseX - y % 2 / 2);
+
+  return inTerrain(x, y);
+}
 
 // Initialise le DOM du terrain, regroupé par lignes
 for (let y = 0; y < nbCases; y++) {
@@ -17,10 +30,11 @@ for (let y = 0; y < nbCases; y++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCaseX * 1.6 + 'px', // Facteur de recouvrement
-      top: (tailleCaseY * y - shiftY) + 'px', // Triangle équilatéral
-      left: (tailleCaseX * (x + y % 2 / 2) - shiftX) + 'px', // En quiconce
+      width: tailleCaseX * (1 + 2 * debord) + 'px', // Facteur de recouvrement
+      top: (y * tailleCaseY + shiftY) + 'px', // Triangle équilatéral
+      left: ((x + y % 2 / 2) * tailleCaseX + shiftX) + 'px', // En quiconce
     });
+    terrainEl.lastChild.lastChild.id = x + ',' + y;
 
     // Valeurs initiales des cases du terrain
     cases[y][x] = {
@@ -35,7 +49,6 @@ for (let y = 0; y < nbCases; y++) {
       cases[y][x].altitude += [x, y].waves(i, nbCases);
   }
 }
-//console.log(cases); //DCMM
 
 // Affiche les cases du terrain
 function affiche() {
@@ -81,7 +94,7 @@ function affiche() {
       }
     }
   }
-  console.log('affiche ' + (Date.now() - debut) + ' ms'); //DCMM
+  console.log('affiche ' + (Date.now() - debut) + ' ms');
 }
 affiche();
 //setInterval(affiche, 200);
@@ -91,11 +104,13 @@ affiche();
 //vie(); // Une première fois, pour tests
 //setInterval(vie, 20);
 
+// Actions sur le terrain
 document.addEventListener('click', (evt) => {
-  const y = Math.floor((evt.clientY + shiftY) / tailleCaseY - 0.3),
-    x = Math.floor((evt.clientX + shiftX) / tailleCaseX - 0.3 - y % 2 / 2);
+  const xy = xyCaseAtPoint(evt.x, evt.y);
 
-  cases[y][x].altitude = (cases[y][x].altitude - 10).borne(0, 255);
+  if (xy)
+    cases[xy[1]][xy[0]].altitude = (cases[xy[1]][xy[0]].altitude - 10).borne(0, 255);
+
   affiche();
 });
 

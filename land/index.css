@@ -17,14 +17,6 @@ body {
   wborder: 0.1px dotted black;
 }
 
-/* Bouton de test */
-body>a {
-  position: absolute;
-  top: 0;
-  z-index: 1000;
-  cursor: pointer;
-}
-
 /*
  body p{
   margin:0;
