@@ -1,12 +1,13 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  nbCases = 50,
+  nbCases = 20,
   tailleCaseX = 16, // Pixels 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
   cases = [], // Valeurs associées à chaque case [x] [y]
+  popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
 function inTerrain(x, y) {
@@ -39,14 +40,16 @@ for (let y = 0; y < nbCases; y++) {
     // Valeurs initiales des cases du terrain
     cases[y][x] = {
       eau: 10,
-      verdure: 50,
+      verdure: 0,
       altitude: 0,
       directions: [],
     };
 
     // Ajout de 3 bosses
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 3; i++) {
       cases[y][x].altitude += [x, y].waves(i, nbCases);
+      cases[y][x].verdure += [x, y].waves(i, nbCases * 3);
+    }
   }
 }
 
@@ -63,13 +66,11 @@ function affiche() {
       dxAv = dxAp - 1; // Quinconce
 
     for (let x = 0; x < nbCases; x++) {
-      const c = cases[y][x],
-        couleur = ([255, 192, 128].time(c.altitude / 256))
-        .plus([0, 64, 0].time(c.verdure / 256))
-        .plus([0, 0, 128].time(c.eau / 256))
-        .rgb();
+      const c = cases[y][x];
 
-      ligneEl.children[x].style.backgroundImage = 'radial-gradient(' + couleur + ' 42%, transparent 80%)';
+      ligneEl.children[x].style.backgroundImage = 'radial-gradient(hsl(' +
+        (34 + c.verdure / 50) + ' 40 ' + (c.altitude / 2 + 20) +
+        ') 42%, transparent 80%)';
 
       // Calcul des directions
       if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
@@ -112,6 +113,20 @@ document.addEventListener('click', (evt) => {
     cases[xy[1]][xy[0]].altitude = (cases[xy[1]][xy[0]].altitude - 10).borne(0, 255);
 
   affiche();
+});
+
+document.addEventListener('mousemove', (evt) => {
+  const xy = xyCaseAtPoint(evt.x, evt.y);
+
+  popupEl.style.left = (evt.x + 10) + 'px';
+  popupEl.style.top = (evt.y - 8) + 'px';
+  popupEl.innerHTML = xy ?
+    JSON.stringify({
+      x: xy.join(' y:'),
+      ...cases[xy[1]][xy[0]],
+    })
+    .replace(/,/gu, '<br/>').replace(/\{|"|\}|\.[0-9]*/gu, '') :
+    '';
 });
 
 console.log('index.js ' + (Date.now() - dateLancement) + ' ms');
