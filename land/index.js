@@ -1,7 +1,7 @@
 // Définition du terrain
 const dateLancement = Date.now(),
   nbCases = 20,
-  tailleCaseX = 16, // Pixels 16
+  tailleCaseX = 25, // Pixels 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
@@ -39,7 +39,7 @@ for (let y = 0; y < nbCases; y++) {
 
     // Valeurs initiales des cases du terrain
     cases[y][x] = {
-      eau: 10,
+      eau: 50 * y / nbCases,
       verdure: 0,
       altitude: 0,
       directions: [],
@@ -68,9 +68,14 @@ function affiche() {
     for (let x = 0; x < nbCases; x++) {
       const c = cases[y][x];
 
-      ligneEl.children[x].style.backgroundImage = 'radial-gradient(hsl(' +
-        (34 + c.verdure / 50) + ' 40 ' + (c.altitude / 2 + 20) +
-        ') 42%, transparent 80%)';
+      c.hsl = [
+        20 + 0.7 * c.eau.borne(0, 60), // Marron à vert
+        40, // Saturation
+        40 + 0.3 * c.altitude.borne(0, 59), // Moyen à blanc
+      ].join(' ');
+
+      ligneEl.children[x].style.backgroundImage =
+        'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
 
       // Calcul des directions
       if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
@@ -125,7 +130,8 @@ document.addEventListener('mousemove', (evt) => {
       x: xy.join(' y:'),
       ...cases[xy[1]][xy[0]],
     })
-    .replace(/,/gu, '<br/>').replace(/\{|"|\}|\.[0-9]*/gu, '') :
+    .replace(/,/gu, '<br/>')
+    .replace(/\{|"|\}|\.[0-9]*/gu, '') :
     '';
 });
 
