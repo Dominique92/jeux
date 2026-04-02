@@ -22,6 +22,15 @@ function xyCaseAtPoint(px, py) {
   return inTerrain(x, y);
 }
 
+function proches(x, y) {
+  return [
+    cases[y][x],
+    cases[y][x - 1],
+    cases[y - 1][x - 1 + y % 2],
+    cases[y - 1][x + y % 2],
+  ];
+}
+
 // Initialise le DOM du terrain, regroupé par lignes
 for (let y = 0; y < nbCases; y++) {
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
@@ -68,6 +77,7 @@ function affiche() {
     for (let x = 0; x < nbCases; x++) {
       const c = cases[y][x];
 
+      // Affiche la couleur de la case
       c.hsl = [
         20 + 0.7 * c.eau.borne(0, 60), // Marron à vert
         40, // Saturation
@@ -77,9 +87,24 @@ function affiche() {
       ligneEl.children[x].style.backgroundImage =
         'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
 
-      // Calcul des directions
+      //TODO traiter les émanations hors terrain
+      // Parcourir les cases sauf bords
       if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
-        //TODO traiter les émanations hors terrain
+
+        /*  if (xy) {
+            const cp = proches(...xy);
+
+            cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
+            cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
+            cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
+            cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
+        */
+        /*  const c1 = cases[y][x],
+            c2 = cases[y - 1][x - y % 2],
+            c3 = cases[y - 1][x - 1 + y % 2];
+          */
+
+        // Calcul des directions
         ['altitude']
         .forEach((f) => {
           caseLigne[x].directions[f] = [
@@ -114,10 +139,16 @@ affiche();
 document.addEventListener('click', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
 
-  if (xy)
-    cases[xy[1]][xy[0]].altitude = (cases[xy[1]][xy[0]].altitude - 10).borne(0, 255);
+  if (xy) {
+    const cp = proches(...xy);
 
-  affiche();
+    cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
+    cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
+    cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
+    cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
+
+    affiche();
+  }
 });
 
 document.addEventListener('mousemove', (evt) => {
