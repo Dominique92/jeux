@@ -43,7 +43,6 @@ for (let y = 0; y < nbCases; y++) {
       verdure: 0,
       altitude: 0,
       directions: {},
-      //hou: {},
     };
 
     // Ajout de 3 bosses
@@ -128,6 +127,7 @@ document.addEventListener('mousemove', (evt) => {
   popupEl.style.top = (evt.y - 8) + 'px';
   popupEl.innerHTML = xy ?
     JSON.stringify({
+      x: xy.join(', y:'),
       ...cases[xy[1]][xy[0]],
     })
     .replace(/,"([a-z])/gu, '<br/>$1')
