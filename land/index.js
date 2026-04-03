@@ -1,12 +1,13 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  nbCases = 20,
-  tailleCaseX = 25, // Pixels 16
+  tailleCaseX = 16, // Pixels 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
+  nbCases = Math.round(500 / tailleCaseX),
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
   cases = [], // Valeurs associées à chaque case [x] [y]
+  casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
@@ -26,15 +27,24 @@ function proches(x, y) {
   return [
     cases[y][x],
     cases[y][x - 1],
-    cases[y - 1][x - 1 + y % 2],
+    cases[y - 1][x + y % 2 - 1],
     cases[y - 1][x + y % 2],
+    cases[y][x + 1],
+    cases[y + 1][x + y % 2],
+    cases[y + 1][x + y % 2 - 1],
   ];
 }
 
 // Initialise le DOM du terrain, regroupé par lignes
+cases[-1] = Array(nbCases + 1).fill(casesBord);
+cases[nbCases] = Array(nbCases + 1).fill(casesBord);
+cases[-1][-1] = casesBord;
+
 for (let y = 0; y < nbCases; y++) {
   terrainEl.insertAdjacentHTML('beforeend', '<div/>');
   cases[y] = [];
+  cases[y][-1] = casesBord;
+  cases[y][nbCases] = casesBord;
 
   for (let x = 0; x < nbCases; x++) {
     // Un DIV pour chaque case position: absolute
@@ -48,7 +58,7 @@ for (let y = 0; y < nbCases; y++) {
 
     // Valeurs initiales des cases du terrain
     cases[y][x] = {
-      eau: 50 * y / nbCases,
+      eau: 0,
       verdure: 0,
       altitude: 0,
       directions: {},
@@ -75,7 +85,8 @@ function affiche() {
       dxAv = dxAp - 1; // Quinconce
 
     for (let x = 0; x < nbCases; x++) {
-      const c = cases[y][x];
+      const c = cases[y][x],
+        cp = proches(x, y);
 
       // Affiche la couleur de la case
       c.hsl = [
@@ -87,48 +98,35 @@ function affiche() {
       ligneEl.children[x].style.backgroundImage =
         'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
 
-      //TODO traiter les émanations hors terrain
-      // Parcourir les cases sauf bords
-      if (0 < x && x < (nbCases - 1) && 0 < y && y < (nbCases - 1)) {
+      // Ecoulement de l'eau
+      for (let i = 1; i <= 3; i++)
+        cp[i].eau += cp[0].altitude - cp[i].altitude;
 
-        /*  if (xy) {
-            const cp = proches(...xy);
+      // Calcul des directions
+      ['altitude']
+      .forEach((f) => {
+        caseLigne[x].directions[f] = [
+          caseLigne[x + 1][f] - caseLigne[x - 1][f],
+          (caseLigneAv[x + dxAv][f] + caseLigneAv[x + dxAp][f] -
+            caseLigneAp[x + dxAv][f] - caseLigneAp[x + dxAp][f]) / 2,
+        ];
+      });
 
-            cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
-            cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
-            cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
-            cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
-        */
-        /*  const c1 = cases[y][x],
-            c2 = cases[y - 1][x - y % 2],
-            c3 = cases[y - 1][x - 1 + y % 2];
-          */
+      /* VISU VECTEURS POUR TEST
+      const valeur = Math.round(caseLigne[x].directions.altitude.abs(), 10) / 2,
+        rotation = Math.atan(caseLigne[x].directions.altitude[0] / caseLigne[x].directions.altitude[1]) +
+        (caseLigne[x].directions.altitude[1] > 0 ? 4.71 : 1.57);
 
-        // Calcul des directions
-        ['altitude']
-        .forEach((f) => {
-          caseLigne[x].directions[f] = [
-            caseLigne[x + 1][f] - caseLigne[x - 1][f],
-            (caseLigneAv[x + dxAv][f] + caseLigneAv[x + dxAp][f] -
-              caseLigneAp[x + dxAv][f] - caseLigneAp[x + dxAp][f]) / 2,
-          ];
-        });
-
-        /* VISU VECTEURS POUR TEST
-        const valeur = Math.round(caseLigne[x].directions.altitude.abs(), 10) / 2,
-          rotation = Math.atan(caseLigne[x].directions.altitude[0] / caseLigne[x].directions.altitude[1]) +
-          (caseLigne[x].directions.altitude[1] > 0 ? 4.71 : 1.57);
-
-        ligneEl.children[x].innerHTML =
-          '<div style="transform:rotate(' + rotation + 'rad);font-size:' +
-          valeur + 'px" z-index=1000000>→</div>'; */
-      }
+      ligneEl.children[x].innerHTML =
+        '<div style="transform:rotate(' + rotation + 'rad);font-size:' +
+        valeur + 'px" z-index=1000000>→</div>'; */
     }
   }
   console.log('affiche ' + (Date.now() - debut) + ' ms');
 }
-affiche();
+affiche(); // Une fois à l'init
 //setInterval(affiche, 200);
+document.addEventListener('keypress', affiche); // DEBUG
 
 // Vie
 //function vie() {}
@@ -136,16 +134,26 @@ affiche();
 //setInterval(vie, 20);
 
 // Actions sur le terrain
+
 document.addEventListener('click', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
+  console.log(xy); //DCMM
 
   if (xy) {
     const cp = proches(...xy);
 
-    cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
-    cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
-    cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
-    cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
+    cp[2].eau += 10;
+    cp[3].eau += 3;
+
+    /*
+        cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
+        cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
+        cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
+        cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
+        cp[4].altitude = (cp[4].altitude - 15).borne(0, 255);
+        cp[5].altitude = (cp[5].altitude - 15).borne(0, 255);
+        cp[6].altitude = (cp[6].altitude - 15).borne(0, 255);
+        */
 
     affiche();
   }
