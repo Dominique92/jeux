@@ -1,8 +1,19 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  nbCases = 512 / 16,
-  tailleCaseX = Math.round(256 / nbCases) * 2, // Pixels 16
+  params = {
+    largeurTerrain: 0, // Pixels / défaut 500
+    tailleCaseX: 0, // Pixels / défaut 10
+    nbCases: 0,
+  },
+  tailleCaseX = params.tailleCaseX ||
+  (params.nbCases ?
+    (params.largeurTerrain || 500) / params.nbCases :
+    10),
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
+  nbCases = Math.round(
+    params.nbCases / 2 ||
+    (params.largeurTerrain || 500) / tailleCaseX / 2
+  ) * 2,
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
@@ -11,7 +22,7 @@ const dateLancement = Date.now(),
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
 
-console.info(nbCases + 'x' + nbCases + ' = ' + nbCases * nbCases + ' cases de ' + tailleCaseX + ' pixels');
+console.info(nbCases + '² = ' + nbCases * nbCases + ' cases de ' + tailleCaseX + 'px');
 
 function inTerrain(x, y) {
   if (0 <= x && x < nbCases && 0 <= y && y < nbCases)
@@ -134,14 +145,16 @@ function vie() {
         cp = proches(x, y);
 
       // Ecoulement de l'eau
-      for (let i = 1; i <= 3; i++)
-        cp[i].eau += cp[0].altitude - cp[i].altitude;
+      for (let i = 0; i <= 2; i++)
+        cp[i].eau += (cp[0].altitude - cp[i].altitude) * 5;
+      //  cp[i].eau += 10;
     }
   }
 
   console.info('vie ' + (Date.now() - debut) + ' ms');
   affiche();
 }
+vie();
 //setInterval(vie, 20);
 
 // Actions sur le terrain
