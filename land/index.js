@@ -1,18 +1,18 @@
 // Définition du terrain
 const dateLancement = Date.now(),
   params = {
-    largeurTerrain: 0, // Pixels / défaut 500
-    tailleCaseX: 0, // Pixels / défaut 10
     nbCases: 0,
+    tailleCaseX: 0, // Pixels / défaut 10
+    largeurTerrainDefaut: 450, // Pixels 
   },
   tailleCaseX = params.tailleCaseX ||
   (params.nbCases ?
-    (params.largeurTerrain || 500) / params.nbCases :
+    params.largeurTerrainDefaut / params.nbCases :
     10),
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   nbCases = Math.round(
     params.nbCases / 2 ||
-    (params.largeurTerrain || 500) / tailleCaseX / 2
+    params.largeurTerrainDefaut / tailleCaseX / 2
   ) * 2,
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
@@ -72,7 +72,6 @@ for (let y = 0; y < nbCases; y++) {
     // Valeurs initiales des cases du terrain
     cases[y][x] = {
       eau: 0,
-      verdure: 0,
       altitude: 0,
       directions: {},
     };
@@ -80,7 +79,6 @@ for (let y = 0; y < nbCases; y++) {
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++) {
       cases[y][x].altitude += [x, y].waves(i, nbCases);
-      cases[y][x].verdure += [x, y].waves(i, nbCases * 3);
     }
   }
 }
@@ -108,7 +106,7 @@ function affiche() {
       ].join(' ');
 
       ligneEl.children[x].style.backgroundImage =
-        'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
+        'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 60%)'; //DCMM 80%
 
       // Calcul des directions
       ['altitude']
@@ -139,22 +137,22 @@ affiche(); // Une fois à l'init
 function vie() {
   const debut = Date.now();
 
-  for (let y = 0; y < nbCases; y++) {
+  /*for (let y = 0; y < nbCases; y++) {
     for (let x = 0; x < nbCases; x++) {
       const //c = cases[y][x],
-        cp = proches(x, y);
+        cp = proches(x, y),
+        a = cp[0].altitude;
 
       // Ecoulement de l'eau
-      for (let i = 0; i <= 2; i++)
-        cp[i].eau += (cp[0].altitude - cp[i].altitude) * 5;
-      //  cp[i].eau += 10;
+      for (let i = 1; i <= 6; i++)
+        cp[0].eau += (a - cp[i].altitude) / 5;
     }
-  }
+  }*/
 
   console.info('vie ' + (Date.now() - debut) + ' ms');
   affiche();
 }
-vie();
+//vie();
 //setInterval(vie, 20);
 
 // Actions sur le terrain
@@ -164,20 +162,28 @@ document.addEventListener('click', (evt) => {
   console.log(xy); //DCMM
 
   if (xy) {
-    const cp = proches(...xy);
+    const cp = proches(...xy),
+      a = cp[0].altitude;
 
-    cp[2].eau += 10;
-    cp[3].eau += 3;
+    for (let i = 1; i <= 6; i++)
+      cp[0].eau += (a - cp[i].altitude) / 5;
 
     /*
-        cp[0].altitude = (cp[0].altitude - 20).borne(0, 255);
-        cp[1].altitude = (cp[1].altitude - 10).borne(0, 255);
-        cp[2].altitude = (cp[2].altitude - 5).borne(0, 255);
-        cp[3].altitude = (cp[3].altitude - 15).borne(0, 255);
-        cp[4].altitude = (cp[4].altitude - 15).borne(0, 255);
-        cp[5].altitude = (cp[5].altitude - 15).borne(0, 255);
-        cp[6].altitude = (cp[6].altitude - 15).borne(0, 255);
-        */
+    //console.log(cp.map((v)=>v.altitude).reduce((t,v)=>t+v));//DCMM
+    console.log(cp.map((v) => v.altitude).reduce((t, v) => {
+      console.log([t, v]); //DCMM
+      return t + (v ? v - a : 0);
+    })); //DCMM
+
+    cp.reduce((t,v)=>{
+    console.log([t,v]);//DCMM
+    return t+v;
+    });
+    console.log(r);//DCMM
+    */
+
+    //cp[6].eau += 10;
+    //cp[3].eau += 3;
 
     affiche();
   } else
