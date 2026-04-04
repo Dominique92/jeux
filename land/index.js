@@ -1,8 +1,8 @@
 // Définition du terrain
 const dateLancement = Date.now(),
-  tailleCaseX = 16, // Pixels 16
+  nbCases = 512 / 16,
+  tailleCaseX = Math.round(256 / nbCases) * 2, // Pixels 16
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  nbCases = Math.round(500 / tailleCaseX),
   debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
@@ -10,6 +10,8 @@ const dateLancement = Date.now(),
   casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
+
+console.info(nbCases + 'x' + nbCases + ' = ' + nbCases * nbCases + ' cases de ' + tailleCaseX + ' pixels');
 
 function inTerrain(x, y) {
   if (0 <= x && x < nbCases && 0 <= y && y < nbCases)
@@ -85,8 +87,7 @@ function affiche() {
       dxAv = dxAp - 1; // Quinconce
 
     for (let x = 0; x < nbCases; x++) {
-      const c = cases[y][x],
-        cp = proches(x, y);
+      const c = cases[y][x];
 
       // Affiche la couleur de la case
       c.hsl = [
@@ -97,10 +98,6 @@ function affiche() {
 
       ligneEl.children[x].style.backgroundImage =
         'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
-
-      // Ecoulement de l'eau
-      for (let i = 1; i <= 3; i++)
-        cp[i].eau += cp[0].altitude - cp[i].altitude;
 
       // Calcul des directions
       ['altitude']
@@ -122,15 +119,29 @@ function affiche() {
         valeur + 'px" z-index=1000000>→</div>'; */
     }
   }
-  console.log('affiche ' + (Date.now() - debut) + ' ms');
+  console.info('affiche ' + (Date.now() - debut) + ' ms');
 }
 affiche(); // Une fois à l'init
 //setInterval(affiche, 200);
-document.addEventListener('keypress', affiche); // DEBUG
 
 // Vie
-//function vie() {}
-//vie(); // Une première fois, pour tests
+function vie() {
+  const debut = Date.now();
+
+  for (let y = 0; y < nbCases; y++) {
+    for (let x = 0; x < nbCases; x++) {
+      const //c = cases[y][x],
+        cp = proches(x, y);
+
+      // Ecoulement de l'eau
+      for (let i = 1; i <= 3; i++)
+        cp[i].eau += cp[0].altitude - cp[i].altitude;
+    }
+  }
+
+  console.info('vie ' + (Date.now() - debut) + ' ms');
+  affiche();
+}
 //setInterval(vie, 20);
 
 // Actions sur le terrain
@@ -156,7 +167,8 @@ document.addEventListener('click', (evt) => {
         */
 
     affiche();
-  }
+  } else
+    vie();
 });
 
 document.addEventListener('mousemove', (evt) => {
@@ -174,7 +186,7 @@ document.addEventListener('mousemove', (evt) => {
     '';
 });
 
-console.log('index.js ' + (Date.now() - dateLancement) + ' ms');
+console.info('index.js ' + (Date.now() - dateLancement) + ' ms');
 
 ///////// TEST //////////
 /*
