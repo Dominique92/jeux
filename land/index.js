@@ -14,9 +14,15 @@ const dateLancement = Date.now(),
     params.nbCases / 2 ||
     params.largeurTerrainDefaut / tailleCaseX / 2
   ) * 2,
-  debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté) 0.3
+  debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté)
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
+
+  // Fonction aléatoire pour calculer les bosses du terrain
+  rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // 0...1
+  wave = (x /* 0...1 */ , graine /* 1,2,... */ ) =>
+  Math.sin((x + rnd[graine * 2]) * 6.28) * rnd[graine * 2 + 1] / 2 + 0.5,
+
   cases = [], // Valeurs associées à chaque case [x] [y]
   casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
   popupEl = document.getElementById('popup'),
@@ -69,7 +75,7 @@ for (let y = 0; y < nbCases; y++) {
     });
     terrainEl.lastChild.lastChild.id = x + ',' + y;
 
-    // Valeurs initiales des cases du terrain
+    // Valeurs initiales des cases du terrain / Entre 0 et 100
     cases[y][x] = {
       eau: 0,
       altitude: 0,
@@ -77,9 +83,8 @@ for (let y = 0; y < nbCases; y++) {
     };
 
     // Ajout de 3 bosses
-    for (let i = 0; i < 3; i++) {
-      cases[y][x].altitude += [x, y].waves(i, nbCases);
-    }
+    for (let i = 0; i < 3; i++)
+      cases[y][x].altitude += 50 * wave(x / nbCases, 2 * i) * wave(y / nbCases, 2 * i + 1);
   }
 }
 
@@ -100,9 +105,9 @@ function affiche() {
 
       // Affiche la couleur de la case
       c.hsl = [
-        20 + 0.7 * c.eau.borne(0, 60), // Marron à vert
+        20 + 0.4 * c.eau.borne(0, 100), // Marron (20°) à vert (60°)
         40, // Saturation
-        40 + 0.3 * c.altitude.borne(0, 59), // Moyen à blanc
+        30 + 0.7 * c.altitude.borne(0, 99), // Moyen à blanc
       ].join(' ');
 
       ligneEl.children[x].style.backgroundImage =
@@ -137,29 +142,32 @@ affiche(); // Une fois à l'init
 function vie() {
   const debut = Date.now();
 
-  /*for (let y = 0; y < nbCases; y++) {
+  for (let y = 0; y < nbCases; y++) {
     for (let x = 0; x < nbCases; x++) {
       const //c = cases[y][x],
         cp = proches(x, y),
         a = cp[0].altitude;
 
       // Ecoulement de l'eau
-      for (let i = 1; i <= 6; i++)
-        cp[0].eau += (a - cp[i].altitude) / 5;
+      for (let i = 1; i <= 1; i++) {
+        const d = (a - cp[i].altitude) / 2;
+
+        cp[0].eau -= d;
+        cp[i].eau += d;
+      }
     }
-  }*/
+  }
 
   console.info('vie ' + (Date.now() - debut) + ' ms');
   affiche();
 }
 //vie();
-//setInterval(vie, 20);
+//setInterval(vie, 100);
 
 // Actions sur le terrain
 
 document.addEventListener('click', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
-  console.log(xy); //DCMM
 
   if (xy) {
     const cp = proches(...xy),
@@ -167,23 +175,6 @@ document.addEventListener('click', (evt) => {
 
     for (let i = 1; i <= 6; i++)
       cp[0].eau += (a - cp[i].altitude) / 5;
-
-    /*
-    //console.log(cp.map((v)=>v.altitude).reduce((t,v)=>t+v));//DCMM
-    console.log(cp.map((v) => v.altitude).reduce((t, v) => {
-      console.log([t, v]); //DCMM
-      return t + (v ? v - a : 0);
-    })); //DCMM
-
-    cp.reduce((t,v)=>{
-    console.log([t,v]);//DCMM
-    return t+v;
-    });
-    console.log(r);//DCMM
-    */
-
-    //cp[6].eau += 10;
-    //cp[3].eau += 3;
 
     affiche();
   } else
@@ -205,36 +196,7 @@ document.addEventListener('mousemove', (evt) => {
     '';
 });
 
-console.info('index.js ' + (Date.now() - dateLancement) + ' ms');
-
-///////// TEST //////////
-/*
-function prochesEls(xy) {
-  const x = xy[0],
-    y = xy[1],
-    y2 = (y + 1) % 2; // On décale une ligne sur 2 pour simuler un pattern hexagonal
-
-  return [
-      [x - y2, y - 1],
-      [x + 1 - y2, y - 1],
-      [x + 1, y],
-      [x + 1 - y2, y + 1],
-      [x - y2, y + 1],
-      [x - 1, y],
-    ].filter(inTerrain)
-    .map(cellElFromXY);
-}
-    
-      //const titi = xyProches(x, y);
-      //const toto = 'conic-gradient(from 30deg' + [].join(',') + ')';
-
-      if (0)
-        caseEl.style.backgroundImage = //'radial-gradient(rgb(' + rgb + ') 45%, transparent 70%)';
-        //   'radial-gradient(rgba(' + rgb + ',1) 20%,  rgba(' + rgb + ',0) 60%),'+
-        //'conic-gradient(from red 30deg, yellow 90deg, green 150deg, yellow 210deg, red 270deg, yellow 330deg, blue  )';
-        ;
-      // 'conic-gradient(from 45deg, blue, red)';
- */
+console.log('index.js ' + (Date.now() - dateLancement) + ' ms');
 
 /*********************
  * Terrain : toute la fenêtre <body>
@@ -253,72 +215,7 @@ function prochesEls(xy) {
  * Routine : fonction qui manipule les données du programme
  * Verbe : fonction à exécuter qui réalise une action sur une figurine
  * Scenario : liste d'actions ou de scenarii à exécuter dans l'ordre,
-     la première ayant abouti interrompt la liste
+ *   la première ayant abouti interrompt la liste
  */
 
-/*
-const divEls = document.getElementsByTagName('div'), // Les figurines
-  liEls = document.getElementsByTagName('li'), // Les modèles
-  helpEl = document.getElementById('help'),
-  statsEl = document.getElementById('stats'),
-  trace = window.location.search.match(/trace/u),
-  debugInit = window.location.search.match(/[0-9]+/u),
-  deltasProches = [ // [<centre -> départ du côté>, <direction du parcours du côté>]
-    [-1, 0, 0, -1],
-    [1, 0, 0, 1],
-    [0, 1, -1, -1],
-    [0, -1, 1, 1],
-    [1, 1, -1, 0],
-    [-1, -1, 1, 0],
-  ],
-  tailleFigure = 16,
-  giguemax = 2,
-  nbMaxFig = 255, // Nombre maximum de figurines dans la femnêtre
-  rayonRechercheMax = 3,
-  tailleZone = rayonRechercheMax + 1,
-  recurrence = 1000, // ms
-  t0 = Date.now();
-
-let dragInfo = null,
-  noIteration = 0,
-  noIterationMax = 1000000, // Starts immediately
-  timeoutID = null,
-  cases = [],
-  zones = [],
-  dataSav = [];
-*/
-
-// ROUTINES (functions)
-/*
-function gigue() {
-  return Math.random() * 2 * giguemax - giguemax;
-}
-
-function xyFromPix(pix) {
-  return {
-    x: Math.round((pix.left + pix.top / 1.732) / tailleFigure),
-    y: Math.round(pix.top / 0.866 / tailleFigure),
-  };
-}
-
-function pixFromXY(xy) {
-  return {
-    left: (xy.x - xy.y / 2) * tailleFigure + gigue(),
-    top: xy.y * 0.866 * tailleFigure + gigue(),
-  };
-}
-
-function pixFromEl(el) {
-  return {
-    left: el.getBoundingClientRect().left,
-    top: el.getBoundingClientRect().top,
-  };
-}
-
-function xyzFromXY(xy) {
-  return {
-    x: Math.round(xy.x / tailleZone),
-    y: Math.round(xy.y / tailleZone),
-  };
-}
-*/
+// 🚶‍♀️🚶‍♂️🚶‍➡️🚶‍♀️‍➡️🚶‍♂️‍➡️🚶🏻🚶🏿 https://fr.piliapp.com/emojis/person-walking/ 
