@@ -1,24 +1,25 @@
-/* global setInterval */
-
 // Définition du terrain
 const dateLancement = Date.now(),
   params = {
     nbCases: 0,
-    tailleCaseX: 20, // Pixels / défaut 10
-    largeurTerrainDefaut: 450, // Pixels 
+    tailleCase: 0, // Pixels
+    tailleCaseDefaut: 10,
+    debord: 0, //0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté)
   },
-  tailleCaseX = params.tailleCaseX ||
-  (params.nbCases ?
-    params.largeurTerrainDefaut / params.nbCases :
-    10),
+
+  tailleCaseX = params.tailleCase ||
+  (params.nbCases ? window.innerWidth / params.nbCases :
+    params.tailleCaseDefaut),
+
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  nbCases = Math.round(
-    params.nbCases / 2 ||
-    params.largeurTerrainDefaut / tailleCaseX / 2
-  ) * 2,
-  debord = 0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté)
-  shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
-  shiftY = -debord * tailleCaseY, // Pixels
+
+  nbCases = Math.floor((
+    params.nbCases ||
+    window.innerWidth / tailleCaseX + (params.debord ? 1 : 0)
+  ) / 2) * 2,
+
+  shiftX = -params.debord * 2 * tailleCaseX, // Pixels
+  shiftY = -params.debord * tailleCaseY, // Pixels
 
   // Contenu du terrain
   casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
@@ -72,7 +73,7 @@ for (let y = 0; y < nbCases; y++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCaseX * (1 + 2 * debord) + 'px', // Facteur de recouvrement
+      width: tailleCaseX * (1 + 2 * params.debord) + 'px', // Facteur de recouvrement
       top: (y * tailleCaseY + shiftY) + 'px', // Triangle équilatéral
       left: ((x + y % 2 / 2) * tailleCaseX + shiftX) + 'px', // En quiconce
     });
@@ -93,7 +94,7 @@ for (let y = 0; y < nbCases; y++) {
 
 // Affiche les cases du terrain
 function affiche() {
-  const debut = Date.now();
+  const debut = 0; // Date.now();
 
   for (let y = 0; y < nbCases; y++) {
     const ligneEl = terrainEl.children[y],
@@ -114,7 +115,7 @@ function affiche() {
       ].join(' ');
 
       ligneEl.children[x].style.backgroundImage =
-        'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 60%)'; //DCMM 80%
+        'radial-gradient(hsl(' + c.hsl + ') 42%, transparent 80%)';
 
       // Calcul des directions
       ['altitude']
@@ -136,51 +137,62 @@ function affiche() {
         valeur + 'px" z-index=1000000>→</div>'; */
     }
   }
-  //console.info('affiche ' + (Date.now() - debut) + ' ms');
+  if (debut)
+    console.info('affiche ' + (Date.now() - debut) + ' ms');
 }
 affiche(); // Une fois à l'init
 //setInterval(affiche, 200);
 
 // Vie
 function vie() {
-  const debut = Date.now();
+  const debut = 0; // Date.now();
 
   for (let y = 0; y < nbCases; y++)
     for (let x = 0; x < nbCases; x++) {
       const cp = proches(x, y),
         a = cp[0].altitude,
-        e = (cp[0].eau += 2) / 6; // Redistribution de l'eau aux cellules adjacentes
+        e = cp[0].eau / 6;
 
-      if (e > 0) // S'il y a de l'eau
+      // Redistribution de l'eau aux cellules adjacentes
+      if (e > 0) // S'il y a de l'eau dans la case
         for (let i = 1; i <= 6; i++)
           if (a > cp[i].altitude) { // Si la cellule est plus haute
-            const de = (a - cp[i].altitude) / 50 * e.borne(0, 10);
+            const de = (a - cp[i].altitude) / 200 * e.borne(0, 10);
 
             cp[0].eau -= de;
             cp[i].eau += de;
           }
 
-      affiche();
+      // Pluie
+      cp[0].eau += 1;
     }
-
-  //console.info('vie ' + (Date.now() - debut) + ' ms');
-  affiche();
+  if (debut)
+    console.info('vie ' + (Date.now() - debut) + ' ms');
 }
 //vie();
-setInterval(vie, 100);
+//setInterval(vie, 100);
 
 // Actions sur le terrain
 
-/*document.addEventListener('click', (evt) => {
-  const xy = xyCaseAtPoint(evt.x, evt.y);
+document.addEventListener('click', (evt) => {
+  const debut = Date.now(),
+    xy = xyCaseAtPoint(evt.x, evt.y),
+    nbIter = 10;
+
 
   if (xy) {
-    const cp = proches(...xy);
+    /*const cp = proches(...xy);
   
-    affiche();
+    affiche();*/
   } else
-    vie();
-});*/
+    for (let i = 0; i < nbIter; i++)
+      vie();
+
+  affiche();
+
+  if (debut)
+    console.info(nbIter + ' vies ' + (Date.now() - debut) + ' ms');
+});
 
 document.addEventListener('mousemove', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
