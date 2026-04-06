@@ -30,7 +30,7 @@ export default [{
     "init-declarations": "warn",
     "logical-assignment-operators": "warn",
     "max-classes-per-file": "warn",
-    "max-depth": "warn",
+    //"max-depth": "warn",
     //"max-lines": "warn",
     //"max-lines-per-function": "warn",
     "max-nested-callbacks": "warn",

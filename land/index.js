@@ -1,8 +1,10 @@
+/* global setInterval */
+
 // Définition du terrain
 const dateLancement = Date.now(),
   params = {
     nbCases: 0,
-    tailleCaseX: 0, // Pixels / défaut 10
+    tailleCaseX: 20, // Pixels / défaut 10
     largeurTerrainDefaut: 450, // Pixels 
   },
   tailleCaseX = params.tailleCaseX ||
@@ -18,15 +20,16 @@ const dateLancement = Date.now(),
   shiftX = -(debord + 0.4) * tailleCaseX, // Pixels
   shiftY = -debord * tailleCaseY, // Pixels
 
+  // Contenu du terrain
+  casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
+  cases = [], // Valeurs associées à chaque case [x] [y]
+  popupEl = document.getElementById('popup'),
+  terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
+
   // Fonction aléatoire pour calculer les bosses du terrain
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // 0...1
   wave = (x /* 0...1 */ , graine /* 1,2,... */ ) =>
-  Math.sin((x + rnd[graine * 2]) * 6.28) * rnd[graine * 2 + 1] / 2 + 0.5,
-
-  cases = [], // Valeurs associées à chaque case [x] [y]
-  casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
-  popupEl = document.getElementById('popup'),
-  terrainEl = document.getElementById('terrain'); // DOM d'affichage de la couleur des cases
+  Math.sin((x + rnd[graine * 2]) * 6.28) * rnd[graine * 2 + 1] / 2 + 0.5;
 
 console.info(nbCases + '² = ' + nbCases * nbCases + ' cases de ' + tailleCaseX + 'px');
 
@@ -78,13 +81,13 @@ for (let y = 0; y < nbCases; y++) {
     // Valeurs initiales des cases du terrain / Entre 0 et 100
     cases[y][x] = {
       eau: 0,
-      altitude: 0,
+      altitude: -30,
       directions: {},
     };
 
     // Ajout de 3 bosses
     for (let i = 0; i < 3; i++)
-      cases[y][x].altitude += 50 * wave(x / nbCases, 2 * i) * wave(y / nbCases, 2 * i + 1);
+      cases[y][x].altitude += 100 * wave(1.2 * x / nbCases, 2 * i) * wave(y / nbCases, 2 * i + 1);
   }
 }
 
@@ -133,7 +136,7 @@ function affiche() {
         valeur + 'px" z-index=1000000>→</div>'; */
     }
   }
-  console.info('affiche ' + (Date.now() - debut) + ' ms');
+  //console.info('affiche ' + (Date.now() - debut) + ' ms');
 }
 affiche(); // Une fois à l'init
 //setInterval(affiche, 200);
@@ -142,44 +145,42 @@ affiche(); // Une fois à l'init
 function vie() {
   const debut = Date.now();
 
-  for (let y = 0; y < nbCases; y++) {
+  for (let y = 0; y < nbCases; y++)
     for (let x = 0; x < nbCases; x++) {
-      const //c = cases[y][x],
-        cp = proches(x, y),
-        a = cp[0].altitude;
+      const cp = proches(x, y),
+        a = cp[0].altitude,
+        e = (cp[0].eau += 2) / 6; // Redistribution de l'eau aux cellules adjacentes
 
-      // Ecoulement de l'eau
-      for (let i = 1; i <= 1; i++) {
-        const d = (a - cp[i].altitude) / 2;
+      if (e > 0) // S'il y a de l'eau
+        for (let i = 1; i <= 6; i++)
+          if (a > cp[i].altitude) { // Si la cellule est plus haute
+            const de = (a - cp[i].altitude) / 50 * e.borne(0, 10);
 
-        cp[0].eau -= d;
-        cp[i].eau += d;
-      }
+            cp[0].eau -= de;
+            cp[i].eau += de;
+          }
+
+      affiche();
     }
-  }
 
-  console.info('vie ' + (Date.now() - debut) + ' ms');
+  //console.info('vie ' + (Date.now() - debut) + ' ms');
   affiche();
 }
 //vie();
-//setInterval(vie, 100);
+setInterval(vie, 100);
 
 // Actions sur le terrain
 
-document.addEventListener('click', (evt) => {
+/*document.addEventListener('click', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
 
   if (xy) {
-    const cp = proches(...xy),
-      a = cp[0].altitude;
-
-    for (let i = 1; i <= 6; i++)
-      cp[0].eau += (a - cp[i].altitude) / 5;
-
+    const cp = proches(...xy);
+  
     affiche();
   } else
     vie();
-});
+});*/
 
 document.addEventListener('mousemove', (evt) => {
   const xy = xyCaseAtPoint(evt.x, evt.y);
