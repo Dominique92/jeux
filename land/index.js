@@ -1,25 +1,12 @@
 // Définition du terrain
-const dateLancement = Date.now(),
-  params = {
-    nbCases: 0,
-    tailleCase: 0, // Pixels
-    tailleCaseDefaut: 10,
-    debord: 0, //0.3, // Débordement de la div contenant la couleur (nb cases de chaque côté)
-  },
-
-  tailleCaseX = params.tailleCase ||
-  (params.nbCases ? window.innerWidth / params.nbCases :
-    params.tailleCaseDefaut),
-
+const dateDebut = Date.now(),
+  argTaille = location.search.substring(1) || 10,
+  nbCases = Math.round(window.innerWidth / argTaille / 2) * 2,
+  debord = typeof argTaille === 'string' ? 0 : 0.35, // Débordement de la div contenant la couleur (nb cases de chaque côté)
+  tailleCaseX = window.innerWidth / (nbCases - debord * 2 + 0.5),
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-
-  nbCases = Math.floor((
-    params.nbCases ||
-    window.innerWidth / tailleCaseX + (params.debord ? 1 : 0)
-  ) / 2) * 2,
-
-  shiftX = -params.debord * 2 * tailleCaseX, // Pixels
-  shiftY = -params.debord * tailleCaseY, // Pixels
+  shiftX = -debord * 2 * tailleCaseX, // Pixels
+  shiftY = -debord * tailleCaseY, // Pixels
 
   // Contenu du terrain
   casesBord = {}, // Toutes les cases en dehors du tableau pointeront ici
@@ -28,6 +15,7 @@ const dateLancement = Date.now(),
   terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
 
   // Fonction aléatoire pour calculer les bosses du terrain
+  //TODO générer en fonction d'une clé qui serait le nom du pays
   rnd = Array(12).fill().map(() => Date.now() * Math.random() % 1), // 0...1
   wave = (x /* 0...1 */ , graine /* 1,2,... */ ) =>
   Math.sin((x + rnd[graine * 2]) * 6.28) * rnd[graine * 2 + 1] / 2 + 0.5;
@@ -73,7 +61,7 @@ for (let y = 0; y < nbCases; y++) {
     // Un DIV pour chaque case position: absolute
     terrainEl.lastChild.insertAdjacentHTML('beforeend', '<div>');
     Object.assign(terrainEl.lastChild.lastChild.style, {
-      width: tailleCaseX * (1 + 2 * params.debord) + 'px', // Facteur de recouvrement
+      width: tailleCaseX * (1 + 2 * debord) + 'px', // Facteur de recouvrement
       top: (y * tailleCaseY + shiftY) + 'px', // Triangle équilatéral
       left: ((x + y % 2 / 2) * tailleCaseX + shiftX) + 'px', // En quiconce
     });
@@ -164,7 +152,8 @@ function vie() {
           }
 
       // Pluie
-      cp[0].eau += 1;
+      //TODO pluie aléatoire
+      cp[0].eau += 0.1;
     }
   if (debut)
     console.info('vie ' + (Date.now() - debut) + ' ms');
@@ -209,7 +198,7 @@ document.addEventListener('mousemove', (evt) => {
     '';
 });
 
-console.log('index.js ' + (Date.now() - dateLancement) + ' ms');
+console.log('index.js ' + (Date.now() - dateDebut) + ' ms');
 
 /*********************
  * Terrain : toute la fenêtre <body>

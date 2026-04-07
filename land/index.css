@@ -14,7 +14,6 @@ body {
 #terrain div div {
   position: absolute;
   aspect-ratio: 1.1547;
-  wborder: 0.1px dotted black;
 }
 
 #popup {
