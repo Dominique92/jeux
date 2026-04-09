@@ -13,6 +13,7 @@ const dateDebut = Date.now(),
   cases = [], // Valeurs associées à chaque case [x] [y]
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
+  spritesEl = document.getElementById('sprites'), // DOM des lutins
 
   // Fonction aléatoire pour calculer les bosses du terrain
   //TODO générer en fonction d'une clé qui serait le nom du pays
@@ -99,7 +100,7 @@ function affiche() {
       c.hsl = [
         20 + 0.4 * c.eau.borne(0, 100), // Marron (20°) à vert (60°)
         40, // Saturation
-        30 + 0.7 * c.altitude.borne(0, 99), // Moyen à blanc
+        30 + 0.3 * c.altitude.borne(0, 99), // Moyen à blanc
       ].join(' ');
 
       ligneEl.children[x].style.backgroundImage =
@@ -135,6 +136,21 @@ affiche(); // Une fois à l'init
 function vie() {
   const debut = 0; // Date.now();
 
+  // Evolution des sprites
+  Array.from(spritesEl.children).forEach((el) => {
+    const rect = el.getBoundingClientRect(),
+      xy = xyCaseAtPoint(rect.x, rect.y),
+      d = cases[xy[1]][xy[0]].directions;
+
+    el.style.top = rect.y - 5 * d.altitude[1] + 'px';
+    el.style.left = rect.x + 5 * d.altitude[0] + 'px';
+  });
+
+  // Evolution du terrain
+  /*for (let y2 = 0; y2 < nbCases / 2; y2++) // Travail alterné pour éviter les artefacts
+    for (let y = 2 * y2; y < 2 * y2 + 2; y++)
+      for (let x2 = 0; x2 < nbCases / 2; x2++)
+        for (let x = 2 * x2; x < 2 * x2 + 2; x++) */
   for (let y = 0; y < nbCases; y++)
     for (let x = 0; x < nbCases; x++) {
       const cp = proches(x, y),
@@ -159,14 +175,14 @@ function vie() {
     console.info('vie ' + (Date.now() - debut) + ' ms');
 }
 //vie();
-//setInterval(vie, 100);
+setInterval(vie, 200);
 
 // Actions sur le terrain
 
 document.addEventListener('click', (evt) => {
   const debut = Date.now(),
     xy = xyCaseAtPoint(evt.x, evt.y),
-    nbIter = 10;
+    nbIter = 1;
 
 
   if (xy) {
@@ -220,4 +236,9 @@ console.log('index.js ' + (Date.now() - dateDebut) + ' ms');
  *   la première ayant abouti interrompt la liste
  */
 
-// 🚶‍♀️🚶‍♂️🚶‍➡️🚶‍♀️‍➡️🚶‍♂️‍➡️🚶🏻🚶🏿 https://fr.piliapp.com/emojis/person-walking/ 
+/* 🚶‍♀️🚶‍♂️🚶‍➡️🚶‍♀️‍➡️🚶‍♂️‍➡️🚶🏻🚶🏿 https://fr.piliapp.com/emojis/person-walking/ 
+🧍🚶🚶‍➡️🏃🧍‍♀️🚶‍♀️🚶‍♀️‍➡️👫🚶‍♂️🧍‍♂️🚶‍♂️‍➡️
+https://en.wikipedia.org/wiki/Zero-width_joiner
+
+https://emojipedia.org/search?q=woman%20walking
+*/

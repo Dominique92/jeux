@@ -215,6 +215,7 @@ export default [{
       self: "readonly",
       sessionStorage: "readonly",
       setTimeout: "readonly",
+      setInterval: "readonly",
       URL: "readonly",
       URLSearchParams: "readonly",
       window: "readonly",
