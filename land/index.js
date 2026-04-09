@@ -155,13 +155,13 @@ function vie() {
     for (let x = 0; x < nbCases; x++) {
       const cp = proches(x, y),
         a = cp[0].altitude,
-        e = cp[0].eau / 6;
+        e = cp[0].eau / cp.length;
 
       // Redistribution de l'eau aux cellules adjacentes
       if (e > 0) // S'il y a de l'eau dans la case
-        for (let i = 1; i <= 6; i++)
+        for (let i = 1; i < cp.length; i++)
           if (a > cp[i].altitude) { // Si la cellule est plus haute
-            const de = (a - cp[i].altitude) / 200 * e.borne(0, 10);
+            const de = (a - cp[i].altitude) / 20 * e.borne(0, 10);
 
             cp[0].eau -= de;
             cp[i].eau += de;
@@ -169,10 +169,12 @@ function vie() {
 
       // Pluie
       //TODO pluie aléatoire
-      cp[0].eau += 0.1;
+      cp[0].eau += 1;
     }
   if (debut)
     console.info('vie ' + (Date.now() - debut) + ' ms');
+
+  affiche();
 }
 //vie();
 setInterval(vie, 200);
