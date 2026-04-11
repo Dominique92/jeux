@@ -1,5 +1,6 @@
 // Définition du terrain
 const dateDebut = Date.now(),
+  timeMesure = false,
   argTaille = location.search.substring(1) || 10,
   nbCases = Math.round(window.innerWidth / argTaille / 2) * 2,
   debord = typeof argTaille === 'string' ? 0 : 0.35, // Débordement de la div contenant la couleur (nb cases de chaque côté)
@@ -83,7 +84,7 @@ for (let y = 0; y < nbCases; y++) {
 
 // Affiche les cases du terrain
 function affiche() {
-  const debut = 0; // Date.now();
+  const debut = Date.now();
 
   for (let y = 0; y < nbCases; y++) {
     const ligneEl = terrainEl.children[y],
@@ -126,7 +127,7 @@ function affiche() {
         valeur + 'px" z-index=1000000>→</div>'; */
     }
   }
-  if (debut)
+  if (timeMesure)
     console.info('affiche ' + (Date.now() - debut) + ' ms');
 }
 affiche(); // Une fois à l'init
@@ -134,16 +135,19 @@ affiche(); // Une fois à l'init
 
 // Vie
 function vie() {
-  const debut = 0; // Date.now();
+  const debut = Date.now();
 
   // Evolution des sprites
   Array.from(spritesEl.children).forEach((el) => {
     const rect = el.getBoundingClientRect(),
-      xy = xyCaseAtPoint(rect.x, rect.y),
-      d = cases[xy[1]][xy[0]].directions;
+      xy = xyCaseAtPoint(rect.x, rect.y);
 
-    el.style.top = rect.y - 5 * d.altitude[1] + 'px';
-    el.style.left = rect.x + 5 * d.altitude[0] + 'px';
+    if (xy) {
+      const d = cases[xy[1]][xy[0]].directions;
+
+      el.style.top = rect.y - 5 * d.altitude[1] + 'px';
+      el.style.left = rect.x + 5 * d.altitude[0] + 'px';
+    }
   });
 
   // Evolution du terrain
@@ -171,7 +175,7 @@ function vie() {
       //TODO pluie aléatoire
       cp[0].eau += 1;
     }
-  if (debut)
+  if (timeMesure)
     console.info('vie ' + (Date.now() - debut) + ' ms');
 
   affiche();
@@ -179,13 +183,66 @@ function vie() {
 //vie();
 setInterval(vie, 200);
 
-// Actions sur le terrain
+// Gestion des sprites
+function dragstart(evt) {
+  console.log('dragstart', evt); //DCMM
+}
 
+function dragend(evt) {
+  console.log('dragend', evt); //DCMM
+}
+
+function creerSprite() {
+  if (timeMesure);
+  console.log('creer', ...arguments);
+
+  const el = document.createElement('div');
+  //    scn = scenario(catSym);
+
+  el.innerHTML = '🧍‍♂';
+  el.style.top = '150px';
+  el.style.left = '150px';
+
+  // Données initiales du modèle
+  /*if (scn.length) {
+    el.data = { // Enum to clone the values
+      ...scn.at(-1),
+    };
+    delete el.data.cat;
+  }*/
+
+  // Mouse actions
+  el.draggable = true;
+  el.ondragstart = dragstart;
+  el.ondragend = dragend;
+  //el.ondblclick = evt => supprimer(evt.target);
+
+  // Hold transition moves when hover
+  el.onmouseover = (evt) => {
+    console.log('mouseover', evt); //DCMM
+    /*el.hovered = true;
+    el.style.top = window.getComputedStyle(el).top;
+    el.style.left = window.getComputedStyle(el).left;*/
+  };
+  el.onmouseout = (evt) => {
+    console.log('mouseout', evt); //DCMM
+    //el.hovered = false;
+  };
+
+  //muer(el, catSym);
+  //deplacer(el, pos, pos2);
+  document.body.appendChild(el);
+
+  return el;
+}
+creerSprite();
+
+
+// Actions sur le terrain
 document.addEventListener('click', (evt) => {
   const debut = Date.now(),
     xy = xyCaseAtPoint(evt.x, evt.y),
     nbIter = 1;
-
 
   if (xy) {
     /*const cp = proches(...xy);
