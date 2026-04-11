@@ -23,18 +23,10 @@ body {
 }
 
 #sprites>div {
-  font-size: 20px;
   position: absolute;
-  transition:
-    top 1s,
-    left 1s;
-}
-
-#grabbing {
-  wmargin: 50px;
-  wdisplay: none;
+  transition: top 1s, left 1s;
 }
 
 [draggable=true] {
-  cursor: grab;
+  font-size: 24px;
 }

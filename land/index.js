@@ -196,7 +196,7 @@ function creerSprite() {
   el.draggable = true;
   el.ondragstart = (evt) => {
     //console.log('dragstart', evt); //DCMM
-    evt.dataTransfer.origine = evt.target;
+    evt.dataTransfer.origine = evt.target; //TODO evt.dataTransfer.setData()
     grabbingEl.appendChild(evt.target);
   };
   el.ondragend = (evt) => {
@@ -204,6 +204,10 @@ function creerSprite() {
     document.body.appendChild(evt.target);
   };
 
+  terrainEl.ondragover = (evt) => {
+    //console.log('dragover', evt); //DCMM
+    evt.preventDefault(); // Change drag cursor
+  };
   /*
   // Hold transition moves when hover
   el.onmouseover = (evt) => {
