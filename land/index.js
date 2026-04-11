@@ -15,6 +15,7 @@ const dateDebut = Date.now(),
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
   spritesEl = document.getElementById('sprites'), // DOM des lutins
+  grabbingEl = document.getElementById('grabbing'), // DOM des lutins
 
   // Fonction aléatoire pour calculer les bosses du terrain
   //TODO générer en fonction d'une clé qui serait le nom du pays
@@ -181,56 +182,42 @@ function vie() {
   affiche();
 }
 //vie();
-setInterval(vie, 200);
+//setInterval(vie, 200);
 
 // Gestion des sprites
-function dragstart(evt) {
-  console.log('dragstart', evt); //DCMM
-}
-
-function dragend(evt) {
-  console.log('dragend', evt); //DCMM
-}
-
 function creerSprite() {
-  if (timeMesure);
-  console.log('creer', ...arguments);
-
   const el = document.createElement('div');
-  //    scn = scenario(catSym);
 
   el.innerHTML = '🧍‍♂';
   el.style.top = '150px';
   el.style.left = '150px';
 
-  // Données initiales du modèle
-  /*if (scn.length) {
-    el.data = { // Enum to clone the values
-      ...scn.at(-1),
-    };
-    delete el.data.cat;
-  }*/
-
   // Mouse actions
   el.draggable = true;
-  el.ondragstart = dragstart;
-  el.ondragend = dragend;
-  //el.ondblclick = evt => supprimer(evt.target);
+  el.ondragstart = (evt) => {
+    //console.log('dragstart', evt); //DCMM
+    evt.dataTransfer.origine = evt.target;
+    grabbingEl.appendChild(evt.target);
+  };
+  el.ondragend = (evt) => {
+    console.log('dragend', evt.dataTransfer.origine.getBoundingClientRect()); //DCMM
+    document.body.appendChild(evt.target);
+  };
 
+  /*
   // Hold transition moves when hover
   el.onmouseover = (evt) => {
-    console.log('mouseover', evt); //DCMM
-    /*el.hovered = true;
-    el.style.top = window.getComputedStyle(el).top;
-    el.style.left = window.getComputedStyle(el).left;*/
+    //console.log('mouseover', evt); //DCMM
   };
   el.onmouseout = (evt) => {
-    console.log('mouseout', evt); //DCMM
-    //el.hovered = false;
+    //console.log('mouseout', evt ); //DCMM
   };
+  el.ondrag = (evt) => {
+    //console.log('drag',   evt.dataTransfer.origine.target); //DCMM
+  }
+  */
 
-  //muer(el, catSym);
-  //deplacer(el, pos, pos2);
+  //spritesEl.appendChild(el);
   document.body.appendChild(el);
 
   return el;
@@ -246,7 +233,6 @@ document.addEventListener('click', (evt) => {
 
   if (xy) {
     /*const cp = proches(...xy);
-  
     affiche();*/
   } else
     for (let i = 0; i < nbIter; i++)
