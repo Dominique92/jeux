@@ -1,4 +1,6 @@
-// Définition du terrain
+/***********
+ * TERRAIN *
+ ***********/
 const dateDebut = Date.now(),
   timeMesure = false,
   argTaille = location.search.substring(1) || 10,
@@ -42,7 +44,7 @@ function terrainAtXY(xy) {
     return terrainEl.children[xy[1]].children[xy[0]];
 }
 
-function proches(x, y) {
+function casesProches(x, y) {
   return [
     cases[y][x],
     cases[y][x - 1],
@@ -89,7 +91,7 @@ for (let y = 0; y < nbCases; y++) {
 }
 
 // Affiche les cases du terrain
-function affiche() {
+function afficheTerrain() {
   const debut = Date.now();
 
   for (let y = 0; y < nbCases; y++) {
@@ -134,12 +136,64 @@ function affiche() {
     }
   }
   if (timeMesure)
-    console.info('affiche ' + (Date.now() - debut) + ' ms');
+    console.info('afficheTerrain ' + (Date.now() - debut) + ' ms');
 }
-affiche(); // Une fois à l'init
-//setInterval(affiche, 200);
+afficheTerrain(); // Une fois à l'init
+//setInterval(afficheTerrain, 200);
 
-// Vie
+/***********
+ * SPRITES *
+ ***********/
+function moveSprite(el, px, py) {
+  console.log(arguments); //DCMM
+  const ct = terrainAtXY(xyAtPoint(px, py)) || draggingEl,
+    rect = ct.getBoundingClientRect();
+
+  ct.appendChild(el);
+  el.style.top = (px - rect.x) + 'px';
+  el.style.left = (py - rect.y) + 'px';
+  afficheTerrain();
+
+  return el;
+}
+
+function sprite(symbol) {
+  const el = document.createElement('div');
+
+  el.draggable = true;
+  el.innerHTML = symbol;
+
+  // Mouse actions
+  el.ondragstart = (evt) => {
+    //console.log('dragstart', evt); //DCMM
+    evt.dataTransfer.origine = evt.target; //TODO evt.dataTransfer.setData()
+    draggingEl.appendChild(evt.target);
+  };
+  el.ondragend = (evt) => {
+    console.log('dragend', evt.dataTransfer.origine.getBoundingClientRect()); //DCMM
+    console.log('dragend', evt.target.getBoundingClientRect()); //DCMM
+    const rect = evt.target.getBoundingClientRect();
+
+    //document.body.appendChild(evt.target);
+    moveSprite(evt.target, rect.x, rect.y);
+  };
+  /*el.onmouseover = (evt) => {
+    // Hold transition moves when hover
+    //console.log('mouseover', evt); //DCMM
+  };*/
+
+  terrainEl.ondragover = (evt) => {
+    //console.log('dragover', evt); //DCMM
+    evt.preventDefault(); // Change drag cursor
+  };
+
+  return el;
+}
+moveSprite(sprite('A🧍‍♂'), 150, 150);
+
+/*******
+ * VIE *
+ *******/
 function vie() {
   const debut = Date.now();
 
@@ -162,7 +216,7 @@ function vie() {
         for (let x = 2 * x2; x < 2 * x2 + 2; x++) */
   for (let y = 0; y < nbCases; y++)
     for (let x = 0; x < nbCases; x++) {
-      const cp = proches(x, y),
+      const cp = casesProches(x, y),
         a = cp[0].altitude,
         e = cp[0].eau / cp.length;
 
@@ -183,77 +237,16 @@ function vie() {
   if (timeMesure)
     console.info('vie ' + (Date.now() - debut) + ' ms');
 
-  affiche();
+  afficheTerrain();
 }
 //vie();
 //setInterval(vie, 200);
 
-/***********
- * SPRITES *
- ***********/
-function sprite(symbol) {
-  const el = document.createElement('div');
-
-  el.draggable = true;
-  el.innerHTML = symbol;
-
-  // Mouse actions
-  el.ondragstart = (evt) => {
-    //console.log('dragstart', evt); //DCMM
-    evt.dataTransfer.origine = evt.target; //TODO evt.dataTransfer.setData()
-    draggingEl.appendChild(evt.target);
-  };
-  el.ondragend = (evt) => {
-    console.log('dragend', evt.dataTransfer.origine.getBoundingClientRect()); //DCMM
-    document.body.appendChild(evt.target);
-  };
-  /*el.onmouseover = (evt) => {
-    // Hold transition moves when hover
-    //console.log('mouseover', evt); //DCMM
-  };*/
-
-  terrainEl.ondragover = (evt) => {
-    //console.log('dragover', evt); //DCMM
-    evt.preventDefault(); // Change drag cursor
-  };
-
-  return el;
-}
-
-function moveSprite(el, px, py) {
-  const ct = terrainAtXY(xyAtPoint(px, py)) || draggingEl,
-    rect = ct.getBoundingClientRect();
-
-  ct.appendChild(el);
-  el.style.top = (px - rect.x) + 'px';
-  el.style.left = (py - rect.y) + 'px';
-  affiche();
-
-  return el;
-}
-moveSprite(sprite('A🧍‍♂'), 150, 150);
-
-
-// Actions sur le terrain
-document.addEventListener('click', (evt) => {
-  const debut = Date.now(),
-    xy = xyAtPoint(evt.x, evt.y),
-    nbIter = 1;
-
-  if (xy) {
-    /*const cp = proches(...xy);
-    affiche();*/
-  } else
-    for (let i = 0; i < nbIter; i++)
-      vie();
-
-  affiche();
-
-  if (debut)
-    console.info(nbIter + ' vies ' + (Date.now() - debut) + ' ms');
-});
-
+/*********
+ * POPUP *
+ *********/
 document.addEventListener('mousemove', (evt) => {
+  // Case survollée
   const xy = xyAtPoint(evt.x, evt.y);
 
   popupEl.style.left = (evt.x + 10) + 'px';
@@ -266,6 +259,25 @@ document.addEventListener('mousemove', (evt) => {
     .replace(/,"([a-z])/gu, '<br/>$1')
     .replace(/^\{|"|\.[0-9]*|\}$/gu, '') :
     '';
+});
+
+// Actions sur le terrain
+document.addEventListener('wwwclick', (evt) => {
+  const debut = Date.now(),
+    xy = xyAtPoint(evt.x, evt.y),
+    nbIter = 1;
+
+  if (xy) {
+    /*const cp = casesProches(...xy);
+    afficheTerrain();*/
+  } else
+    for (let i = 0; i < nbIter; i++)
+      vie();
+
+  afficheTerrain();
+
+  if (debut)
+    console.info(nbIter + ' vies ' + (Date.now() - debut) + ' ms');
 });
 
 console.log('index.js ' + (Date.now() - dateDebut) + ' ms');
