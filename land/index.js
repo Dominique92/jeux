@@ -24,24 +24,20 @@ const dateDebut = Date.now(),
 
 console.info(nbCases + '² = ' + nbCases * nbCases + ' cases de ' + tailleCaseX + 'px');
 
-function inTerrain(x, y) {
+function xyAtPoint(px, py) {
+  const y = Math.floor((py - shiftY) / tailleCaseY),
+    x = Math.floor((px - shiftX) / tailleCaseX - y % 2 / 2);
+
   if (0 <= x && x < nbCases && 0 <= y && y < nbCases)
     return [x, y];
 }
 
-function xyCaseAtPoint(px, py) {
-  const y = Math.floor((py - shiftY) / tailleCaseY),
-    x = Math.floor((px - shiftX) / tailleCaseX - y % 2 / 2);
-
-  return inTerrain(x, y);
-}
-
-function caseAtPoint(xy) {
+function caseAtXY(xy) {
   if (xy)
     return cases[xy[1]][xy[0]];
 }
 
-function terrainAtPoint(xy) {
+function terrainAtXY(xy) {
   if (xy)
     return terrainEl.children[xy[1]].children[xy[0]];
 }
@@ -151,7 +147,7 @@ function vie() {
   Array.from(document.querySelectorAll('[draggable=true]'))
     .forEach((el) => {
       const rect = el.getBoundingClientRect(),
-        c = caseAtPoint(xyCaseAtPoint(rect.x, rect.y));
+        c = caseAtXY(xyAtPoint(rect.x, rect.y));
 
       if (c) {
         el.style.top = rect.y - 5 * c.directions.altitude[1] + 'px';
@@ -211,31 +207,27 @@ function sprite(symbol) {
     console.log('dragend', evt.dataTransfer.origine.getBoundingClientRect()); //DCMM
     document.body.appendChild(evt.target);
   };
+  /*el.onmouseover = (evt) => {
+    // Hold transition moves when hover
+    //console.log('mouseover', evt); //DCMM
+  };*/
 
   terrainEl.ondragover = (evt) => {
     //console.log('dragover', evt); //DCMM
     evt.preventDefault(); // Change drag cursor
   };
-  /*
-  // Hold transition moves when hover
-  el.onmouseover = (evt) => {
-    //console.log('mouseover', evt); //DCMM
-  };
-  el.onmouseout = (evt) => {
-    //console.log('mouseout', evt ); //DCMM
-  };
-  el.ondrag = (evt) => {
-    //console.log('drag',   evt.dataTransfer.origine.target); //DCMM
-  }
-  */
+
   return el;
 }
 
-function moveSprite(el, x, y) {
-  (terrainAtPoint(xyCaseAtPoint(x, y)) || draggingEl).appendChild(el);
+function moveSprite(el, px, py) {
+  const ct = terrainAtXY(xyAtPoint(px, py)) || draggingEl,
+    rect = ct.getBoundingClientRect();
 
-  el.style.top = '150px';
-  el.style.left = '150px';
+  ct.appendChild(el);
+  el.style.top = (px - rect.x) + 'px';
+  el.style.left = (py - rect.y) + 'px';
+  affiche();
 
   return el;
 }
@@ -245,7 +237,7 @@ moveSprite(sprite('A🧍‍♂'), 150, 150);
 // Actions sur le terrain
 document.addEventListener('click', (evt) => {
   const debut = Date.now(),
-    xy = xyCaseAtPoint(evt.x, evt.y),
+    xy = xyAtPoint(evt.x, evt.y),
     nbIter = 1;
 
   if (xy) {
@@ -262,7 +254,7 @@ document.addEventListener('click', (evt) => {
 });
 
 document.addEventListener('mousemove', (evt) => {
-  const xy = xyCaseAtPoint(evt.x, evt.y);
+  const xy = xyAtPoint(evt.x, evt.y);
 
   popupEl.style.left = (evt.x + 10) + 'px';
   popupEl.style.top = (evt.y - 8) + 'px';
