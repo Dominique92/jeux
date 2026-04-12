@@ -14,8 +14,7 @@ const dateDebut = Date.now(),
   cases = [], // Valeurs associées à chaque case [x] [y]
   popupEl = document.getElementById('popup'),
   terrainEl = document.getElementById('terrain'), // DOM d'affichage de la couleur des cases
-  spritesEl = document.getElementById('sprites'), // DOM des lutins
-  grabbingEl = document.getElementById('grabbing'), // DOM des lutins
+  draggingEl = document.getElementById('dragging'), // Lutins en cours de déplacement
 
   // Fonction aléatoire pour calculer les bosses du terrain
   //TODO générer en fonction d'une clé qui serait le nom du pays
@@ -35,6 +34,16 @@ function xyCaseAtPoint(px, py) {
     x = Math.floor((px - shiftX) / tailleCaseX - y % 2 / 2);
 
   return inTerrain(x, y);
+}
+
+function caseAtPoint(xy) {
+  if (xy)
+    return cases[xy[1]][xy[0]];
+}
+
+function terrainAtPoint(xy) {
+  if (xy)
+    return terrainEl.children[xy[1]].children[xy[0]];
 }
 
 function proches(x, y) {
@@ -139,17 +148,16 @@ function vie() {
   const debut = Date.now();
 
   // Evolution des sprites
-  Array.from(spritesEl.children).forEach((el) => {
-    const rect = el.getBoundingClientRect(),
-      xy = xyCaseAtPoint(rect.x, rect.y);
+  Array.from(document.querySelectorAll('[draggable=true]'))
+    .forEach((el) => {
+      const rect = el.getBoundingClientRect(),
+        c = caseAtPoint(xyCaseAtPoint(rect.x, rect.y));
 
-    if (xy) {
-      const d = cases[xy[1]][xy[0]].directions;
-
-      el.style.top = rect.y - 5 * d.altitude[1] + 'px';
-      el.style.left = rect.x + 5 * d.altitude[0] + 'px';
-    }
-  });
+      if (c) {
+        el.style.top = rect.y - 5 * c.directions.altitude[1] + 'px';
+        el.style.left = rect.x + 5 * c.directions.altitude[0] + 'px';
+      }
+    });
 
   // Evolution du terrain
   /*for (let y2 = 0; y2 < nbCases / 2; y2++) // Travail alterné pour éviter les artefacts
@@ -184,20 +192,20 @@ function vie() {
 //vie();
 //setInterval(vie, 200);
 
-// Gestion des sprites
-function creerSprite() {
+/***********
+ * SPRITES *
+ ***********/
+function sprite(symbol) {
   const el = document.createElement('div');
 
-  el.innerHTML = '🧍‍♂';
-  el.style.top = '150px';
-  el.style.left = '150px';
+  el.draggable = true;
+  el.innerHTML = symbol;
 
   // Mouse actions
-  el.draggable = true;
   el.ondragstart = (evt) => {
     //console.log('dragstart', evt); //DCMM
     evt.dataTransfer.origine = evt.target; //TODO evt.dataTransfer.setData()
-    grabbingEl.appendChild(evt.target);
+    draggingEl.appendChild(evt.target);
   };
   el.ondragend = (evt) => {
     console.log('dragend', evt.dataTransfer.origine.getBoundingClientRect()); //DCMM
@@ -220,13 +228,18 @@ function creerSprite() {
     //console.log('drag',   evt.dataTransfer.origine.target); //DCMM
   }
   */
+  return el;
+}
 
-  //spritesEl.appendChild(el);
-  document.body.appendChild(el);
+function moveSprite(el, x, y) {
+  (terrainAtPoint(xyCaseAtPoint(x, y)) || draggingEl).appendChild(el);
+
+  el.style.top = '150px';
+  el.style.left = '150px';
 
   return el;
 }
-creerSprite();
+moveSprite(sprite('A🧍‍♂'), 150, 150);
 
 
 // Actions sur le terrain
