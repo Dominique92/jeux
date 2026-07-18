@@ -1,0 +1,17 @@
+body {
+  margin: 0;
+  background: #333;
+}
+
+#terrain {
+  /* 1 / cos 30° */
+  aspect-ratio: 1.1547;
+  background: #486;
+  cursor: crosshair;
+}
+
+#popup {
+  position: absolute;
+  font-size: 10px;
+  z-index: 1000000;
+}
