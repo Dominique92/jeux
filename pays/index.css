@@ -1,17 +1,24 @@
 body {
   margin: 0;
   background: #333;
+  cursor: crosshair;
 }
 
 #terrain {
   /* 1 / cos 30° */
   aspect-ratio: 1.1547;
   background: #486;
-  cursor: crosshair;
 }
 
-#popup {
+#popup,
+#ludion {
   position: absolute;
-  font-size: 10px;
   z-index: 1000000;
+}
+
+.case-terrain {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: red;
 }
