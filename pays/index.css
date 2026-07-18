@@ -18,7 +18,7 @@ body {
 
 .case-terrain {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: red;
+  width: 22px;
+  height: 19px;
+  /*background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);*/
 }
