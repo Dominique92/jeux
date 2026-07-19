@@ -8,16 +8,28 @@ const nbCases = 20,
   terrainEl = document.getElementById('terrain'),
   popupEl = document.getElementById('popup'),
   ludionEl = document.getElementById('ludion'),
-  perfsEl = document.getElementById('perfs');
+  perfsEl = document.getElementById('perfs'),
+  proches = [
+    [0, -1],
+    [1, 0],
+    [-1, 1],
+    [1, -1],
+    [0, 1],
+    [-1, 0],
+  ];
 
 // CSS depending on constants
 document.styleSheets[0].insertRule(
   '.case-terrain {' +
   '  width:' + (tailleCaseX - 2) + 'px;' +
   '  height:' + (tailleCaseY - 2) + 'px;' +
-  '}', 0);
+  '}');
 
 // Fonctions usuelles
+function normNoCase(x) {
+  return Math.floor(x + nbCases) % nbCases;
+}
+
 function pointAtXY(xy) {
   return [
     (xy[0] + xy[1] / 2) % nbCases * tailleCaseX,
@@ -26,8 +38,8 @@ function pointAtXY(xy) {
 }
 
 function xyAtPoint(pxy) {
-  const y = Math.floor(pxy[1] / tailleCaseY) % nbCases,
-    x = Math.floor(pxy[0] / tailleCaseX - y / 2) % nbCases;
+  const y = normNoCase(pxy[1] / tailleCaseY),
+    x = normNoCase(pxy[0] / tailleCaseX - y / 2);
   return [x, y];
 }
 
@@ -55,27 +67,34 @@ for (let cx = 0; cx < nbCases; cx++) {
     cases[cx][cy] = {
       fond: el,
       alt: Math.random() * 256,
+      eau: 128,
     };
   }
 }
 
+
 // Vie du terrain
-let maxExecTime = 0;
+let maxExecTime = 0,
+  nbIterations = 0;
 setInterval(() => {
-  const startTime = performance.now()
+  const startTime = performance.now();
 
-  // On fait au hazard 50% des cases
-  for (let i = 0; i < nbCases * nbCases; i++) {
-    const cx = Math.floor(Math.random() * nbCases),
-      cy = Math.floor(Math.random() * nbCases),
-      c = cases[cx][cy];
+  // On fait au hazard 50% des cases et des proches
+  for (let i = 0; i < nbCases * nbCases * 3; i++) {
+    const cx = normNoCase(Math.random() * nbCases), //Math.floor(Math.random() * nbCases),
+      cy = normNoCase(Math.random() * nbCases), //Math.floor(Math.random() * nbCases),
+      proche = normNoCase(Math.random() * 3), //Math.floor(Math.random() * 3),
+      cxp = normNoCase(cx + proches[proche][0] + nbCases), //(cx+proches[proche][0]+nbCases)%nbCases,
+      cyp = normNoCase(cx + proches[proche][1] + nbCases), //(cx+proches[proche][1]+nbCases)%nbCases,
+      c = cases[cx][cy],
+      cp = cases[cxp][cyp];
 
-    c.fond.style.backgroundColor = 'rgb(133, ' + c.alt + ', 57)';
+    c.fond.style.backgroundColor = 'rgb(128,128, ' + c.eau + ')';
   }
 
   // Mesures perfs
   maxExecTime = Math.max(maxExecTime, performance.now() - startTime);
-  perfsEl.innerHTML = Math.ceil(maxExecTime) + ' ms';
+  perfsEl.innerHTML = Math.ceil(maxExecTime) + ' ms, iter = ' + nbIterations++;
 }, intervalRefreshAllCases);
 
 // Actions
