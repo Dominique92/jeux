@@ -1,10 +1,14 @@
+/* global performance */
+
 const nbCases = 20,
   tailleCaseX = 24,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
+  intervalRefreshAllCases = 100, // ms
   cases = [],
   terrainEl = document.getElementById('terrain'),
   popupEl = document.getElementById('popup'),
-  ludionEl = document.getElementById('ludion');
+  ludionEl = document.getElementById('ludion'),
+  perfsEl = document.getElementById('perfs');
 
 // CSS depending on constants
 document.styleSheets[0].insertRule(
@@ -46,7 +50,6 @@ for (let cx = 0; cx < nbCases; cx++) {
     el.classList.add('case-terrain');
     el.style.left = pos[0] + 'px';
     el.style.top = pos[1] + 'px';
-    el.style.backgroundColor = 'rgb(133, 83, 57)';
 
     terrainEl.appendChild(el);
     cases[cx][cy] = {
@@ -56,11 +59,24 @@ for (let cx = 0; cx < nbCases; cx++) {
   }
 }
 
-// Affichage du terrain
-for (let i = 0; i < 1000; i++) {
-  const c = cases[Math.floor(Math.random() * nbCases)][Math.floor(Math.random() * nbCases)];
-  c.fond.style.backgroundColor = 'rgb(133, ' + c.alt + ', 57)';
-}
+// Vie du terrain
+let maxExecTime = 0;
+setInterval(() => {
+  const startTime = performance.now()
+
+  // On fait au hazard 50% des cases
+  for (let i = 0; i < nbCases * nbCases; i++) {
+    const cx = Math.floor(Math.random() * nbCases),
+      cy = Math.floor(Math.random() * nbCases),
+      c = cases[cx][cy];
+
+    c.fond.style.backgroundColor = 'rgb(133, ' + c.alt + ', 57)';
+  }
+
+  // Mesures perfs
+  maxExecTime = Math.max(maxExecTime, performance.now() - startTime);
+  perfsEl.innerHTML = Math.ceil(maxExecTime) + ' ms';
+}, intervalRefreshAllCases);
 
 // Actions
 document.addEventListener('mousemove', (evt) => {
@@ -90,13 +106,3 @@ document.addEventListener('keydown', () => {
   }
 
 });
-
-// TEST
-
-//<div id="25,9" style="width: 17px; top: 74.909px; left: 248px; background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);"></div>
-
-cases[3][3] = {
-  a: 1,
-  b: 2,
-  c: 3
-};

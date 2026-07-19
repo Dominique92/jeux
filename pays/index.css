@@ -19,3 +19,7 @@ body {
   position: absolute;
   /*background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);*/
 }
+
+#perfs {
+  color: white;
+}
