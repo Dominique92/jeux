@@ -61,9 +61,12 @@ for (let cx = 0; cx < nbCases; cx++) {
       fond: el,
       alt: Math.random() * 256,
       eau: 128,
+      lapin: 0,
     };
   }
 }
+
+cases[3][3].lapin = 255;
 
 // Vie du terrain
 let maxExecTime = 0,
@@ -83,10 +86,14 @@ setInterval(() => {
       cp = cases[cxp][cyp];
 
     // Evolution des cases
+    const tot = c.lapin + cp.lapin;
+    cp.lapin = cp.lapin * .998 + tot / 1000;
+    c.lapin = c.lapin * .998 + tot / 1000;
+
     c.eau += c.alt / 100;
     cp.eau -= c.alt / 100;
 
-    c.fond.style.backgroundColor = 'rgb(' + 128 + ',128,' + c.eau + ')';
+    c.fond.style.backgroundColor = 'rgb(' + 0 + ',0,' + c.lapin + ')';
   }
 
   // Mesures perfs
@@ -108,7 +115,8 @@ document.addEventListener('mousemove', (evt) => {
       ...cases[xy[1]][xy[0]],
     })
     .replace(/,"([a-z])/gu, '<br/>$1')
-    .replace(/^\{|"|\.[0-9]*|\}$/gu, '');
+    //.replace(/\.[0-9]*$/gu, '')
+    .replace(/\{|"|\}/gu, '');
 
   ludionEl.style.left = (pxy[0]) + 'px';
   ludionEl.style.top = (pxy[1]) + 'px';
