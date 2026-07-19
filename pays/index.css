@@ -5,8 +5,7 @@ body {
 }
 
 #terrain {
-  /* 1 / cos 30° */
-  aspect-ratio: 1.1547;
+  aspect-ratio: 1/.0866;
   background: #486;
 }
 
@@ -18,7 +17,5 @@ body {
 
 .case-terrain {
   position: absolute;
-  width: 22px;
-  height: 19px;
   /*background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);*/
 }

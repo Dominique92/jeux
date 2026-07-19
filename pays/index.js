@@ -6,9 +6,14 @@ const nbCases = 20,
   popupEl = document.getElementById('popup'),
   ludionEl = document.getElementById('ludion');
 
-terrainEl.style.width = (nbCases * tailleCaseX) + 'px';
-terrainEl.style.height = (nbCases * tailleCaseY) + 'px';
+// CSS depending on constants
+document.styleSheets[0].insertRule(
+  '.case-terrain {' +
+  '  width:' + (tailleCaseX - 2) + 'px;' +
+  '  height:' + (tailleCaseY - 2) + 'px;' +
+  '}', 0);
 
+// Fonctions usuelles
 function pointAtXY(xy) {
   return [
     (xy[0] + xy[1] / 2) % nbCases * tailleCaseX,
@@ -29,6 +34,35 @@ function xyRnd() {
   ];
 }
 
+// Initialisation du terrain
+terrainEl.style.width = (nbCases * tailleCaseX) + 'px';
+terrainEl.style.height = (nbCases * tailleCaseY) + 'px';
+
+for (let cx = 0; cx < nbCases; cx++) {
+  cases[cx] = [];
+  for (let cy = 0; cy < nbCases; cy++) {
+    const pos = pointAtXY([cx, cy]),
+      el = document.createElement('div');
+    el.classList.add('case-terrain');
+    el.style.left = pos[0] + 'px';
+    el.style.top = pos[1] + 'px';
+    el.style.backgroundColor = 'rgb(133, 83, 57)';
+
+    terrainEl.appendChild(el);
+    cases[cx][cy] = {
+      fond: el,
+      alt: Math.random() * 256,
+    };
+  }
+}
+
+// Affichage du terrain
+for (let i = 0; i < 1000; i++) {
+  const c = cases[Math.floor(Math.random() * nbCases)][Math.floor(Math.random() * nbCases)];
+  c.fond.style.backgroundColor = 'rgb(133, ' + c.alt + ', 57)';
+}
+
+// Actions
 document.addEventListener('mousemove', (evt) => {
   // Case survolée
   const xy = xyAtPoint([evt.x, evt.y]),
@@ -52,30 +86,12 @@ document.addEventListener('keydown', () => {
   console.log('cycle'); //DCMM
 
   for (let c = 0; c < 1000; c++) {
-    console.log(xyRnd()); //DCMM
+    //console.log(xyRnd()); //DCMM
   }
 
 });
 
 // TEST
-
-for (let cx = 0; cx < nbCases; cx++) {
-  cases[cx] = [];
-  for (let cy = 0; cy < nbCases; cy++) {
-    const pos = pointAtXY([cx, cy]),
-      el = document.createElement('div');
-    terrainEl.appendChild(el);
-    cases[cx][cy] = {
-      fond: el,
-    };
-
-    el.classList.add('case-terrain');
-    el.style.left = pos[0] + 'px';
-    el.style.top = pos[1] + 'px';
-    el.style.backgroundColor = 'rgb(133, 83, 57)';
-
-  }
-}
 
 //<div id="25,9" style="width: 17px; top: 74.909px; left: 248px; background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);"></div>
 
