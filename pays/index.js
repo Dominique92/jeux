@@ -1,6 +1,6 @@
 /* global performance */
 
-const nbCases = 20,
+const nbCases = 10,
   tailleCaseX = 24,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   intervalRefreshAllCases = 100, // ms
@@ -43,13 +43,6 @@ function xyAtPoint(pxy) {
   return [x, y];
 }
 
-function xyRnd() {
-  return [
-    Math.floor(Math.random() * nbCases),
-    Math.floor(Math.random() * nbCases),
-  ];
-}
-
 // Initialisation du terrain
 terrainEl.style.width = (nbCases * tailleCaseX) + 'px';
 terrainEl.style.height = (nbCases * tailleCaseY) + 'px';
@@ -72,24 +65,28 @@ for (let cx = 0; cx < nbCases; cx++) {
   }
 }
 
-
 // Vie du terrain
 let maxExecTime = 0,
   nbIterations = 0;
+
 setInterval(() => {
   const startTime = performance.now();
 
   // On fait au hazard 50% des cases et des proches
   for (let i = 0; i < nbCases * nbCases * 3; i++) {
-    const cx = normNoCase(Math.random() * nbCases), //Math.floor(Math.random() * nbCases),
-      cy = normNoCase(Math.random() * nbCases), //Math.floor(Math.random() * nbCases),
-      proche = normNoCase(Math.random() * 3), //Math.floor(Math.random() * 3),
-      cxp = normNoCase(cx + proches[proche][0] + nbCases), //(cx+proches[proche][0]+nbCases)%nbCases,
-      cyp = normNoCase(cx + proches[proche][1] + nbCases), //(cx+proches[proche][1]+nbCases)%nbCases,
+    const cx = normNoCase(Math.random() * nbCases),
+      cy = normNoCase(Math.random() * nbCases),
+      proche = normNoCase(Math.random() * 3),
+      cxp = normNoCase(cx + proches[proche][0]),
+      cyp = normNoCase(cy + proches[proche][1]),
       c = cases[cx][cy],
       cp = cases[cxp][cyp];
 
-    c.fond.style.backgroundColor = 'rgb(128,128, ' + c.eau + ')';
+    // Evolution des cases
+    c.eau += c.alt / 100;
+    cp.eau -= c.alt / 100;
+
+    c.fond.style.backgroundColor = 'rgb(' + 128 + ',128,' + c.eau + ')';
   }
 
   // Mesures perfs
@@ -115,13 +112,4 @@ document.addEventListener('mousemove', (evt) => {
 
   ludionEl.style.left = (pxy[0]) + 'px';
   ludionEl.style.top = (pxy[1]) + 'px';
-});
-
-document.addEventListener('keydown', () => {
-  console.log('cycle'); //DCMM
-
-  for (let c = 0; c < 1000; c++) {
-    //console.log(xyRnd()); //DCMM
-  }
-
 });
