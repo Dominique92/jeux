@@ -5,10 +5,7 @@ const nbCases = 10,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
   intervalRefreshAllCases = 100, // ms
   cases = [],
-  terrainEl = document.getElementById('terrain'),
-  popupEl = document.getElementById('popup'),
-  ludionEl = document.getElementById('ludion'),
-  perfsEl = document.getElementById('perfs'),
+  els = {},
   proches = [
     [0, -1],
     [1, 0],
@@ -17,6 +14,13 @@ const nbCases = 10,
     [0, 1],
     [-1, 0],
   ];
+
+// Get ref to divs having an id
+Array.from(document.getElementsByTagName('div'))
+  .forEach((el) => {
+    if (el.id)
+      els[el.id] = el;
+  });
 
 // CSS depending on constants
 document.styleSheets[0].insertRule(
@@ -44,21 +48,21 @@ function xyAtPoint(pxy) {
 }
 
 // Initialisation du terrain
-terrainEl.style.width = (nbCases * tailleCaseX) + 'px';
-terrainEl.style.height = (nbCases * tailleCaseY) + 'px';
+els.terrain.style.width = (nbCases * tailleCaseX) + 'px';
+els.terrain.style.height = (nbCases * tailleCaseY) + 'px';
 
 for (let cx = 0; cx < nbCases; cx++) {
   cases[cx] = [];
   for (let cy = 0; cy < nbCases; cy++) {
     const pos = pointAtXY([cx, cy]),
-      el = document.createElement('div');
-    el.classList.add('case-terrain');
-    el.style.left = pos[0] + 'px';
-    el.style.top = pos[1] + 'px';
+      caseEl = document.createElement('div');
+    caseEl.classList.add('case-terrain');
+    caseEl.style.left = pos[0] + 'px';
+    caseEl.style.top = pos[1] + 'px';
 
-    terrainEl.appendChild(el);
+    els.terrain.appendChild(caseEl);
     cases[cx][cy] = {
-      fond: el,
+      fond: caseEl,
       alt: Math.random() * 256,
       eau: 128,
       lapin: 0,
@@ -98,7 +102,7 @@ setInterval(() => {
 
   // Mesures perfs
   maxExecTime = Math.max(maxExecTime, performance.now() - startTime);
-  perfsEl.innerHTML = Math.ceil(maxExecTime) + ' ms, iter = ' + nbIterations++;
+  els.perfs.innerHTML = Math.ceil(maxExecTime) + ' ms, iter = ' + nbIterations++;
 }, intervalRefreshAllCases);
 
 // Actions
@@ -107,9 +111,9 @@ document.addEventListener('mousemove', (evt) => {
   const xy = xyAtPoint([evt.x, evt.y]),
     pxy = pointAtXY(xy);
 
-  popupEl.style.left = (evt.x + 3) + 'px';
-  popupEl.style.top = (evt.y + 3) + 'px';
-  popupEl.innerHTML =
+  els.popup.style.left = (evt.x + 3) + 'px';
+  els.popup.style.top = (evt.y + 3) + 'px';
+  els.popup.innerHTML =
     JSON.stringify({
       x: xy.join(', y:'),
       ...cases[xy[1]][xy[0]],
@@ -118,6 +122,6 @@ document.addEventListener('mousemove', (evt) => {
     //.replace(/\.[0-9]*$/gu, '')
     .replace(/\{|"|\}/gu, '');
 
-  ludionEl.style.left = (pxy[0]) + 'px';
-  ludionEl.style.top = (pxy[1]) + 'px';
+  els.ludions.style.left = (pxy[0]) + 'px';
+  els.ludions.style.top = (pxy[1]) + 'px';
 });
