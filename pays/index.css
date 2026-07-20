@@ -16,7 +16,8 @@ body {
   z-index: 1000000;
 }
 
-.case-terrain {
+#terrain>div,
+#ludions>span {
   position: absolute;
-  /*background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%);*/
+  /* background-image: radial-gradient(rgb(133, 83, 57) 42%, transparent 80%); */
 }

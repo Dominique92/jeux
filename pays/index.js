@@ -24,7 +24,7 @@ Array.from(document.getElementsByTagName('div'))
 
 // CSS depending on constants
 document.styleSheets[0].insertRule(
-  '.case-terrain {' +
+  '#terrain div {' +
   '  width:' + (tailleCaseX - 2) + 'px;' +
   '  height:' + (tailleCaseY - 2) + 'px;' +
   '}');
@@ -56,7 +56,7 @@ for (let cx = 0; cx < nbCases; cx++) {
   for (let cy = 0; cy < nbCases; cy++) {
     const pos = pointAtXY([cx, cy]),
       caseEl = document.createElement('div');
-    caseEl.classList.add('case-terrain');
+
     caseEl.style.left = pos[0] + 'px';
     caseEl.style.top = pos[1] + 'px';
 
@@ -70,7 +70,18 @@ for (let cx = 0; cx < nbCases; cx++) {
   }
 }
 
-cases[3][3].lapin = 255;
+// Création ludion
+function createLudion() {
+  const luEl = document.createElement('span');
+  luEl.style.left = 100 + 'px';
+  luEl.style.top = 100 + 'px';
+  luEl.naissance = Date.now();
+  luEl.innerHTML = '💧';
+  els.ludions.appendChild(luEl);
+}
+createLudion();
+
+cases[3][3].lapin = 255; //DCMM
 
 // Vie du terrain
 let maxExecTime = 0,
@@ -96,6 +107,13 @@ setInterval(() => {
 
     c.eau += c.alt / 100;
     cp.eau -= c.alt / 100;
+
+    // Evolution des ludions
+    Array.from(els.ludions.children)
+      .forEach((el) => {
+        if ((Date.now() - el.naissance) > 2000)
+          el.innerHTML = '💦';
+      });
 
     c.fond.style.backgroundColor = 'rgb(' + 0 + ',0,' + c.lapin + ')';
   }
