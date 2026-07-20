@@ -15,19 +15,19 @@ const nbCases = 10,
     [-1, 0],
   ];
 
-// Get ref to divs having an id
-Array.from(document.getElementsByTagName('div'))
-  .forEach((el) => {
-    if (el.id)
-      els[el.id] = el;
-  });
-
 // CSS depending on constants
 document.styleSheets[0].insertRule(
   '#terrain div {' +
   '  width:' + (tailleCaseX - 2) + 'px;' +
   '  height:' + (tailleCaseY - 2) + 'px;' +
   '}');
+
+// Get ref to divs having an id
+Array.from(document.getElementsByTagName('div'))
+  .forEach((el) => {
+    if (el.id)
+      els[el.id] = el;
+  });
 
 // Fonctions usuelles
 function normNoCase(x) {
@@ -70,27 +70,46 @@ for (let cx = 0; cx < nbCases; cx++) {
   }
 }
 
+// Evolutions
+function vieCase(el) {
+  el.fond.style.backgroundColor = 'rgb(' + 0 + ',0,' + el.lapin + ')';
+}
+
+function vieVoisinage(el1, el2) {
+  const tot = el1.lapin + el2.lapin;
+  el2.lapin = el2.lapin * .998 + tot / 1000;
+  el1.lapin = el1.lapin * .998 + tot / 1000;
+
+  el1.eau += el1.alt / 100;
+  el2.eau -= el1.alt / 100;
+}
+
 // Création ludion
-function createLudion() {
+function createLudion(pxy, type) {
   const luEl = document.createElement('span');
-  luEl.style.left = 100 + 'px';
-  luEl.style.top = 100 + 'px';
+  luEl.innerHTML = type;
+  luEl.style.left = pxy[0] + 'px';
+  luEl.style.top = pxy[1] + 'px';
   luEl.naissance = Date.now();
-  luEl.innerHTML = '💧';
   els.ludions.appendChild(luEl);
 }
-createLudion();
 
-cases[3][3].lapin = 255; //DCMM
+function vieLudion(el) {
+  if ((Date.now() - el.naissance) > 2000)
+    el.innerHTML = '💦';
+}
+
+cases[3][3].lapin = 255; //DCMM phéromone
 
 // Vie du terrain
 let maxExecTime = 0,
   nbIterations = 0;
 
 setInterval(() => {
-  const startTime = performance.now();
+  const startTime = performance.now(),
+    ludionEls = Array.from(els.ludions.children);
 
-  // On fait au hazard 50% des cases et des proches
+  // On fait au hazard autant de casse et de voisinages qu'il y en a
   for (let i = 0; i < nbCases * nbCases * 3; i++) {
     const cx = normNoCase(Math.random() * nbCases),
       cy = normNoCase(Math.random() * nbCases),
@@ -100,23 +119,15 @@ setInterval(() => {
       c = cases[cx][cy],
       cp = cases[cxp][cyp];
 
-    // Evolution des cases
-    const tot = c.lapin + cp.lapin;
-    cp.lapin = cp.lapin * .998 + tot / 1000;
-    c.lapin = c.lapin * .998 + tot / 1000;
-
-    c.eau += c.alt / 100;
-    cp.eau -= c.alt / 100;
-
-    // Evolution des ludions
-    Array.from(els.ludions.children)
-      .forEach((el) => {
-        if ((Date.now() - el.naissance) > 2000)
-          el.innerHTML = '💦';
-      });
-
-    c.fond.style.backgroundColor = 'rgb(' + 0 + ',0,' + c.lapin + ')';
+    if (!proche) vieCase(c); // Il y a moins de cases que de voisinages
+    vieVoisinage(c, cp);
   }
+
+  // On fait au hazard autant de ludions qu'il y en a
+  for (let l = 0; l < ludionEls.length; l++)
+    vieLudion(ludionEls[
+      Math.floor(Math.random() * els.ludions.children.length)
+    ]);
 
   // Mesures perfs
   maxExecTime = Math.max(maxExecTime, performance.now() - startTime);
@@ -143,3 +154,10 @@ document.addEventListener('mousemove', (evt) => {
   els.ludions.style.left = (pxy[0]) + 'px';
   els.ludions.style.top = (pxy[1]) + 'px';
 });
+
+// TEST
+for (let i = 0; i < 100; i++)
+  createLudion([
+    Math.random() * nbCases * tailleCaseX,
+    Math.random() * nbCases * tailleCaseY,
+  ], '💧');
