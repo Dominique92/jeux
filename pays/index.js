@@ -3,9 +3,9 @@
 const nbCases = 10,
   tailleCaseX = 24,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
-  intervalRefreshAllCases = 100, // ms
+  intervalRefreshAllCases = 300, // ms
   cases = [],
-  els = {},
+  div = {}, // DIV ayant un id = div.id
   proches = [
     [0, -1],
     [1, 0],
@@ -26,7 +26,7 @@ document.styleSheets[0].insertRule(
 Array.from(document.getElementsByTagName('div'))
   .forEach((el) => {
     if (el.id)
-      els[el.id] = el;
+      div[el.id] = el;
   });
 
 // Fonctions usuelles
@@ -48,8 +48,8 @@ function xyAtPoint(pxy) {
 }
 
 // Initialisation du terrain
-els.terrain.style.width = (nbCases * tailleCaseX) + 'px';
-els.terrain.style.height = (nbCases * tailleCaseY) + 'px';
+div.terrain.style.width = (nbCases * tailleCaseX) + 'px';
+div.terrain.style.height = (nbCases * tailleCaseY) + 'px';
 
 for (let cx = 0; cx < nbCases; cx++) {
   cases[cx] = [];
@@ -60,7 +60,7 @@ for (let cx = 0; cx < nbCases; cx++) {
     caseEl.style.left = pos[0] + 'px';
     caseEl.style.top = pos[1] + 'px';
 
-    els.terrain.appendChild(caseEl);
+    div.terrain.appendChild(caseEl);
     cases[cx][cy] = {
       fond: caseEl,
       alt: Math.random() * 256,
@@ -91,7 +91,7 @@ function createLudion(pxy, type) {
   luEl.style.left = pxy[0] + 'px';
   luEl.style.top = pxy[1] + 'px';
   luEl.naissance = Date.now();
-  els.ludions.appendChild(luEl);
+  div.ludions.appendChild(luEl);
 }
 
 function vieLudion(el) {
@@ -99,39 +99,40 @@ function vieLudion(el) {
     el.innerHTML = '💦';
 }
 
-cases[3][3].lapin = 255; //DCMM phéromone
-
 // Vie du terrain
 let maxExecTime = 0,
   nbIterations = 0;
 
-setInterval(() => {
+setInterval(() => { //TODO surveiller quand on reste longtemps sur une autre page
   const startTime = performance.now(),
-    ludionEls = Array.from(els.ludions.children);
+    ludionEls = Array.from(div.ludions.children);
 
-  // On fait au hazard autant de casse et de voisinages qu'il y en a
   for (let i = 0; i < nbCases * nbCases * 3; i++) {
     const cx = normNoCase(Math.random() * nbCases),
       cy = normNoCase(Math.random() * nbCases),
-      proche = normNoCase(Math.random() * 3),
+      proche = normNoCase(Math.random() * 3), // Les 3 en étoile
       cxp = normNoCase(cx + proches[proche][0]),
       cyp = normNoCase(cy + proches[proche][1]),
       c = cases[cx][cy],
       cp = cases[cxp][cyp];
 
-    if (!proche) vieCase(c); // Il y a moins de cases que de voisinages
+    // On fait statistiquement chaque case à chaque itération
+    if (!proche)
+      vieCase(c);
+
+    // On fait statistiquement chaque transition à chaque itération
     vieVoisinage(c, cp);
   }
 
-  // On fait au hazard autant de ludions qu'il y en a
+  // On fait statistiquement chaque ludion à chaque itération
   for (let l = 0; l < ludionEls.length; l++)
     vieLudion(ludionEls[
-      Math.floor(Math.random() * els.ludions.children.length)
+      Math.floor(Math.random() * div.ludions.children.length)
     ]);
 
   // Mesures perfs
   maxExecTime = Math.max(maxExecTime, performance.now() - startTime);
-  els.perfs.innerHTML = Math.ceil(maxExecTime) + ' ms, iter = ' + nbIterations++;
+  div.perfs.innerHTML = Math.ceil(maxExecTime) + ' ms, iter = ' + nbIterations++;
 }, intervalRefreshAllCases);
 
 // Actions
@@ -140,9 +141,9 @@ document.addEventListener('mousemove', (evt) => {
   const xy = xyAtPoint([evt.x, evt.y]),
     pxy = pointAtXY(xy);
 
-  els.popup.style.left = (evt.x + 3) + 'px';
-  els.popup.style.top = (evt.y + 3) + 'px';
-  els.popup.innerHTML =
+  div.popup.style.left = (evt.x + 3) + 'px';
+  div.popup.style.top = (evt.y + 3) + 'px';
+  div.popup.innerHTML =
     JSON.stringify({
       x: xy.join(', y:'),
       ...cases[xy[1]][xy[0]],
@@ -151,11 +152,13 @@ document.addEventListener('mousemove', (evt) => {
     //.replace(/\.[0-9]*$/gu, '')
     .replace(/\{|"|\}/gu, '');
 
-  els.ludions.style.left = (pxy[0]) + 'px';
-  els.ludions.style.top = (pxy[1]) + 'px';
+  div.ludions.style.left = (pxy[0]) + 'px';
+  div.ludions.style.top = (pxy[1]) + 'px';
 });
 
 // TEST
+cases[3][3].lapin = 255; //DCMM phéromone
+
 for (let i = 0; i < 100; i++)
   createLudion([
     Math.random() * nbCases * tailleCaseX,
