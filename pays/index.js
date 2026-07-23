@@ -1,8 +1,9 @@
 /* global performance */
 
-const nbCases = 10,
-  tailleCaseX = 24,
+const nbCases = 80,
+  tailleCaseX = 8,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
+  margeCase = 0,
   intervalRefreshAllCases = 300, // ms
   cases = [],
   div = {}, // DIV ayant un id = div.id
@@ -18,8 +19,8 @@ const nbCases = 10,
 // CSS depending on constants
 document.styleSheets[0].insertRule(
   '#terrain div {' +
-  '  width:' + (tailleCaseX - 2) + 'px;' +
-  '  height:' + (tailleCaseY - 2) + 'px;' +
+  '  width:' + (tailleCaseX - margeCase) + 'px;' +
+  '  height:' + (tailleCaseY - margeCase) + 'px;' +
   '}');
 
 // Get ref to divs having an id
@@ -63,16 +64,40 @@ for (let cx = 0; cx < nbCases; cx++) {
     div.terrain.appendChild(caseEl);
     cases[cx][cy] = {
       fond: caseEl,
-      alt: Math.random() * 256,
-      eau: 128,
-      lapin: 0,
+      alt: Math.random() * 100,
+      eau: 120,
+      vert: 0,
+      lapin: 0, //TODO DCMM
     };
+
+    // Coloration des cases
+    vieCase(cases[cx][cy]);
   }
 }
 
+//TODO TSL terre 24 124 128-162-196
+// RGB 180 135 76  -27 -33 -41
+// RGB 207 168 117                                           / TSL 24 123 162
+// RGB 220 199 172 +13 +31 +55
+// herbe profonde TSL 109 128 100 / RGB moy terre 50 150 107 / TSL 109 128 100
+// eau RGB 99 203 245 / RGB  moy terre 153 185 181           / TSL 140 224 172
+//TOUT 24-109-140 128 128-196 / HSL 24-109-140 50 50-75 / HSL 24 + 0-128 eau, 50, 50 + 0 25 alt
+
 // Evolutions
 function vieCase(el) {
-  el.fond.style.backgroundColor = 'rgb(' + 0 + ',0,' + el.lapin + ')';
+  /* el.fond.style.backgroundColor = 'hsl(30 50 50)';// terre
+    el.fond.style.backgroundColor = 'hsl(120 50 50)';// herbe
+    el.fond.style.backgroundColor = 'hsl(195 50 '+(25+el.alt/2)+')';// eau
+  */
+  /* el.fond.style.backgroundColor = 'hsl(25 33 40)';// terre
+    el.fond.style.backgroundColor = 'hsl(150 33 40)';// herbe
+    el.fond.style.backgroundColor = 'hsl(195 33 '+(25+el.alt/2)+')';// eau
+  */
+  el.bkcol = //DCMM
+    el.fond.style.backgroundColor = 'hsl(' +
+    (25 + Math.max(0, Math.min(175, el.eau))) +
+    ' 20 ' + //  ' 50 ' +
+    (45 + el.alt / 4) + ')'; // eau
 }
 
 function vieVoisinage(el1, el2) {
@@ -156,11 +181,12 @@ document.addEventListener('mousemove', (evt) => {
   div.ludions.style.top = (pxy[1]) + 'px';
 });
 
-// TEST
+//TODO TEST
 cases[3][3].lapin = 255; //DCMM phéromone
 
-for (let i = 0; i < 100; i++)
-  createLudion([
-    Math.random() * nbCases * tailleCaseX,
-    Math.random() * nbCases * tailleCaseY,
-  ], '💧');
+if (0) //TODO
+  for (let i = 0; i < 100; i++)
+    createLudion([
+      Math.random() * nbCases * tailleCaseX,
+      Math.random() * nbCases * tailleCaseY,
+    ], '💧');
