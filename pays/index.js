@@ -1,5 +1,8 @@
 /* global performance */
 
+/**************
+ * Constantes *
+ **************/
 const nbCases = 80,
   tailleCaseX = 8,
   tailleCaseY = tailleCaseX * 0.866, // cos 30°
@@ -30,7 +33,9 @@ Array.from(document.getElementsByTagName('div'))
       div[el.id] = el;
   });
 
-// Fonctions usuelles
+/**********************
+ * Fonctions usuelles *
+ **********************/
 function normNoCase(x) {
   return Math.floor(x + nbCases) % nbCases;
 }
@@ -48,7 +53,21 @@ function xyAtPoint(pxy) {
   return [x, y];
 }
 
-// Initialisation du terrain
+function vieCaseAleatoire(execute) {
+  const cx = normNoCase(Math.random() * nbCases),
+    cy = normNoCase(Math.random() * nbCases),
+    proche = normNoCase(Math.random() * 3), // Les 3 en étoile
+    cxp = normNoCase(cx + proches[proche][0]),
+    cyp = normNoCase(cy + proches[proche][1]),
+    c = cases[cx][cy],
+    cp = cases[cxp][cyp];
+
+  return execute(c, cp);
+}
+
+/*****************************
+ * Initialisation du terrain *
+ *****************************/
 div.terrain.style.width = (nbCases * tailleCaseX) + 'px';
 div.terrain.style.height = (nbCases * tailleCaseY) + 'px';
 
@@ -64,16 +83,36 @@ for (let cx = 0; cx < nbCases; cx++) {
     div.terrain.appendChild(caseEl);
     cases[cx][cy] = {
       fond: caseEl,
-      alt: Math.random() * 100,
+      alt: Math.random() * 120,
       eau: 120,
       vert: 0,
       lapin: 0, //TODO DCMM
     };
 
     // Coloration des cases
-    vieCase(cases[cx][cy]);
+    //TODO vieCase(cases[cx][cy]);
   }
 }
+
+// Lissage de l'altitude
+for (let i = 0; i < nbCases * nbCases * 300; i++) {
+  vieCaseAleatoire((el1, el2) => {
+    const tot = el1.alt + el2.alt,
+      perc = 0.1;
+    el2.alt = el2.alt * (1 - perc) + tot * perc / 2;
+    el1.alt = el1.alt * (1 - perc) + tot * perc / 2;
+  });
+}
+
+/*let minAlt=1000000,maxAlt=0;
+     Array.from(div.terrain.children)
+  .forEach((el) => {
+console.log(el);//DCMM
+    minAlt=Math.min(minAlt,el.alt);
+    maxAlt=Math.max(maxAlt,el.alt);
+  });
+console.log(minAlt,maxAlt);*/
+
 
 //TODO TSL terre 24 124 128-162-196
 // RGB 180 135 76  -27 -33 -41
@@ -83,7 +122,9 @@ for (let cx = 0; cx < nbCases; cx++) {
 // eau RGB 99 203 245 / RGB  moy terre 153 185 181           / TSL 140 224 172
 //TOUT 24-109-140 128 128-196 / HSL 24-109-140 50 50-75 / HSL 24 + 0-128 eau, 50, 50 + 0 25 alt
 
-// Evolutions
+/**************
+ * Evolutions *
+ **************/
 function vieCase(el) {
   /* el.fond.style.backgroundColor = 'hsl(30 50 50)';// terre
     el.fond.style.backgroundColor = 'hsl(120 50 50)';// herbe
@@ -95,9 +136,9 @@ function vieCase(el) {
   */
   el.bkcol = //DCMM
     el.fond.style.backgroundColor = 'hsl(' +
-    (25 + Math.max(0, Math.min(175, el.eau))) +
-    ' 20 ' + //  ' 50 ' +
-    (45 + el.alt / 4) + ')'; // eau
+    150 + (25 + Math.max(0, Math.min(175, el.eau))) +
+    ' 15 ' + //  ' 50 ' +
+    (45 + Math.max(0, Math.min(50, el.alt - 25)) /*el.alt / 4*/ ) + ')'; // eau
 }
 
 function vieVoisinage(el1, el2) {
@@ -124,7 +165,9 @@ function vieLudion(el) {
     el.innerHTML = '💦';
 }
 
-// Vie du terrain
+/******************
+ * Vie du terrain *
+ ******************/
 let maxExecTime = 0,
   nbIterations = 0;
 
@@ -133,20 +176,14 @@ setInterval(() => { //TODO surveiller quand on reste longtemps sur une autre pag
     ludionEls = Array.from(div.ludions.children);
 
   for (let i = 0; i < nbCases * nbCases * 3; i++) {
-    const cx = normNoCase(Math.random() * nbCases),
-      cy = normNoCase(Math.random() * nbCases),
-      proche = normNoCase(Math.random() * 3), // Les 3 en étoile
-      cxp = normNoCase(cx + proches[proche][0]),
-      cyp = normNoCase(cy + proches[proche][1]),
-      c = cases[cx][cy],
-      cp = cases[cxp][cyp];
+    vieCaseAleatoire((c, cp) => {
+      // On fait statistiquement chaque case une fois toutes les 3 itérations
+      if (Math.random() < 0.33)
+        vieCase(c);
 
-    // On fait statistiquement chaque case à chaque itération
-    if (!proche)
-      vieCase(c);
-
-    // On fait statistiquement chaque transition à chaque itération
-    vieVoisinage(c, cp);
+      // On fait statistiquement les 3 transitions d'une case toutes les 3 itérations
+      vieVoisinage(c, cp);
+    });
   }
 
   // On fait statistiquement chaque ludion à chaque itération
@@ -181,12 +218,14 @@ document.addEventListener('mousemove', (evt) => {
   div.ludions.style.top = (pxy[1]) + 'px';
 });
 
-//TODO TEST
+/*********
+ * TES*TS *
+ ********/
 cases[3][3].lapin = 255; //DCMM phéromone
 
-if (0) //TODO
+/*if (0) //TODO
   for (let i = 0; i < 100; i++)
     createLudion([
       Math.random() * nbCases * tailleCaseX,
       Math.random() * nbCases * tailleCaseY,
-    ], '💧');
+    ], '💧');*/
